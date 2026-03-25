@@ -9,7 +9,7 @@ class QualityControlController extends Controller
 {
     public function index()
     {
-        return response()->json(QualityControl::latest()->get());
+        return response()->json(QualityControl::latest('id')->get());
     }
 
     public function store(Request $request)

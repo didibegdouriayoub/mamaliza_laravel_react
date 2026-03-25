@@ -9,7 +9,7 @@ class BatchController extends Controller
 {
     public function index()
     {
-        return response()->json(Batch::latest()->get());
+        return response()->json(Batch::latest('id')->get());
     }
 
     public function store(Request $request)

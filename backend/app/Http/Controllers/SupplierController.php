@@ -9,7 +9,7 @@ class SupplierController extends Controller
 {
     public function index()
     {
-        return response()->json(Supplier::with('items')->latest()->get());
+        return response()->json(Supplier::with('inventoryItems')->latest()->get());
     }
 
     public function store(Request $request)
@@ -26,7 +26,7 @@ class SupplierController extends Controller
 
     public function show(Supplier $supplier)
     {
-        return response()->json($supplier->load('items'));
+        return response()->json($supplier->load('inventoryItems'));
     }
 
     public function update(Request $request, Supplier $supplier)
