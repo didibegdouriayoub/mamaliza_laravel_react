@@ -60,8 +60,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     try {
       const response = await authService.login(email, password);
-      if (response && response.access_token) {
-        setAuthToken(response.access_token);
+      const token = response?.token || response?.access_token;
+      if (token) {
+        setAuthToken(token);
         // Fetch user object
         const me = await authService.getMe();
         setUser(me);
