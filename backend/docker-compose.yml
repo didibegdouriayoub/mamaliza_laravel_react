@@ -1,0 +1,57 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fromagerie_app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/var/www/html
+    environment:
+      APP_NAME: Fromagerie
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: fromagerie
+      DB_USERNAME: fromagerie
+      DB_PASSWORD: secret
+      SANCTUM_STATELESS_DOMAINS: localhost:5173
+      FRONTEND_URL: http://localhost:5173
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - fromagerie
+
+  db:
+    image: mysql:8.0
+    container_name: fromagerie_db
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: fromagerie
+      MYSQL_USER: fromagerie
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: rootsecret
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - fromagerie
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "fromagerie", "-psecret"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+networks:
+  fromagerie:
+    driver: bridge
+
+volumes:
+  db_data:

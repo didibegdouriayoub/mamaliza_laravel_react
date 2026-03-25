@@ -1,0 +1,257 @@
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Calculator, Plus, Trash2, Printer } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { mockRecipes, mockInventory } from '@/data/mockData';
+import { Badge } from '@/components/ui/badge';
+
+interface EstimationLine {
+  recipeId: string;
+  batchCount: number;
+}
+
+export default function Estimation() {
+  const [lines, setLines] = useState<EstimationLine[]>([{ recipeId: '', batchCount: 1 }]);
+
+  const addLine = () => setLines(prev => [...prev, { recipeId: '', batchCount: 1 }]);
+  const removeLine = (idx: number) => setLines(prev => prev.filter((_, i) => i !== idx));
+  const updateLine = (idx: number, updates: Partial<EstimationLine>) =>
+    setLines(prev => prev.map((l, i) => i === idx ? { ...l, ...updates } : l));
+
+  // Aggregate ingredients needed
+  const aggregated = new Map<string, { name: string; quantity: number; unit: string; unitPrice: number; type: string }>();
+
+  lines.forEach(line => {
+    const recipe = mockRecipes.find(r => r.id === line.recipeId);
+    if (!recipe) return;
+    recipe.ingredients.forEach(ing => {
+      const existing = aggregated.get(ing.materialId);
+      const needed = ing.quantity * line.batchCount;
+      if (existing) {
+        existing.quantity += needed;
+      } else {
+        const invItem = mockInventory.find(i => i.id === ing.materialId);
+        aggregated.set(ing.materialId, {
+          name: ing.materialName,
+          quantity: needed,
+          unit: ing.unit,
+          unitPrice: ing.unitPrice,
+          type: invItem?.type || 'raw',
+        });
+      }
+    });
+  });
+
+  // Also estimate packaging needs (simple: 1 label + some wrapping per yield unit)
+  const totalYield = lines.reduce((sum, line) => {
+    const recipe = mockRecipes.find(r => r.id === line.recipeId);
+    return sum + (recipe ? recipe.yield * line.batchCount : 0);
+  }, 0);
+
+  const packagingNeeds = mockInventory.filter(i => i.type === 'packaging').map(pkg => ({
+    ...pkg,
+    estimated: pkg.name.toLowerCase().includes('label') ? totalYield : Math.ceil(totalYield * 0.1),
+  }));
+
+  const ingredientList = Array.from(aggregated.values());
+  const totalIngredientCost = ingredientList.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
+  const totalPackagingCost = packagingNeeds.reduce((sum, p) => sum + p.estimated * p.price, 0);
+  const totalCost = totalIngredientCost + totalPackagingCost;
+
+  const hasEstimation = lines.some(l => l.recipeId);
+
+  // Stock availability check
+  const stockStatus = ingredientList.map(ing => {
+    const invItem = mockInventory.find(i => i.name === ing.name);
+    const available = invItem?.quantity || 0;
+    return { ...ing, available, sufficient: available >= ing.quantity };
+  });
+
+  const handlePrint = () => window.print();
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between print:hidden">
+        <div>
+          <h1 className="text-2xl font-display font-bold flex items-center gap-2"><Calculator className="h-6 w-6" /> Production Estimation</h1>
+          <p className="text-sm text-muted-foreground">Estimate ingredients, packaging, and costs for planned batches</p>
+        </div>
+        {hasEstimation && (
+          <Button variant="outline" onClick={handlePrint}><Printer className="h-4 w-4 mr-1" /> Print</Button>
+        )}
+      </div>
+
+      {/* Recipe selection */}
+      <Card className="shadow-card print:hidden">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base font-display">Select Recipes & Batch Counts</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {lines.map((line, idx) => (
+            <div key={idx} className="flex flex-col sm:flex-row gap-2 items-start sm:items-end">
+              <div className="flex-1 space-y-1.5 w-full">
+                <Label className="text-xs">Recipe</Label>
+                <Select value={line.recipeId} onValueChange={v => updateLine(idx, { recipeId: v })}>
+                  <SelectTrigger><SelectValue placeholder="Select recipe" /></SelectTrigger>
+                  <SelectContent>
+                    {mockRecipes.map(r => <SelectItem key={r.id} value={r.id}>{r.name} (yields {r.yield} {r.yieldUnit})</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="w-full sm:w-32 space-y-1.5">
+                <Label className="text-xs">Batches</Label>
+                <Input type="number" min={1} value={line.batchCount} onChange={e => updateLine(idx, { batchCount: Math.max(1, Number(e.target.value)) })} />
+              </div>
+              {lines.length > 1 && (
+                <Button variant="ghost" size="icon" className="shrink-0" onClick={() => removeLine(idx)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          ))}
+          <Button variant="outline" size="sm" onClick={addLine}><Plus className="h-3 w-3 mr-1" /> Add Recipe</Button>
+        </CardContent>
+      </Card>
+
+      {hasEstimation && (
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
+          {/* Summary cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Card className="shadow-card">
+              <CardContent className="p-4 text-center">
+                <p className="text-xs text-muted-foreground mb-1">Ingredient Cost</p>
+                <p className="text-2xl font-display font-bold text-primary">€{totalIngredientCost.toFixed(2)}</p>
+              </CardContent>
+            </Card>
+            <Card className="shadow-card">
+              <CardContent className="p-4 text-center">
+                <p className="text-xs text-muted-foreground mb-1">Packaging Cost</p>
+                <p className="text-2xl font-display font-bold text-primary">€{totalPackagingCost.toFixed(2)}</p>
+              </CardContent>
+            </Card>
+            <Card className="shadow-card">
+              <CardContent className="p-4 text-center">
+                <p className="text-xs text-muted-foreground mb-1">Total Investment</p>
+                <p className="text-2xl font-display font-bold text-primary">€{totalCost.toFixed(2)}</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Ingredients table */}
+          <Card className="shadow-card">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-display">Required Ingredients</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Material</TableHead>
+                    <TableHead className="text-right">Needed</TableHead>
+                    <TableHead>Unit</TableHead>
+                    <TableHead className="text-right">In Stock</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Cost</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {stockStatus.map((ing, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="font-medium">{ing.name}</TableCell>
+                      <TableCell className="text-right">{ing.quantity.toFixed(1)}</TableCell>
+                      <TableCell>{ing.unit}</TableCell>
+                      <TableCell className="text-right">{ing.available}</TableCell>
+                      <TableCell>
+                        <Badge className={ing.sufficient ? 'bg-success text-success-foreground' : 'bg-destructive text-destructive-foreground'}>
+                          {ing.sufficient ? 'OK' : `Need ${(ing.quantity - ing.available).toFixed(1)} more`}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">€{(ing.quantity * ing.unitPrice).toFixed(2)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          {/* Packaging table */}
+          <Card className="shadow-card">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-display">Estimated Packaging</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Material</TableHead>
+                    <TableHead className="text-right">Estimated</TableHead>
+                    <TableHead>Unit</TableHead>
+                    <TableHead className="text-right">In Stock</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Cost</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {packagingNeeds.map((pkg, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="font-medium">{pkg.name}</TableCell>
+                      <TableCell className="text-right">{pkg.estimated}</TableCell>
+                      <TableCell>{pkg.unit}</TableCell>
+                      <TableCell className="text-right">{pkg.quantity}</TableCell>
+                      <TableCell>
+                        <Badge className={pkg.quantity >= pkg.estimated ? 'bg-success text-success-foreground' : 'bg-destructive text-destructive-foreground'}>
+                          {pkg.quantity >= pkg.estimated ? 'OK' : 'Low'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">€{(pkg.estimated * pkg.price).toFixed(2)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+
+          {/* Yield summary */}
+          <Card className="shadow-card">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-display">Production Summary</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Recipe</TableHead>
+                    <TableHead className="text-right">Batches</TableHead>
+                    <TableHead className="text-right">Yield/Batch</TableHead>
+                    <TableHead className="text-right">Total Yield</TableHead>
+                    <TableHead className="text-right">Cost/Batch</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {lines.filter(l => l.recipeId).map((line, i) => {
+                    const recipe = mockRecipes.find(r => r.id === line.recipeId)!;
+                    const batchCost = recipe.ingredients.reduce((s, ing) => s + ing.quantity * ing.unitPrice, 0);
+                    return (
+                      <TableRow key={i}>
+                        <TableCell className="font-medium">{recipe.name}</TableCell>
+                        <TableCell className="text-right">{line.batchCount}</TableCell>
+                        <TableCell className="text-right">{recipe.yield} {recipe.yieldUnit}</TableCell>
+                        <TableCell className="text-right font-semibold">{recipe.yield * line.batchCount} {recipe.yieldUnit}</TableCell>
+                        <TableCell className="text-right">€{batchCost.toFixed(2)}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+    </div>
+  );
+}
