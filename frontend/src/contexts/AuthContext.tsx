@@ -1,64 +1,92 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Permission, UserRole } from '@/models/types';
-import { mockUsers } from '@/data/mockData';
+import { authService } from '@/services/authService';
+import { setAuthToken, removeAuthToken } from '@/lib/apiClient';
+import { toast } from 'sonner';
 
 interface AuthContextType {
-  user: User;
+  user: User | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   hasPermission: (permission: Permission) => boolean;
-  setRole: (role: UserRole) => void;
-  login: (email: string, password: string) => boolean;
-  logout: () => void;
-  allUsers: User[];
-  updateUserRole: (userId: string, role: UserRole) => void;
-  updateUserPermissions: (userId: string, permissions: Permission[]) => void;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
 }
-
-const rolePermissions: Record<UserRole, Permission[]> = {
-  admin: ['manage_inventory', 'manage_recipes', 'manage_batches', 'manage_sales', 'view_analytics', 'manage_quality', 'manage_packaging', 'manage_users'],
-  supervisor: ['manage_inventory', 'manage_recipes', 'manage_batches', 'view_analytics', 'manage_quality'],
-  operator: ['manage_batches', 'manage_quality'],
-};
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User>(mockUsers[0]);
+  const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [users, setUsers] = useState<User[]>([...mockUsers]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const hasPermission = (permission: Permission) => user.permissions.includes(permission);
+  // Initialize session on mount
+  useEffect(() => {
+    const initSession = async () => {
+      try {
+        const me = await authService.getMe();
+        if (me) {
+          setUser(me);
+          setIsAuthenticated(true);
+        }
+      } catch (err) {
+        // Token invalid or missing
+        removeAuthToken();
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const setRole = (role: UserRole) => {
-    setUser(prev => ({ ...prev, role, permissions: rolePermissions[role] }));
+    initSession();
+
+    // Listen for unauthorized events globally (from apiClient)
+    const handleUnauthorized = () => {
+      setUser(null);
+      setIsAuthenticated(false);
+      removeAuthToken();
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
+  }, []);
+
+  const hasPermission = (permission: Permission) => {
+    if (!user) return false;
+    // Basic catch-all for admin (if permissions schema was pure roles, but we'll use array check)
+    if (user.role === 'admin') return true;
+    return user.permissions?.includes(permission) || false;
   };
 
-  const login = (email: string, _password: string) => {
-    const found = users.find(u => u.email === email);
-    if (found) {
-      setUser(found);
-      setIsAuthenticated(true);
-      return true;
+  const login = async (email: string, password: string) => {
+    try {
+      const response = await authService.login(email, password);
+      if (response && response.access_token) {
+        setAuthToken(response.access_token);
+        // Fetch user object
+        const me = await authService.getMe();
+        setUser(me);
+        setIsAuthenticated(true);
+        return true;
+      }
+      return false;
+    } catch (err: any) {
+      toast.error(err.message || "Invalid credentials");
+      return false;
     }
-    return false;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await authService.logout();
+    } catch(e) { /* ignore on logout */ }
+    
+    removeAuthToken();
+    setUser(null);
     setIsAuthenticated(false);
   };
 
-  const updateUserRole = (userId: string, role: UserRole) => {
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, role, permissions: rolePermissions[role] } : u));
-    if (user.id === userId) setRole(role);
-  };
-
-  const updateUserPermissions = (userId: string, permissions: Permission[]) => {
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, permissions } : u));
-    if (user.id === userId) setUser(prev => ({ ...prev, permissions }));
-  };
-
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, hasPermission, setRole, login, logout, allUsers: users, updateUserRole, updateUserPermissions }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, hasPermission, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

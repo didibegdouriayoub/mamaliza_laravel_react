@@ -17,11 +17,11 @@
 |---|---|---|---|
 | T0.1 | Choose backend framework (laravel) | 🔴 | ☐ |
 | T0.2 | Initialize backend project with folder structure | 🔴 | ☐ |
-| T0.3 | Set up PostgreSQL database and connect ORM | 🔴 | ☐ |
+| T0.3 | Set up MySQL database and connect ORM | 🔴 | ☐ |
 | T0.4 | Run database migrations for all core tables | 🔴 | ☐ |
-| T0.5 | Add `VITE_API_URL` env variable to frontend | 🔴 | ☐ |
-| T0.6 | Configure CORS (allow frontend origin) | 🔴 | ☐ |
-| T0.7 | Add global error handler middleware | 🟠 | ☐ |
+| T0.5 | Add `VITE_API_URL` env variable to frontend | 🔴 | ✅ |
+| T0.6 | Configure CORS (allow frontend origin) | 🔴 | ✅ |
+| T0.7 | Add global error handler middleware | 🟠 | ✅ |
 
 ---
 
@@ -32,13 +32,13 @@
 | T1.1 | **Backend:** `POST /api/auth/login` — verify password hash, return JWT | 🔴 | ✅ |
 | T1.2 | **Backend:** `GET /api/auth/me` — decode JWT, return current user | 🔴 | ✅ |
 | T1.3 | **Backend:** `POST /api/auth/logout` — invalidate refresh token (if used) | 🟡 | ✅ |
-| T1.4 | **Frontend:** Create `authService.ts` with `login()`, `logout()`, `getMe()` | 🔴 | ☐ |
-| T1.5 | **Frontend:** Store JWT in `localStorage` (or httpOnly cookie) | 🔴 | ☐ |
-| T1.6 | **Frontend:** Attach `Authorization: Bearer <token>` to all fetch calls | 🔴 | ☐ |
-| T1.7 | **Frontend:** On app mount, call `GET /api/auth/me` to restore session | 🔴 | ☐ |
-| T1.8 | **Frontend:** Fix `AuthContext.login()` — stop ignoring the password | 🔴 | ☐ |
-| T1.9 | **Frontend:** Add token expiry handling (redirect to login on 401) | 🟠 | ☐ |
-| T1.10 | **Seed:** Create initial admin user with hashed password in DB | 🔴 | ☐ |
+| T1.4 | **Frontend:** Create `authService.ts` with `login()`, `logout()`, `getMe()` | 🔴 | ✅ |
+| T1.5 | **Frontend:** Store JWT in `localStorage` (or httpOnly cookie) | 🔴 | ✅ |
+| T1.6 | **Frontend:** Attach `Authorization: Bearer <token>` to all fetch calls | 🔴 | ✅ |
+| T1.7 | **Frontend:** On app mount, call `GET /api/auth/me` to restore session | 🔴 | ✅ |
+| T1.8 | **Frontend:** Fix `AuthContext.login()` — stop ignoring the password | 🔴 | ✅ |
+| T1.9 | **Frontend:** Add token expiry handling (redirect to login on 401) | 🟠 | ✅ |
+| T1.10 | **Seed:** Create initial admin user with hashed password in DB | 🔴 | ✅ |
 
 ---
 
