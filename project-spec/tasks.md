@@ -1,5 +1,11 @@
 # Tasks — Fromagerie Management System
 
+## Scrum Master & Agent Workflow Rules
+1. **Focus:** The Agent must adopt the role of Scrum Master and act iteratively, taking exactly ONE task or feature at a time.
+2. **Phase Branching:** Before starting a new Phase, verify we are on main, then create a feature branch (`git checkout -b feature/phase-N`).
+3. **Continuous Commits:** After fully finishing and verifying each individual task or feature, the Agent MUST make a descriptive git commit (`git commit -am "feat: ..."`) immediately.
+4. **Phase Merging:** Once all tasks in the current Phase are 100% completed and tested, the Agent MUST merge the feature branch back into the main branch before proceeding.
+
 > Priority: 🔴 Critical | 🟠 High | 🟡 Medium | 🟢 Low  
 > Status: ☐ Todo | 🔄 In Progress | ✅ Done
 
@@ -23,9 +29,9 @@
 
 | # | Task | Priority | Status |
 |---|---|---|---|
-| T1.1 | **Backend:** `POST /api/auth/login` — verify password hash, return JWT | 🔴 | ☐ |
-| T1.2 | **Backend:** `GET /api/auth/me` — decode JWT, return current user | 🔴 | ☐ |
-| T1.3 | **Backend:** `POST /api/auth/logout` — invalidate refresh token (if used) | 🟡 | ☐ |
+| T1.1 | **Backend:** `POST /api/auth/login` — verify password hash, return JWT | 🔴 | ✅ |
+| T1.2 | **Backend:** `GET /api/auth/me` — decode JWT, return current user | 🔴 | ✅ |
+| T1.3 | **Backend:** `POST /api/auth/logout` — invalidate refresh token (if used) | 🟡 | ✅ |
 | T1.4 | **Frontend:** Create `authService.ts` with `login()`, `logout()`, `getMe()` | 🔴 | ☐ |
 | T1.5 | **Frontend:** Store JWT in `localStorage` (or httpOnly cookie) | 🔴 | ☐ |
 | T1.6 | **Frontend:** Attach `Authorization: Bearer <token>` to all fetch calls | 🔴 | ☐ |
@@ -61,22 +67,22 @@
 
 | # | Task | Priority | Status |
 |---|---|---|---|
-| T3.1 | Inventory: `GET /api/inventory` + `POST` + `PUT /:id` + `DELETE /:id` | 🔴 | ☐ |
-| T3.2 | Inventory: Append `inventory_history` row server-side on update (derive `changedBy` from JWT) | 🔴 | ☐ |
-| T3.3 | Recipes: `GET /api/recipes` + `POST` + `PUT /:id` + `DELETE /:id` | 🔴 | ☐ |
-| T3.4 | Recipes: Append `recipe_history` row server-side on update | 🔴 | ☐ |
-| T3.5 | Batches: `GET /api/batches` + `POST` + `PUT /:id` + `DELETE /:id` | 🔴 | ☐ |
-| T3.6 | Batches: `POST /api/batches/:id/notes` | 🟠 | ☐ |
-| T3.7 | Quality: `GET /api/quality` + `POST` + `DELETE /:id` | 🔴 | ☐ |
-| T3.8 | Quality: `PUT /api/quality/:id` (edit evaluation) | 🟡 | ☐ |
-| T3.9 | Orders: `GET /api/orders` + `POST` | 🔴 | ☐ |
-| T3.10 | Orders: `POST /api/orders/:id/payments` | 🔴 | ☐ |
-| T3.11 | Orders: `POST /api/orders/:id/returns` | 🔴 | ☐ |
-| T3.12 | Orders: `PATCH /api/orders/:id/status` (shipped, cancelled) | 🟠 | ☐ |
-| T3.13 | Users: `GET /api/users` + `POST` + `PATCH /:id/role` + `PATCH /:id/permissions` + `DELETE /:id` | 🔴 | ☐ |
-| T3.14 | Suppliers: `GET /api/suppliers` + `POST` + `PUT /:id` + `DELETE /:id` | 🟠 | ☐ |
-| T3.15 | Customers: `GET /api/customers` + `POST` + `PUT /:id` + `DELETE /:id` | 🟠 | ☐ |
-| T3.16 | Production logs: `GET /api/production-logs` + `POST` + `DELETE /:id` | 🟠 | ☐ |
+| T3.1 | Inventory: `GET /api/inventory` + `POST` + `PUT /:id` + `DELETE /:id` | 🔴 | ✅ |
+| T3.2 | Inventory: Append `inventory_history` row server-side on update (derive `changedBy` from JWT) | 🔴 | ✅ |
+| T3.3 | Recipes: `GET /api/recipes` + `POST` + `PUT /:id` + `DELETE /:id` | 🔴 | ✅ |
+| T3.4 | Recipes: Append `recipe_history` row server-side on update | 🔴 | ✅ |
+| T3.5 | Batches: `GET /api/batches` + `POST` + `PUT /:id` + `DELETE /:id` | 🔴 | ✅ |
+| T3.6 | Batches: `POST /api/batches/:id/notes` | 🟠 | ✅ |
+| T3.7 | Quality: `GET /api/quality` + `POST` + `DELETE /:id` | 🔴 | ✅ |
+| T3.8 | Quality: `PUT /api/quality/:id` (edit evaluation) | 🟡 | ✅ |
+| T3.9 | Orders: `GET /api/orders` + `POST` | 🔴 | ✅ |
+| T3.10 | Orders: `POST /api/orders/:id/payments` | 🔴 | ✅ |
+| T3.11 | Orders: `POST /api/orders/:id/returns` | 🔴 | ✅ |
+| T3.12 | Orders: `PATCH /api/orders/:id/status` (shipped, cancelled) | 🟠 | ✅ |
+| T3.13 | Users: `GET /api/users` + `POST` + `PATCH /:id/role` + `PATCH /:id/permissions` + `DELETE /:id` | 🔴 | ✅ |
+| T3.14 | Suppliers: `GET /api/suppliers` + `POST` + `PUT /:id` + `DELETE /:id` | 🟠 | ✅ |
+| T3.15 | Customers: `GET /api/customers` + `POST` + `PUT /:id` + `DELETE /:id` | 🟠 | ✅ |
+| T3.16 | Production logs: `GET /api/production-logs` + `POST` + `DELETE /:id` | 🟠 | ✅ |
 
 ---
 
@@ -84,14 +90,14 @@
 
 | # | Task | Priority | Status |
 |---|---|---|---|
-| T4.1 | On batch `draft → in_production`: deduct `inputMaterials` from inventory | 🔴 | ☐ |
-| T4.2 | On inventory deduction: write `inventory_history` records | 🔴 | ☐ |
-| T4.3 | On `QualityControl` create: `UPDATE batches SET quality_score = overallScore` | 🔴 | ☐ |
-| T4.4 | On payment added: auto-update order status to `partial` or `paid` | 🔴 | ☐ |
-| T4.5 | On inventory update: if `quantity ≤ minStock`, create low-stock notification | 🟠 | ☐ |
-| T4.6 | On batch status → `failed`: create notification for supervisors | 🟡 | ☐ |
-| T4.7 | Enforce `changedBy` from JWT on all history writes (never from request body) | 🔴 | ☐ |
-| T4.8 | Seed database with initial data (users, suppliers, inventory, recipes) | 🟠 | ☐ |
+| T4.1 | On batch `draft → in_production`: deduct `inputMaterials` from inventory | 🔴 | ✅ |
+| T4.2 | On inventory deduction: write `inventory_history` records | 🔴 | ✅ |
+| T4.3 | On `QualityControl` create: `UPDATE batches SET quality_score = overallScore` | 🔴 | ✅ |
+| T4.4 | On payment added: auto-update order status to `partial` or `paid` | 🔴 | ✅ |
+| T4.5 | On inventory update: if `quantity ≤ minStock`, create low-stock notification | 🟠 | ✅ |
+| T4.6 | On batch status → `failed`: create notification for supervisors | 🟡 | ✅ |
+| T4.7 | Enforce `changedBy` from JWT on all history writes (never from request body) | 🔴 | ✅ |
+| T4.8 | Seed database with initial data (users, suppliers, inventory, recipes) | 🟠 | ✅ |
 
 ---
 

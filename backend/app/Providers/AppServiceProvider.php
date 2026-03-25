@@ -19,6 +19,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        \App\Models\Batch::observe(\App\Observers\BatchObserver::class);
+        \App\Models\QualityControl::observe(\App\Observers\QualityControlObserver::class);
+        \App\Models\InventoryItem::observe(\App\Observers\InventoryItemObserver::class);
     }
 }

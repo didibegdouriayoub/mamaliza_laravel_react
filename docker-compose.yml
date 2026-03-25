@@ -1,14 +1,14 @@
 services:
-  app:
+  backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
-    container_name: fromagerie_app
+    container_name: fromagerie_backend
     restart: unless-stopped
     ports:
       - "8000:8000"
     volumes:
-      - .:/var/www/html
+      - ./backend:/var/www/html
     environment:
       APP_NAME: Fromagerie
       APP_ENV: local
@@ -25,6 +25,24 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - fromagerie
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: fromagerie_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      VITE_API_URL: http://localhost:8000/api
+    depends_on:
+      - backend
     networks:
       - fromagerie
 
