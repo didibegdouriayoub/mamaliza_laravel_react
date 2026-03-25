@@ -23,6 +23,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Initialize session on mount
   useEffect(() => {
     const initSession = async () => {
+      const existingToken = localStorage.getItem('auth_token');
+      if (!existingToken) {
+        setIsLoading(false);
+        return;
+      }
       try {
         const me = await authService.getMe();
         if (me) {

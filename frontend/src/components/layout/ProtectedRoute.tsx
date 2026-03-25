@@ -13,7 +13,7 @@ export function ProtectedRoute({ children, permissions = [] }: ProtectedRoutePro
   if (isLoading) return null;
   
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   if (permissions.length === 0) {

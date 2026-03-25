@@ -22,8 +22,11 @@ export const apiClient = {
       });
 
       if (response.status === 401) {
-        removeAuthToken();
-        window.dispatchEvent(new Event('auth:unauthorized'));
+        // Only dispatch unauthorized if there was actually a token (session expired)
+        if (getAuthToken()) {
+          removeAuthToken();
+          window.dispatchEvent(new Event('auth:unauthorized'));
+        }
       }
 
       if (!response.ok) {

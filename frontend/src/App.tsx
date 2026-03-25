@@ -22,7 +22,9 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 function AppRoutes() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) return null; // Wait for session check before deciding
 
   if (!isAuthenticated) return <Login />;
 
