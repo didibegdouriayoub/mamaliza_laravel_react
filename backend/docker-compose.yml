@@ -33,7 +33,7 @@ services:
     container_name: fromagerie_db
     restart: unless-stopped
     ports:
-      - "3306:3306"
+      - "33060:3306"
     environment:
       MYSQL_DATABASE: fromagerie
       MYSQL_USER: fromagerie
