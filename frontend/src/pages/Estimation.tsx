@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Calculator, Plus, Trash2, Printer } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,8 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { mockRecipes, mockInventory } from '@/data/mockData';
 import { Badge } from '@/components/ui/badge';
+import { recipeService } from '@/services/recipeService';
+import { inventoryService } from '@/services/inventoryService';
+import { Recipe, InventoryItem } from '@/models/types';
 
 interface EstimationLine {
   recipeId: string;
@@ -17,6 +19,22 @@ interface EstimationLine {
 
 export default function Estimation() {
   const [lines, setLines] = useState<EstimationLine[]>([{ recipeId: '', batchCount: 1 }]);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [recipeData, invData] = await Promise.all([
+          recipeService.getAll(),
+          inventoryService.getAll()
+        ]);
+        setRecipes(recipeData || []);
+        setInventory(invData || []);
+      } catch(e) { console.error(e); }
+    };
+    loadData();
+  }, []);
 
   const addLine = () => setLines(prev => [...prev, { recipeId: '', batchCount: 1 }]);
   const removeLine = (idx: number) => setLines(prev => prev.filter((_, i) => i !== idx));
@@ -27,7 +45,7 @@ export default function Estimation() {
   const aggregated = new Map<string, { name: string; quantity: number; unit: string; unitPrice: number; type: string }>();
 
   lines.forEach(line => {
-    const recipe = mockRecipes.find(r => r.id === line.recipeId);
+    const recipe = recipes.find(r => String(r.id) === String(line.recipeId));
     if (!recipe) return;
     recipe.ingredients.forEach(ing => {
       const existing = aggregated.get(ing.materialId);
@@ -35,7 +53,7 @@ export default function Estimation() {
       if (existing) {
         existing.quantity += needed;
       } else {
-        const invItem = mockInventory.find(i => i.id === ing.materialId);
+        const invItem = inventory.find(i => String(i.id) === String(ing.materialId));
         aggregated.set(ing.materialId, {
           name: ing.materialName,
           quantity: needed,
@@ -49,11 +67,11 @@ export default function Estimation() {
 
   // Also estimate packaging needs (simple: 1 label + some wrapping per yield unit)
   const totalYield = lines.reduce((sum, line) => {
-    const recipe = mockRecipes.find(r => r.id === line.recipeId);
+    const recipe = recipes.find(r => String(r.id) === String(line.recipeId));
     return sum + (recipe ? recipe.yield * line.batchCount : 0);
   }, 0);
 
-  const packagingNeeds = mockInventory.filter(i => i.type === 'packaging').map(pkg => ({
+  const packagingNeeds = inventory.filter(i => i.type === 'packaging').map(pkg => ({
     ...pkg,
     estimated: pkg.name.toLowerCase().includes('label') ? totalYield : Math.ceil(totalYield * 0.1),
   }));
@@ -67,7 +85,7 @@ export default function Estimation() {
 
   // Stock availability check
   const stockStatus = ingredientList.map(ing => {
-    const invItem = mockInventory.find(i => i.name === ing.name);
+    const invItem = inventory.find(i => i.name === ing.name);
     const available = invItem?.quantity || 0;
     return { ...ing, available, sufficient: available >= ing.quantity };
   });
@@ -99,7 +117,7 @@ export default function Estimation() {
                 <Select value={line.recipeId} onValueChange={v => updateLine(idx, { recipeId: v })}>
                   <SelectTrigger><SelectValue placeholder="Select recipe" /></SelectTrigger>
                   <SelectContent>
-                    {mockRecipes.map(r => <SelectItem key={r.id} value={r.id}>{r.name} (yields {r.yield} {r.yieldUnit})</SelectItem>)}
+                    {recipes.map(r => <SelectItem key={r.id} value={String(r.id)}>{r.name} (yields {r.yield} {r.yieldUnit})</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -234,7 +252,7 @@ export default function Estimation() {
                 </TableHeader>
                 <TableBody>
                   {lines.filter(l => l.recipeId).map((line, i) => {
-                    const recipe = mockRecipes.find(r => r.id === line.recipeId)!;
+                    const recipe = recipes.find(r => String(r.id) === String(line.recipeId))!;
                     const batchCost = recipe.ingredients.reduce((s, ing) => s + ing.quantity * ing.unitPrice, 0);
                     return (
                       <TableRow key={i}>

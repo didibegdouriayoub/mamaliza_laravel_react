@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Users, Plus, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,39 +7,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { mockBatches, mockInventory } from '@/data/mockData';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { productionLogService } from '@/services/productionLogService';
+import { batchService } from '@/services/batchService';
+import { Batch } from '@/models/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
-interface ProductionLog {
-  id: string;
-  batchId: string;
-  recipeName: string;
-  operatorName: string;
-  producedPieces: number;
-  unit: string;
-  leftovers: { materialName: string; quantity: number; unit: string }[];
-  notes: string;
-  loggedAt: string;
-}
-
-const mockProductionLogs: ProductionLog[] = [
-  {
-    id: 'pl1', batchId: 'b1', recipeName: 'Camembert Classique', operatorName: 'Marie Dupont',
-    producedPieces: 12, unit: 'wheels',
-    leftovers: [
-      { materialName: 'Whey', quantity: 80, unit: 'liters' },
-      { materialName: 'Curd scraps', quantity: 0.5, unit: 'kg' },
-    ],
-    notes: 'Good batch, whey can be reused for ricotta.', loggedAt: '2025-03-15',
-  },
-];
-
 export default function Production() {
-  const [logs, setLogs] = useState<ProductionLog[]>(mockProductionLogs);
+  const [logs, setLogs] = useState<any[]>([]);
+  const [batches, setBatches] = useState<Batch[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [batchId, setBatchId] = useState('');
   const [producedPieces, setProducedPieces] = useState(0);
@@ -48,24 +26,44 @@ export default function Production() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const completedBatches = mockBatches.filter(b => b.status === 'completed' || b.status === 'in_production');
+  const loadData = async () => {
+    try {
+      const [logData, batchData] = await Promise.all([
+        productionLogService.getAll(),
+        batchService.getAll()
+      ]);
+      setLogs(logData || []);
+      setBatches(batchData || []);
+    } catch(e) { console.error(e); }
+  };
+
+  useEffect(() => { loadData(); }, []);
+
+  const completedBatches = batches.filter(b => b.status === 'completed' || b.status === 'in_production');
 
   const addLeftover = () => setLeftovers(prev => [...prev, { materialName: '', quantity: 0, unit: '' }]);
 
-  const handleSave = () => {
-    const batch = mockBatches.find(b => b.id === batchId);
+  const handleSave = async () => {
+    const batch = batches.find(b => String(b.id) === String(batchId));
     if (!batch) return;
-    const newLog: ProductionLog = {
-      id: `pl${Date.now()}`, batchId, recipeName: batch.recipeName,
-      operatorName: user.name, producedPieces, unit: batch.outputUnit,
+    
+    await productionLogService.create({
+      batch_id: batchId,
+      recipe_name: batch.recipeName,
+      operator_id: user?.id,
+      operator_name: user?.name,
+      produced_pieces: producedPieces,
+      unit: batch.outputUnit,
       leftovers: leftovers.filter(l => l.materialName.trim()),
-      notes, loggedAt: new Date().toISOString().split('T')[0],
-    };
-    setLogs(prev => [newLog, ...prev]);
+      notes: notes,
+      logged_at: new Date().toISOString().split('T')[0],
+    });
+    
     toast({ title: 'Production log saved' });
     setFormOpen(false);
     setBatchId(''); setProducedPieces(0); setNotes('');
     setLeftovers([{ materialName: '', quantity: 0, unit: '' }]);
+    loadData();
   };
 
   return (
@@ -87,25 +85,25 @@ export default function Production() {
               <Card className="shadow-card">
                 <CardHeader className="pb-2">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-base font-display">{log.recipeName}</CardTitle>
-                    <Badge variant="secondary">{log.loggedAt}</Badge>
+                    <CardTitle className="text-base font-display">{log.recipe_name || log.recipeName}</CardTitle>
+                    <Badge variant="secondary">{log.logged_at || log.loggedAt}</Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Operator</span>
-                    <span className="font-medium">{log.operatorName}</span>
+                    <span className="font-medium">{log.operator_name || log.operatorName}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Produced</span>
-                    <span className="font-semibold text-primary">{log.producedPieces} {log.unit}</span>
+                    <span className="font-semibold text-primary">{log.produced_pieces || log.producedPieces} {log.unit}</span>
                   </div>
-                  {log.leftovers.length > 0 && (
+                  {(log.leftovers && log.leftovers.length > 0) && (
                     <div>
                       <p className="text-xs font-semibold text-muted-foreground mb-1">Leftovers (can be reused)</p>
-                      {log.leftovers.map((l, i) => (
+                      {log.leftovers.map((l: any, i: number) => (
                         <div key={i} className="flex justify-between text-sm py-0.5">
-                          <span>{l.materialName}</span>
+                          <span>{l.materialName || l.material_name}</span>
                           <span className="text-muted-foreground">{l.quantity} {l.unit}</span>
                         </div>
                       ))}
@@ -130,7 +128,7 @@ export default function Production() {
               <Select value={batchId} onValueChange={setBatchId}>
                 <SelectTrigger><SelectValue placeholder="Select batch" /></SelectTrigger>
                 <SelectContent>
-                  {completedBatches.map(b => <SelectItem key={b.id} value={b.id}>{b.recipeName} ({b.startedAt})</SelectItem>)}
+                  {completedBatches.map(b => <SelectItem key={b.id} value={String(b.id)}>{b.recipeName} ({b.startedAt})</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

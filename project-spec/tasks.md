@@ -105,21 +105,21 @@
 
 | # | Task | Priority | Status |
 |---|---|---|---|
-| T5.1 | Replace `mockSuppliers` in Inventory with `supplierService.getAll()` | 🔴 | ☐ |
-| T5.2 | Replace `mockInventory` in Recipes ingredient dropdown with `inventoryService.getAll()` | 🔴 | ☐ |
-| T5.3 | Replace `mockRecipes` in Batches form with `recipeService.getAll()` | 🔴 | ☐ |
-| T5.4 | Replace `mockBatches` in Quality form with `batchService.getAll()` (filter completed only) | 🔴 | ☐ |
-| T5.5 | Fix `changedBy` in Inventory history — use `user.name` from `AuthContext` | 🔴 | ☐ |
-| T5.6 | Fix `changedBy` in Recipes history — use `user.name` from `AuthContext` | 🔴 | ☐ |
-| T5.7 | Dashboard: replace `mockOrders`/`mockBatches`/`mockInventory` with service calls | 🔴 | ☐ |
-| T5.8 | Analytics: replace `salesChartData`/`batchChartData` with `analyticsService` calls | 🔴 | ☐ |
-| T5.9 | Sales: add "Create Order" form | 🔴 | ☐ |
-| T5.10 | Sales: add status buttons for `shipped` and `cancelled` transitions | 🟠 | ☐ |
-| T5.11 | UserManagement: add "Create User" form | 🟠 | ☐ |
-| T5.12 | UserManagement: add "Delete User" confirmation | 🟠 | ☐ |
-| T5.13 | Production Log: connect to `productionLogService` (persist to backend) | 🟠 | ☐ |
-| T5.14 | Production Log: add delete button | 🟡 | ☐ |
-| T5.15 | Quality Control: add edit/update evaluation dialog | 🟡 | ☐ |
+| T5.1 | Replace `mockSuppliers` in Inventory with `supplierService.getAll()` | 🔴 | ✅ |
+| T5.2 | Replace `mockInventory` in Recipes ingredient dropdown with `inventoryService.getAll()` | 🔴 | ✅ |
+| T5.3 | Replace `mockRecipes` in Batches form with `recipeService.getAll()` | 🔴 | ✅ |
+| T5.4 | Replace `mockBatches` in Quality form with `batchService.getAll()` (filter completed only) | 🔴 | ✅ |
+| T5.5 | Fix `changedBy` in Inventory history — use `user.name` from `AuthContext` | 🔴 | ✅ |
+| T5.6 | Fix `changedBy` in Recipes history — use `user.name` from `AuthContext` | 🔴 | ✅ |
+| T5.7 | Dashboard: replace `mockOrders`/`mockBatches`/`mockInventory` with service calls | 🔴 | ✅ |
+| T5.8 | Analytics: replace `salesChartData`/`batchChartData` with `analyticsService` calls | 🔴 | ✅ |
+| T5.9 | Sales: add "Create Order" form | 🔴 | ✅ |
+| T5.10 | Sales: add status buttons for `shipped` and `cancelled` transitions | 🟠 | ✅ |
+| T5.11 | UserManagement: add "Create User" form | 🟠 | ✅ |
+| T5.12 | UserManagement: add "Delete User" confirmation | 🟠 | ✅ |
+| T5.13 | Production Log: connect to `productionLogService` (persist to backend) | 🟠 | ✅ |
+| T5.14 | Production Log: add delete button | 🟡 | ✅ |
+| T5.15 | Quality Control: add edit/update evaluation dialog | 🟡 | ✅ |
 
 ---
 
@@ -127,13 +127,13 @@
 
 | # | Task | Priority | Status |
 |---|---|---|---|
-| T6.1 | Inventory page: guard Add/Edit/Delete with `manage_inventory` | 🟠 | ☐ |
-| T6.2 | Recipes page: guard Create/Edit/Delete with `manage_recipes` | 🟠 | ☐ |
-| T6.3 | Batches page: guard Create/Edit/Delete with `manage_batches` | 🟠 | ☐ |
-| T6.4 | Quality page: guard New Evaluation with `manage_quality` | 🟠 | ☐ |
-| T6.5 | Sales page: guard Record Payment/Return with `manage_sales` | 🟠 | ☐ |
-| T6.6 | Analytics page: redirect if missing `view_analytics` | 🟡 | ☐ |
-| T6.7 | Backend: add role/permission middleware to all protected routes | 🔴 | ☐ |
+| T6.1 | Inventory page: guard Add/Edit/Delete with `manage_inventory` | 🟠 | ✅ |
+| T6.2 | Recipes page: guard Create/Edit/Delete with `manage_recipes` | 🟠 | ✅ |
+| T6.3 | Batches page: guard Create/Edit/Delete with `manage_batches` | 🟠 | ✅ |
+| T6.4 | Quality page: guard New Evaluation with `manage_quality` | 🟠 | ✅ |
+| T6.5 | Sales page: guard Record Payment/Return with `manage_sales` | 🟠 | ✅ |
+| T6.6 | Analytics page: redirect if missing `view_analytics` | 🟡 | ✅ |
+| T6.7 | Backend: add role/permission middleware to all protected routes | 🔴 | ✅ |
 
 ---
 

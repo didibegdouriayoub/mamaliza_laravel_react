@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { mockRecipes } from '@/data/mockData';
+import { recipeService } from '@/services/recipeService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -26,6 +26,7 @@ const statusLabels: Record<BatchStatus, string> = {
 
 export default function Batches() {
   const [batches, setBatches] = useState<Batch[]>([]);
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Batch | null>(null);
   const [view, setView] = useState<'kanban' | 'table'>('kanban');
@@ -36,14 +37,20 @@ export default function Batches() {
   const [status, setStatus] = useState<BatchStatus>('draft');
   const [outputQty, setOutputQty] = useState(0);
   const [noteText, setNoteText] = useState('');
-  const [printableData, setPrintableData] = useState<{ recipe: typeof mockRecipes[0]; count: number } | null>(null);
+  const [printableData, setPrintableData] = useState<{ recipe: Recipe; count: number } | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
   const loadData = async () => {
     setLoading(true);
-    const data = await batchService.getAll();
-    setBatches(data);
+    try {
+      const [batchData, recipeData] = await Promise.all([
+        batchService.getAll(),
+        recipeService.getAll()
+      ]);
+      setBatches(batchData || []);
+      setRecipes(recipeData || []);
+    } catch(e) { console.error(e); }
     setLoading(false);
   };
 
@@ -59,10 +66,10 @@ export default function Batches() {
     setFormOpen(true); setSelected(null);
   };
 
-  const selectedRecipe = mockRecipes.find(r => r.id === recipeId);
+  const selectedRecipe = recipes.find(r => String(r.id) === String(recipeId));
 
   const handleSave = async () => {
-    const recipe = mockRecipes.find(r => r.id === recipeId);
+    const recipe = recipes.find(r => String(r.id) === String(recipeId));
     if (!recipe) return;
     if (editingBatch) {
       await batchService.update(editingBatch.id, {
@@ -253,7 +260,7 @@ export default function Batches() {
               <Select value={recipeId} onValueChange={setRecipeId}>
                 <SelectTrigger><SelectValue placeholder="Select recipe" /></SelectTrigger>
                 <SelectContent>
-                  {mockRecipes.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+                  {recipes.map(r => <SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

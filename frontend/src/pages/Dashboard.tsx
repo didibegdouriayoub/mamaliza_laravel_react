@@ -7,25 +7,44 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { KpiCard } from '@/components/KpiCard';
 import { BatchStatusBadge } from '@/components/StatusBadge';
 import { TableSkeleton } from '@/components/DataStates';
-import {
-  mockInventory, mockBatches, mockOrders, salesChartData, batchChartData,
-} from '@/data/mockData';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line,
-} from 'recharts';
+import { salesChartData, batchChartData } from '@/data/mockData';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { inventoryService } from '@/services/inventoryService';
+import { batchService } from '@/services/batchService';
+import { orderService } from '@/services/orderService';
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(true);
+  const [totalSales, setTotalSales] = useState(0);
+  const [lowStockCount, setLowStockCount] = useState(0);
+  const [completedBatches, setCompletedBatches] = useState(0);
+  const [activeBatchesCount, setActiveBatchesCount] = useState(0);
+  const [inventoryCount, setInventoryCount] = useState(0);
+  const [recentBatches, setRecentBatches] = useState<any[]>([]);
 
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 600);
-    return () => clearTimeout(t);
+    const loadData = async () => {
+      try {
+        const [inv, bts, ord] = await Promise.all([
+          inventoryService.getAll(),
+          batchService.getAll(),
+          orderService.getAll()
+        ]);
+        const sales = (ord || []).reduce((s: number, o: any) => s + (Number(o.totalAmount) || 0), 0);
+        setTotalSales(sales);
+        const low = (inv || []).filter((i: any) => i.quantity <= i.minStock).length;
+        setLowStockCount(low);
+        setInventoryCount((inv || []).length);
+        const active = (bts || []).filter((b: any) => b.status === 'in_production').length;
+        const comp = (bts || []).filter((b: any) => b.status === 'completed').length;
+        setActiveBatchesCount(active);
+        setCompletedBatches(comp);
+        setRecentBatches((bts || []).slice(0, 4));
+      } catch (e) { console.error(e); }
+      setLoading(false);
+    };
+    loadData();
   }, []);
-
-  const totalSales = mockOrders.reduce((s, o) => s + o.totalAmount, 0);
-  const lowStockCount = mockInventory.filter(i => i.quantity <= i.minStock).length;
-  const completedBatches = mockBatches.filter(b => b.status === 'completed').length;
-  const activeBatches = mockBatches.filter(b => b.status === 'in_production').length;
 
   if (loading) {
     return (
@@ -48,8 +67,8 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard title="Total Sales" value={`€${totalSales.toLocaleString()}`} icon={ShoppingCart} trend={{ value: '12% vs last month', positive: true }} index={0} />
-        <KpiCard title="Active Batches" value={activeBatches} subtitle={`${completedBatches} completed this month`} icon={Factory} index={1} />
-        <KpiCard title="Inventory Items" value={mockInventory.length} icon={Package} index={2} />
+        <KpiCard title="Active Batches" value={activeBatchesCount} subtitle={`${completedBatches} completed this month`} icon={Factory} index={1} />
+        <KpiCard title="Inventory Items" value={inventoryCount} icon={Package} index={2} />
         <KpiCard title="Low Stock Alerts" value={lowStockCount} subtitle="Items need restocking" icon={AlertTriangle} index={3} trend={lowStockCount > 0 ? { value: `${lowStockCount} items`, positive: false } : undefined} />
       </div>
 
@@ -103,7 +122,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {mockBatches.slice(0, 4).map(batch => (
+              {recentBatches.map(batch => (
                 <div key={batch.id} className="flex items-center justify-between py-2 border-b last:border-0">
                   <div>
                     <p className="text-sm font-medium">{batch.recipeName}</p>

@@ -1,17 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell, Moon, Sun, LogOut } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useAuth } from '@/contexts/AuthContext';
-import { mockNotifications } from '@/data/mockData';
+import { notificationService } from '@/services/notificationService';
+import { Notification } from '@/models/types';
 import { Badge } from '@/components/ui/badge';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 
 export function Topbar() {
   const { user, logout } = useAuth();
-  const [notifications] = useState(mockNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [dark, setDark] = useState(document.documentElement.classList.contains('dark'));
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+         const data = await notificationService.getAll();
+         setNotifications(data || []);
+      } catch(e) {}
+    };
+    load();
+    const interval = setInterval(load, 30000); // Polling every 30s
+    return () => clearInterval(interval);
+  }, []);
 
   const toggleDark = () => {
     document.documentElement.classList.toggle('dark');

@@ -12,14 +12,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { StockBadge } from '@/components/StatusBadge';
 import { TableSkeleton, EmptyState } from '@/components/DataStates';
 import { inventoryService } from '@/services/inventoryService';
-import { InventoryItem, MaterialType } from '@/models/types';
-import { mockSuppliers } from '@/data/mockData';
+import { supplierService } from '@/services/supplierService';
+import { InventoryItem, MaterialType, Supplier } from '@/models/types';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 const emptyForm = { name: '', type: 'raw' as MaterialType, quantity: 0, unit: '', price: 0, supplier: '', supplierId: '', minStock: 0 };
 
 export default function Inventory() {
+  const { user } = useAuth();
   const [items, setItems] = useState<InventoryItem[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
@@ -32,8 +35,14 @@ export default function Inventory() {
 
   const loadData = async () => {
     setLoading(true);
-    const data = await inventoryService.getAll();
-    setItems(data);
+    try {
+      const [invData, supData] = await Promise.all([
+        inventoryService.getAll(),
+        supplierService.getAll()
+      ]);
+      setItems(invData || []);
+      setSuppliers(supData || []);
+    } catch(e) { console.error(e); }
     setLoading(false);
   };
 
@@ -88,7 +97,7 @@ export default function Inventory() {
         ...changes.map(c => ({
           id: `h${Date.now()}${Math.random()}`,
           ...c,
-          changedBy: 'Current User',
+          changedBy: user?.name || 'System',
           changedAt: new Date().toISOString().split('T')[0],
         })),
       ];
@@ -109,7 +118,7 @@ export default function Inventory() {
   };
 
   const handleSupplierChange = (supplierId: string) => {
-    const s = mockSuppliers.find(s => s.id === supplierId);
+    const s = suppliers.find(s => String(s.id) === String(supplierId));
     setForm(prev => ({ ...prev, supplierId, supplier: s?.name || '' }));
   };
 
@@ -172,7 +181,7 @@ export default function Inventory() {
                   <Select value={form.supplierId} onValueChange={handleSupplierChange}>
                     <SelectTrigger><SelectValue placeholder="Select supplier" /></SelectTrigger>
                     <SelectContent>
-                      {mockSuppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                      {suppliers.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>

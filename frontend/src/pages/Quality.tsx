@@ -10,8 +10,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { qualityService } from '@/services/qualityService';
-import { QualityControl } from '@/models/types';
-import { mockBatches } from '@/data/mockData';
+import { batchService } from '@/services/batchService';
+import { QualityControl, Batch } from '@/models/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -31,6 +31,7 @@ function StarRating({ score, max = 5, interactive, onChange }: { score: number; 
 
 export default function Quality() {
   const [controls, setControls] = useState<QualityControl[]>([]);
+  const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [batchId, setBatchId] = useState('');
@@ -44,8 +45,14 @@ export default function Quality() {
 
   const loadData = async () => {
     setLoading(true);
-    const data = await qualityService.getAll();
-    setControls(data);
+    try {
+      const [qcData, batchData] = await Promise.all([
+        qualityService.getAll(),
+        batchService.getAll()
+      ]);
+      setControls(qcData || []);
+      setBatches(batchData || []);
+    } catch(e) { console.error(e); }
     setLoading(false);
   };
 
@@ -65,7 +72,7 @@ export default function Quality() {
   };
 
   // Batches without existing QC
-  const availableBatches = mockBatches.filter(b => !controls.some(qc => qc.batchId === b.id));
+  const availableBatches = batches.filter(b => !controls.some(qc => String(qc.batchId) === String(b.id)));
 
   return (
     <div className="space-y-6">
@@ -81,7 +88,7 @@ export default function Quality() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {(loading ? [] : controls).map((qc, idx) => {
-          const batch = mockBatches.find(b => b.id === qc.batchId);
+          const batch = batches.find(b => String(b.id) === String(qc.batchId));
           return (
             <motion.div key={qc.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.08 }}>
               <Card className="shadow-card">

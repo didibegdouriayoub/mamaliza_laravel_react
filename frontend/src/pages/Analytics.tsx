@@ -2,20 +2,45 @@ import { motion } from 'framer-motion';
 import { BarChart3, TrendingUp, Factory, ShoppingCart } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { KpiCard } from '@/components/KpiCard';
-import { mockBatches, mockOrders, salesChartData, batchChartData, mockRecipes } from '@/data/mockData';
+import { salesChartData, batchChartData } from '@/data/mockData';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
+import { useState, useEffect } from 'react';
+import { batchService } from '@/services/batchService';
+import { orderService } from '@/services/orderService';
+import { recipeService } from '@/services/recipeService';
 
 const COLORS = ['hsl(152, 45%, 42%)', 'hsl(38, 92%, 50%)', 'hsl(210, 70%, 52%)', 'hsl(0, 72%, 51%)'];
 
 export default function Analytics() {
-  const totalRevenue = mockOrders.reduce((s, o) => s + o.totalAmount, 0);
-  const completedBatches = mockBatches.filter(b => b.status === 'completed').length;
-  const successRate = Math.round((completedBatches / mockBatches.length) * 100);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [successRate, setSuccessRate] = useState(0);
+  const [activeRecipes, setActiveRecipes] = useState(0);
+  const [recipeUsage, setRecipeUsage] = useState<any[]>([]);
 
-  const recipeUsage = mockRecipes.map(r => ({
-    name: r.name,
-    batches: mockBatches.filter(b => b.recipeId === r.id).length,
-  }));
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [ord, bts, rec] = await Promise.all([
+          orderService.getAll(),
+          batchService.getAll(),
+          recipeService.getAll()
+        ]);
+        const rev = (ord || []).reduce((s: number, o: any) => s + (Number(o.totalAmount) || 0), 0);
+        setTotalRevenue(rev);
+        const completed = (bts || []).filter((b: any) => b.status === 'completed').length;
+        const sr = (bts || []).length > 0 ? Math.round((completed / bts.length) * 100) : 0;
+        setSuccessRate(sr);
+        setActiveRecipes((rec || []).length);
+        
+        const usage = (rec || []).map((r: any) => ({
+          name: r.name,
+          batches: (bts || []).filter((b: any) => String(b.recipeId) === String(r.id)).length,
+        }));
+        setRecipeUsage(usage);
+      } catch (e) {}
+    };
+    loadData();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -27,7 +52,7 @@ export default function Analytics() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <KpiCard title="Total Revenue" value={`€${totalRevenue}`} icon={ShoppingCart} index={0} />
         <KpiCard title="Batch Success Rate" value={`${successRate}%`} icon={Factory} index={1} />
-        <KpiCard title="Active Recipes" value={mockRecipes.length} icon={TrendingUp} index={2} />
+        <KpiCard title="Active Recipes" value={activeRecipes} icon={TrendingUp} index={2} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

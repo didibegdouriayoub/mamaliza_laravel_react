@@ -29,7 +29,7 @@ const navItems: { title: string; url: string; icon: typeof LayoutDashboard; perm
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
-  const { hasPermission, user, setRole } = useAuth();
+  const { hasPermission, user } = useAuth();
 
   const visibleItems = navItems.filter(i => !i.permission || hasPermission(i.permission));
 
@@ -73,21 +73,7 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-4">
-        {!collapsed && (
-          <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">Switch role</p>
-            <Select value={user.role} onValueChange={(v) => setRole(v as UserRole)}>
-              <SelectTrigger className="h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="supervisor">Supervisor</SelectItem>
-                <SelectItem value="operator">Operator</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        {/* Role switching is now handled by actual JWT claims upon login */}
       </SidebarFooter>
     </Sidebar>
   );

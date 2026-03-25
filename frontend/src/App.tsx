@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
 import Recipes from "./pages/Recipes";
@@ -28,16 +29,16 @@ function AppRoutes() {
   return (
     <AppLayout>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/inventory" element={<Inventory />} />
-        <Route path="/recipes" element={<Recipes />} />
-        <Route path="/batches" element={<Batches />} />
-        <Route path="/production" element={<Production />} />
-        <Route path="/quality" element={<Quality />} />
-        <Route path="/estimation" element={<Estimation />} />
-        <Route path="/sales" element={<Sales />} />
-        <Route path="/analytics" element={<Analytics />} />
-        <Route path="/users" element={<UserManagement />} />
+        <Route path="/" element={<ProtectedRoute permissions={['view_analytics']}><Dashboard /></ProtectedRoute>} />
+        <Route path="/inventory" element={<ProtectedRoute permissions={['manage_inventory']}><Inventory /></ProtectedRoute>} />
+        <Route path="/recipes" element={<ProtectedRoute permissions={['manage_recipes']}><Recipes /></ProtectedRoute>} />
+        <Route path="/batches" element={<ProtectedRoute permissions={['manage_batches']}><Batches /></ProtectedRoute>} />
+        <Route path="/production" element={<ProtectedRoute permissions={['manage_batches']}><Production /></ProtectedRoute>} />
+        <Route path="/quality" element={<ProtectedRoute permissions={['manage_quality']}><Quality /></ProtectedRoute>} />
+        <Route path="/estimation" element={<ProtectedRoute permissions={['manage_inventory']}><Estimation /></ProtectedRoute>} />
+        <Route path="/sales" element={<ProtectedRoute permissions={['manage_sales']}><Sales /></ProtectedRoute>} />
+        <Route path="/analytics" element={<ProtectedRoute permissions={['view_analytics']}><Analytics /></ProtectedRoute>} />
+        <Route path="/users" element={<ProtectedRoute permissions={['manage_users']}><UserManagement /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AppLayout>

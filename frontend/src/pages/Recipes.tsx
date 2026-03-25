@@ -9,17 +9,20 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { TableSkeleton, EmptyState } from '@/components/DataStates';
 import { recipeService } from '@/services/recipeService';
-import { Recipe, RecipeIngredient } from '@/models/types';
+import { inventoryService } from '@/services/inventoryService';
+import { Recipe, RecipeIngredient, InventoryItem } from '@/models/types';
+import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { mockInventory } from '@/data/mockData';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 
 const emptyIng: RecipeIngredient = { materialId: '', materialName: '', quantity: 0, unit: '', unitPrice: 0 };
 
 export default function Recipes() {
+  const { user } = useAuth();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Recipe | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -35,8 +38,14 @@ export default function Recipes() {
 
   const loadData = async () => {
     setLoading(true);
-    const data = await recipeService.getAll();
-    setRecipes(data);
+    try {
+      const [recipeData, invData] = await Promise.all([
+        recipeService.getAll(),
+        inventoryService.getAll()
+      ]);
+      setRecipes(recipeData || []);
+      setInventory(invData || []);
+    } catch(e) { console.error(e); }
     setLoading(false);
   };
 
@@ -66,11 +75,11 @@ export default function Recipes() {
       // Track changes in history
       const changes: { id: string; field: string; oldValue: string; newValue: string; changedBy: string; changedAt: string }[] = [];
       const now = new Date().toISOString().split('T')[0];
-      if (editingRecipe.name !== name) changes.push({ id: `rh${Date.now()}a`, field: 'name', oldValue: editingRecipe.name, newValue: name, changedBy: 'Current User', changedAt: now });
-      if (editingRecipe.description !== description) changes.push({ id: `rh${Date.now()}b`, field: 'description', oldValue: editingRecipe.description, newValue: description, changedBy: 'Current User', changedAt: now });
+      if (editingRecipe.name !== name) changes.push({ id: `rh${Date.now()}a`, field: 'name', oldValue: editingRecipe.name, newValue: name, changedBy: user?.name || 'System', changedAt: now });
+      if (editingRecipe.description !== description) changes.push({ id: `rh${Date.now()}b`, field: 'description', oldValue: editingRecipe.description, newValue: description, changedBy: user?.name || 'System', changedAt: now });
       const oldIngStr = JSON.stringify(editingRecipe.ingredients.map(i => `${i.materialName}:${i.quantity}`));
       const newIngStr = JSON.stringify(validIngs.map(i => `${i.materialName}:${i.quantity}`));
-      if (oldIngStr !== newIngStr) changes.push({ id: `rh${Date.now()}c`, field: 'ingredients', oldValue: `${editingRecipe.ingredients.length} items`, newValue: `${validIngs.length} items`, changedBy: 'Current User', changedAt: now });
+      if (oldIngStr !== newIngStr) changes.push({ id: `rh${Date.now()}c`, field: 'ingredients', oldValue: `${editingRecipe.ingredients.length} items`, newValue: `${validIngs.length} items`, changedBy: user?.name || 'System', changedAt: now });
 
       const newHistory = [...(editingRecipe.history || []), ...changes];
       await recipeService.update(editingRecipe.id, { name, description, ingredients: validIngs, steps: validSteps, yield: yieldVal, yieldUnit, history: newHistory });
@@ -95,8 +104,8 @@ export default function Recipes() {
   };
 
   const handleMaterialSelect = (idx: number, materialId: string) => {
-    const mat = mockInventory.find(m => m.id === materialId);
-    if (mat) setIng(idx, { materialId, materialName: mat.name, unit: mat.unit, unitPrice: mat.price });
+    const mat = inventory.find(m => String(m.id) === String(materialId));
+    if (mat) setIng(idx, { materialId: String(mat.id), materialName: mat.name, unit: mat.unit, unitPrice: mat.price });
   };
 
   const totalCost = ingredients.reduce((sum, i) => sum + (i.quantity * i.unitPrice), 0);
@@ -263,8 +272,8 @@ export default function Recipes() {
                   <Select value={ing.materialId} onValueChange={v => handleMaterialSelect(idx, v)}>
                     <SelectTrigger><SelectValue placeholder="Material" /></SelectTrigger>
                     <SelectContent>
-                      {mockInventory.filter(m => m.type === 'raw').map(m => (
-                        <SelectItem key={m.id} value={m.id}>{m.name} (€{m.price}/{m.unit})</SelectItem>
+                      {inventory.filter(m => m.type === 'raw').map(m => (
+                        <SelectItem key={m.id} value={String(m.id)}>{m.name} (€{m.price}/{m.unit})</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
