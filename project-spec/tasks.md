@@ -48,18 +48,18 @@
 
 | # | Task | Priority | Status |
 |---|---|---|---|
-| T2.1 | Create shared `apiClient.ts` utility (base URL + auth header + error handling) | 🔴 | ☐ |
-| T2.2 | Migrate `inventoryService.ts` to real API | 🔴 | ☐ |
-| T2.3 | Migrate `recipeService.ts` to real API | 🔴 | ☐ |
-| T2.4 | Migrate `batchService.ts` to real API | 🔴 | ☐ |
-| T2.5 | Migrate `qualityService.ts` to real API | 🔴 | ☐ |
-| T2.6 | Migrate `orderService.ts` to real API | 🔴 | ☐ |
-| T2.7 | Create `userService.ts` | 🔴 | ☐ |
-| T2.8 | Create `supplierService.ts` | 🟠 | ☐ |
-| T2.9 | Create `customerService.ts` | 🟠 | ☐ |
-| T2.10 | Create `productionLogService.ts` | 🟠 | ☐ |
-| T2.11 | Create `notificationService.ts` | 🟡 | ☐ |
-| T2.12 | Create `analyticsService.ts` | 🟡 | ☐ |
+| T2.1 | Create shared `apiClient.ts` utility (base URL + auth header + error handling) | 🔴 | ✅ |
+| T2.2 | Migrate `inventoryService.ts` to real API | 🔴 | ✅ |
+| T2.3 | Migrate `recipeService.ts` to real API | 🔴 | ✅ |
+| T2.4 | Migrate `batchService.ts` to real API | 🔴 | ✅ |
+| T2.5 | Migrate `qualityService.ts` to real API | 🔴 | ✅ |
+| T2.6 | Migrate `orderService.ts` to real API | 🔴 | ✅ |
+| T2.7 | Create `userService.ts` | 🔴 | ✅ |
+| T2.8 | Create `supplierService.ts` | 🟠 | ✅ |
+| T2.9 | Create `customerService.ts` | 🟠 | ✅ |
+| T2.10 | Create `productionLogService.ts` | 🟠 | ✅ |
+| T2.11 | Create `notificationService.ts` | 🟡 | ✅ |
+| T2.12 | Create `analyticsService.ts` | 🟡 | ✅ |
 
 ---
 

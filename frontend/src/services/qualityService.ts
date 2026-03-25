@@ -1,17 +1,9 @@
-import { QualityControl } from '@/models/types';
-import { mockQualityControls } from '@/data/mockData';
-
-let controls = [...mockQualityControls];
-const delay = (ms = 300) => new Promise(r => setTimeout(r, ms));
+import { apiClient } from '../lib/apiClient';
 
 export const qualityService = {
-  async getAll(): Promise<QualityControl[]> { await delay(); return [...controls]; },
-  async getByBatchId(batchId: string): Promise<QualityControl | undefined> { await delay(); return controls.find(q => q.batchId === batchId); },
-  async create(data: Omit<QualityControl, 'id' | 'evaluatedAt'>): Promise<QualityControl> {
-    await delay();
-    const newQc: QualityControl = { ...data, id: `qc${Date.now()}`, evaluatedAt: new Date().toISOString().split('T')[0] };
-    controls.push(newQc);
-    return newQc;
-  },
-  async delete(id: string): Promise<void> { await delay(); controls = controls.filter(q => q.id !== id); },
+  getAll: () => apiClient.get('/quality-controls'),
+  getById: (id: string | number) => apiClient.get(`/quality-controls/${id}`),
+  create: (evalData: any) => apiClient.post('/quality-controls', evalData),
+  update: (id: string | number, evalData: any) => apiClient.put(`/quality-controls/${id}`, evalData),
+  delete: (id: string | number) => apiClient.delete(`/quality-controls/${id}`),
 };
