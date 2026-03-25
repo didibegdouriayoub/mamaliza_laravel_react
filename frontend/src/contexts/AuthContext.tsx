@@ -26,7 +26,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const me = await authService.getMe();
         if (me) {
-          setUser(me);
+          setUser(me.user || me);
           setIsAuthenticated(true);
         }
       } catch (err) {
@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setAuthToken(token);
         // Fetch user object
         const me = await authService.getMe();
-        setUser(me);
+        setUser(me?.user || me);
         setIsAuthenticated(true);
         return true;
       }
