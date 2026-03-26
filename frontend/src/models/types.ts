@@ -170,10 +170,10 @@ export interface Order {
 }
 
 export interface Notification {
-  id: string;
+  id: string | number;
   title: string;
   message: string;
   type: 'warning' | 'error' | 'info' | 'success';
-  read: boolean;
+  readBy?: (string | number)[];
   createdAt: string;
 }

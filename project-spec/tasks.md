@@ -146,7 +146,7 @@
 | T7.2 | **Recipe page:** fix bug view details dont work and create recipe and problem NaN in recipe details | 🟠 | ✅ |
 | T7.3 | **Customers page:** list, create, edit, delete customers | 🟠 | ✅ |
 | T7.4 | **Suppliers page:** list, create, edit, delete suppliers | 🟠 | ✅ |
-| T7.5 | **Notifications panel:** bell icon in nav, list, mark-as-read | 🟡 | ☐ |
+| T7.5 | **Notifications panel:** bell icon in nav, list, mark-as-read | 🟡 | ✅ |
 | T7.6 | **Estimation → Batches:** "Create Batches from Estimation" button | 🟡 | ☐ |
 | T7.7 | **Estimation:** configurable packaging ratios (not hardcoded) | 🟢 | ☐ |
 | T7.8 | **Production Log leftovers → Inventory:** return leftover quantities to stock | 🟡 | ☐ |

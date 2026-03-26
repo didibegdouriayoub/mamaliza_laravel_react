@@ -12,7 +12,7 @@ export function Topbar() {
   const { user, logout } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [dark, setDark] = useState(document.documentElement.classList.contains('dark'));
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter(n => !n.readBy?.includes(user.id as string)).length;
 
   useEffect(() => {
     const load = async () => {
@@ -25,6 +25,18 @@ export function Topbar() {
     const interval = setInterval(load, 30000); // Polling every 30s
     return () => clearInterval(interval);
   }, []);
+
+  const handleMarkAsRead = async (notification: Notification) => {
+    if (notification.readBy?.includes(user.id as string)) return;
+    try {
+      await notificationService.markAsRead(notification.id, notification.readBy || [], user.id as string);
+      setNotifications(prev => prev.map(n => 
+        n.id === notification.id ? { ...n, readBy: [...(n.readBy || []), user.id as string] } : n
+      ));
+    } catch (e) {
+      console.error('Failed to mark notification as read', e);
+    }
+  };
 
   const toggleDark = () => {
     document.documentElement.classList.toggle('dark');
@@ -65,19 +77,26 @@ export function Topbar() {
               <h4 className="font-display font-semibold text-sm">Notifications</h4>
             </div>
             <div className="max-h-64 overflow-y-auto">
-              {notifications.map(n => (
-                <div key={n.id} className={`p-3 border-b last:border-0 ${!n.read ? 'bg-accent/30' : ''}`}>
-                  <div className="flex items-start gap-2">
-                    <Badge className={`${typeColor[n.type]} text-[10px] px-1.5 py-0 shrink-0 mt-0.5`}>
-                      {n.type}
-                    </Badge>
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{n.title}</p>
-                      <p className="text-xs text-muted-foreground">{n.message}</p>
+              {notifications.map(n => {
+                const isUnread = !n.readBy?.includes(user.id as string);
+                return (
+                  <div 
+                    key={n.id} 
+                    className={`p-3 border-b last:border-0 cursor-pointer hover:bg-accent/50 transition-colors ${isUnread ? 'bg-accent/30' : ''}`}
+                    onClick={() => handleMarkAsRead(n)}
+                  >
+                    <div className="flex items-start gap-2">
+                      <Badge className={`${typeColor[n.type]} text-[10px] px-1.5 py-0 shrink-0 mt-0.5`}>
+                        {n.type}
+                      </Badge>
+                      <div className="min-w-0">
+                        <p className={`text-sm ${isUnread ? 'font-semibold' : 'font-medium'} truncate`}>{n.title}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{n.message}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </PopoverContent>
         </Popover>
