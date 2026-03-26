@@ -48,7 +48,12 @@ export default function Batches() {
         batchService.getAll(),
         recipeService.getAll()
       ]);
-      setBatches(batchData || []);
+      const bData = (batchData || []).map((b: any) => ({
+        ...b,
+        inputMaterials: b.inputMaterials || [],
+        notes: b.notes || [],
+      }));
+      setBatches(bData);
       const rData = (recipeData || []).map((r: any) => ({
         ...r,
         yield: Number(r.yield) || 0,
@@ -207,14 +212,14 @@ export default function Batches() {
                 </div>
                 <div>
                   <h4 className="font-display font-semibold text-sm mb-2">Input Materials</h4>
-                  {selected.inputMaterials.map((m, i) => (
+                  {(selected.inputMaterials || []).map((m, i) => (
                     <div key={i} className="flex justify-between text-sm py-1 border-b last:border-0">
                       <span>{m.materialName}</span>
                       <span className="text-muted-foreground">{m.quantity} {m.unit}</span>
                     </div>
                   ))}
                 </div>
-                {selected.notes.length > 0 && (
+                {(selected.notes || []).length > 0 && (
                   <div>
                     <h4 className="font-display font-semibold text-sm mb-2">Notes</h4>
                     {selected.notes.map(n => (

@@ -164,3 +164,4 @@
 | T8.7 | Fix bug http://localhost:8000/api/permissions 404 insert and list | 🔴       | ✅      |
 | T8.8 | Fix bug `/users` crash `u.permissions.map is not a function` | 🔴       | ✅      |
 | T8.9 | Fix Batch creation error: `started_at` doesn't have a default value | 🔴       | ✅      |
+| T8.10 | Fix bug `/batches` crash `Cannot read properties of undefined (reading 'length')` on view batch | 🔴       | ☐      |
