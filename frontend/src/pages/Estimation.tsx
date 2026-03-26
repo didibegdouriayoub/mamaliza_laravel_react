@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calculator, Plus, Trash2, Printer } from 'lucide-react';
+import { Calculator, Plus, Trash2, Printer, Factory } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { recipeService } from '@/services/recipeService';
 import { inventoryService } from '@/services/inventoryService';
-import { Recipe, InventoryItem } from '@/models/types';
+import { batchService } from '@/services/batchService';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { Recipe, InventoryItem, BatchStatus } from '@/models/types';
 
 interface EstimationLine {
   recipeId: string;
@@ -21,6 +24,9 @@ export default function Estimation() {
   const [lines, setLines] = useState<EstimationLine[]>([{ recipeId: '', batchCount: 1 }]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [isCreating, setIsCreating] = useState(false);
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     const loadData = async () => {
@@ -35,6 +41,42 @@ export default function Estimation() {
     };
     loadData();
   }, []);
+
+  const handleCreateBatches = async () => {
+    const validLines = lines.filter(l => l.recipeId && l.batchCount > 0);
+    if (validLines.length === 0) return;
+    
+    setIsCreating(true);
+    let createdCount = 0;
+    
+    try {
+      for (const line of validLines) {
+        const recipe = recipes.find(r => String(r.id) === String(line.recipeId));
+        if (!recipe) continue;
+        
+        for (let i = 0; i < line.batchCount; i++) {
+          await batchService.create({
+            recipeId: recipe.id,
+            recipeName: recipe.name,
+            status: 'draft' as BatchStatus,
+            inputMaterials: recipe.ingredients,
+            outputQuantity: 0,
+            outputUnit: recipe.yieldUnit,
+            operatorId: user.id as string,
+            operatorName: user.name,
+            startedAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
+          });
+          createdCount++;
+        }
+      }
+      toast({ title: 'Success', description: `Created ${createdCount} draft batches successfully.` });
+    } catch (e: any) {
+      console.error(e);
+      toast({ title: 'Error creating batches', description: e.message, variant: 'destructive' });
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
   const addLine = () => setLines(prev => [...prev, { recipeId: '', batchCount: 1 }]);
   const removeLine = (idx: number) => setLines(prev => prev.filter((_, i) => i !== idx));
@@ -100,7 +142,12 @@ export default function Estimation() {
           <p className="text-sm text-muted-foreground">Estimate ingredients, packaging, and costs for planned batches</p>
         </div>
         {hasEstimation && (
-          <Button variant="outline" onClick={handlePrint}><Printer className="h-4 w-4 mr-1" /> Print</Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={handlePrint}><Printer className="h-4 w-4 mr-1" /> Print</Button>
+            <Button onClick={handleCreateBatches} disabled={isCreating}>
+              <Factory className="h-4 w-4 mr-1" /> {isCreating ? 'Creating...' : 'Create Batches'}
+            </Button>
+          </div>
         )}
       </div>
 
