@@ -36,11 +36,17 @@ export default function Inventory() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [invData, supData] = await Promise.all([
+      const [invRaw, supData] = await Promise.all([
         inventoryService.getAll(),
         supplierService.getAll()
       ]);
-      setItems(invData || []);
+      // Map supplier relationship object to flat fields
+      const invData = (invRaw || []).map((item: any) => ({
+        ...item,
+        supplier: item.supplier?.name || item.supplier || '',
+        supplierId: item.supplierId || item.supplier?.id || '',
+      }));
+      setItems(invData);
       setSuppliers(supData || []);
     } catch(e) { console.error(e); }
     setLoading(false);

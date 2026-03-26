@@ -9,9 +9,14 @@ class Recipe extends Model
     protected $fillable = [
         'name',
         'description',
+        'steps',
         'yield',
         'yield_unit',
         'version'
+    ];
+
+    protected $casts = [
+        'steps' => 'array',
     ];
 
     public function ingredients()

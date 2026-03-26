@@ -8,13 +8,13 @@ export const apiClient = {
     const headers = new Headers(options.headers || {});
     headers.set('Content-Type', 'application/json');
     headers.set('Accept', 'application/json');
-    
+
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
     }
 
     const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-    
+
     try {
       const response = await fetch(`${baseUrl}${endpoint}`, {
         ...options,
@@ -30,12 +30,12 @@ export const apiClient = {
       }
 
       if (!response.ok) {
-         let errorMsg = response.statusText;
-         try {
-           const errData = await response.json();
-           if (errData.message) errorMsg = errData.message;
-         } catch(e) {}
-         throw new Error(errorMsg || 'API Error');
+        let errorMsg = response.statusText;
+        try {
+          const errData = await response.json();
+          if (errData.message) errorMsg = errData.message;
+        } catch (e) { }
+        throw new Error(errorMsg || 'API Error');
       }
 
       if (response.status === 204) return null;

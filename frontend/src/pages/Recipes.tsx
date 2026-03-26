@@ -39,11 +39,19 @@ export default function Recipes() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [recipeData, invData] = await Promise.all([
+      const [recipeRaw, invData] = await Promise.all([
         recipeService.getAll(),
         inventoryService.getAll()
       ]);
-      setRecipes(recipeData || []);
+      // Ensure arrays are never null/undefined
+      const recipeData = (recipeRaw || []).map((r: any) => ({
+        ...r,
+        ingredients: r.ingredients || [],
+        steps: r.steps || [],
+        history: r.history || [],
+        version: r.version || 1,
+      }));
+      setRecipes(recipeData);
       setInventory(invData || []);
     } catch(e) { console.error(e); }
     setLoading(false);
