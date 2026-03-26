@@ -28,6 +28,10 @@ class BatchController extends Controller
             'completed_at' => 'nullable|date',
         ]);
 
+        if (!isset($validated['started_at'])) {
+            $validated['started_at'] = now()->toDateTimeString();
+        }
+
         $batch = Batch::create($validated);
         return response()->json($batch, 201);
     }
