@@ -46,13 +46,18 @@ export default function Recipes() {
       // Ensure arrays are never null/undefined
       const recipeData = (recipeRaw || []).map((r: any) => ({
         ...r,
-        ingredients: r.ingredients || [],
+        yield: Number(r.yield) || 0,
+        ingredients: (r.ingredients || []).map((i: any) => ({
+          ...i,
+          quantity: Number(i.quantity) || 0,
+          unitPrice: Number(i.unitPrice ?? i.unit_price) || 0,
+        })),
         steps: r.steps || [],
         history: r.history || [],
         version: r.version || 1,
       }));
       setRecipes(recipeData);
-      setInventory(invData || []);
+      setInventory((invData || []).map((m: any) => ({ ...m, price: Number(m.price) || 0 })));
     } catch(e) { console.error(e); }
     setLoading(false);
   };

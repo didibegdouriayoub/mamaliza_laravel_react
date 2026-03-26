@@ -36,14 +36,20 @@ export default function Estimation() {
           recipeService.getAll(),
           inventoryService.getAll()
         ]);
-        setRecipes(recipeData || []);
+        const rData = (recipeData || []).map((r: any) => ({
+          ...r,
+          yield: Number(r.yield) || 0,
+          ingredients: (r.ingredients || []).map((i: any) => ({ ...i, quantity: Number(i.quantity) || 0, unitPrice: Number(i.unitPrice ?? i.unit_price) || 0 })),
+        }));
+        setRecipes(rData);
         
         const initialRatios: Record<string, number> = {};
         (invData || []).filter(i => i.type === 'packaging').forEach(p => {
           initialRatios[p.id] = p.name.toLowerCase().includes('label') ? 1 : 0.1;
         });
         setPkgRatios(initialRatios);
-        setInventory(invData || []);
+        const iData = (invData || []).map((i: any) => ({ ...i, quantity: Number(i.quantity) || 0, price: Number(i.price) || 0 }));
+        setInventory(iData);
       } catch(e) { console.error(e); }
     };
     loadData();

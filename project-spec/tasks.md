@@ -157,7 +157,7 @@
 | -- | -------------------------------------------------------------------------------- | -------- | ------ |
 | T8.1 | Ensure seeder is idempotent (safe to run multiple times)                         | 🔴       | ☐      |
 | T8.2 | Validate unique email constraint is respected during seeding                     | 🔴       | ☐      |
-| T8.3 | Add and register `GET /api/permissions` endpoint to return permissions list | 🔴       | ☐      |
-| T8.4 | Fix bug http://localhost:5173/inventory dont loaded perfectly api good | 🔴       | ☐      |
-| T8.5 | Fix bug view details dont work and create recipe and problem NaN in recipe details | 🔴       | ☐      |
-| T8.6 | Ensure `unitPrice` is always a number (parse or validate API data before calling `.toFixed`) | 🔴       | ☐      |
+| T8.3 | Add and register `GET /api/permissions` endpoint to return permissions list | 🔴       | ✅      |
+| T8.4 | Fix bug http://localhost:5173/inventory dont loaded perfectly api good | 🔴       | ✅      |
+| T8.5 | Fix bug view details dont work and create recipe and problem NaN in recipe details | 🔴       | ✅      |
+| T8.6 | Ensure `unitPrice` is always a number (parse or validate API data before calling `.toFixed`) | 🔴       | ✅      |

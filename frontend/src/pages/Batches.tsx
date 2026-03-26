@@ -49,7 +49,12 @@ export default function Batches() {
         recipeService.getAll()
       ]);
       setBatches(batchData || []);
-      setRecipes(recipeData || []);
+      const rData = (recipeData || []).map((r: any) => ({
+        ...r,
+        yield: Number(r.yield) || 0,
+        ingredients: (r.ingredients || []).map((i: any) => ({ ...i, quantity: Number(i.quantity) || 0, unitPrice: Number(i.unitPrice ?? i.unit_price) || 0 })),
+      }));
+      setRecipes(rData);
     } catch(e) { console.error(e); }
     setLoading(false);
   };

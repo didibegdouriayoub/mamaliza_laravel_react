@@ -46,6 +46,9 @@ export default function Inventory() {
         ...item,
         supplier: item.supplier?.name ?? item.supplier ?? '',
         supplierId: item.supplierId ?? item.supplier?.id ?? '',
+        price: Number(item.price) || 0,
+        quantity: Number(item.quantity) || 0,
+        minStock: Number(item.minStock) || 0,
       }));
       setItems(invData);
       setSuppliers(supData || []);
