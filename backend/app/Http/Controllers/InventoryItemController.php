@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\InventoryItem;
+use App\Models\InventoryHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -10,7 +11,7 @@ class InventoryItemController extends Controller
 {
     public function index(Request $request)
     {
-        $query = InventoryItem::with('supplier');
+        $query = InventoryItem::with(['supplier', 'history.user']);
 
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
@@ -55,8 +56,21 @@ class InventoryItemController extends Controller
             'min_stock' => 'sometimes|numeric|min:0',
         ]);
 
+        // Record history
+        foreach ($validated as $key => $value) {
+            if ($inventory->$key != $value) {
+                InventoryHistory::create([
+                    'item_id' => $inventory->id,
+                    'field' => $key,
+                    'old_value' => (string) $inventory->$key,
+                    'new_value' => (string) $value,
+                    'changed_by' => auth()->id(),
+                ]);
+            }
+        }
+
         $inventory->update($validated);
-        return response()->json($inventory->refresh()->load('supplier'));
+        return response()->json($inventory->refresh()->load(['supplier', 'history.user']));
     }
 
     public function destroy(InventoryItem $inventory)

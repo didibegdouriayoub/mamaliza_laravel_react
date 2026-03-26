@@ -49,6 +49,14 @@ export default function Inventory() {
         price: Number(item.price) || 0,
         quantity: Number(item.quantity) || 0,
         minStock: Number(item.minStock) || 0,
+        history: (item.history || []).map((h: any) => ({
+          id: String(h.id),
+          field: h.field,
+          oldValue: String(h.oldValue ?? h.old_value ?? ''),
+          newValue: String(h.newValue ?? h.new_value ?? ''),
+          changedBy: h.user?.name || 'System',
+          changedAt: h.changedAt || h.changed_at || '',
+        }))
       }));
       setItems(invData);
       setSuppliers(supData || []);
@@ -95,23 +103,7 @@ export default function Inventory() {
   const handleSave = async () => {
     if (!form.name || !form.unit) return;
     if (editingItem) {
-      // Track changes in history
-      const changes: { field: string; oldValue: string; newValue: string }[] = [];
-      if (editingItem.quantity !== form.quantity) changes.push({ field: 'quantity', oldValue: String(editingItem.quantity), newValue: String(form.quantity) });
-      if (editingItem.price !== form.price) changes.push({ field: 'price', oldValue: String(editingItem.price), newValue: String(form.price) });
-      if (editingItem.name !== form.name) changes.push({ field: 'name', oldValue: editingItem.name, newValue: form.name });
-      if (editingItem.supplier !== form.supplier) changes.push({ field: 'supplier', oldValue: editingItem.supplier, newValue: form.supplier });
-
-      const newHistory = [
-        ...(editingItem.history || []),
-        ...changes.map(c => ({
-          id: `h${Date.now()}${Math.random()}`,
-          ...c,
-          changedBy: user?.name || 'System',
-          changedAt: new Date().toISOString().split('T')[0],
-        })),
-      ];
-      await inventoryService.update(editingItem.id, { ...form, history: newHistory });
+      await inventoryService.update(editingItem.id, form);
       toast({ title: 'Item updated', description: `${form.name} has been updated.` });
     } else {
       await inventoryService.create(form);
