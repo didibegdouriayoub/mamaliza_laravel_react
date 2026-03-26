@@ -162,3 +162,4 @@
 | T8.5 | Fix bug view details dont work and create recipe and problem NaN in recipe details | 🔴       | ✅      |
 | T8.6 | Ensure `unitPrice` is always a number (parse or validate API data before calling `.toFixed`) | 🔴       | ✅      |
 | T8.7 | Fix bug http://localhost:8000/api/permissions 404 insert and list | 🔴       | ✅      |
+| T8.8 | Fix bug `/users` crash `u.permissions.map is not a function` | 🔴       | ✅      |

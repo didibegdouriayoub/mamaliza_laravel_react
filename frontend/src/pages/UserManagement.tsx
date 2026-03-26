@@ -47,7 +47,14 @@ export default function UserManagement() {
         userService.getAll(),
         permissionService.getAll()
       ]);
-      setUsers(userData || []);
+      const parsedUsers = (userData || []).map((u: any) => {
+        let perms = u.permissions;
+        if (typeof perms === 'string') {
+          try { perms = JSON.parse(perms); } catch(e) { perms = []; }
+        }
+        return { ...u, permissions: Array.isArray(perms) ? perms : [] };
+      });
+      setUsers(parsedUsers);
       setAvailablePermissions(permData || []);
     } catch (e) { console.error(e); }
     setLoading(false);
