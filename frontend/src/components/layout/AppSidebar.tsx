@@ -21,6 +21,7 @@ const navItems: { title: string; url: string; icon: typeof LayoutDashboard; perm
   { title: 'Production', url: '/production', icon: ClipboardList, permission: 'manage_batches' },
   { title: 'Quality', url: '/quality', icon: ShieldCheck, permission: 'manage_quality' },
   { title: 'Estimation', url: '/estimation', icon: Calculator, permission: 'manage_inventory' },
+  { title: 'Customers', url: '/customers', icon: Users, permission: 'manage_sales' },
   { title: 'Sales', url: '/sales', icon: ShoppingCart, permission: 'manage_sales' },
   { title: 'Analytics', url: '/analytics', icon: BarChart3, permission: 'view_analytics' },
   { title: 'Users', url: '/users', icon: Users, permission: 'manage_users' },
