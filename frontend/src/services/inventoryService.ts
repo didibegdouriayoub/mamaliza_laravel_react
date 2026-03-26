@@ -10,7 +10,10 @@ const toPayload = (item: Partial<InventoryItem>) =>
     unit: item.unit,
     price: item.price,
     supplierId: item.supplierId,    // → supplier_id
+    lot: item.lot,
+    code: item.code,
     minStock: item.minStock,        // → min_stock
+    createdAt: item.createdAt,      // → created_at
   } as Record<string, unknown>);
 
 export const inventoryService = {

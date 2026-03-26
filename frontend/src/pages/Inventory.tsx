@@ -17,7 +17,19 @@ import { InventoryItem, MaterialType, Supplier } from '@/models/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
-const emptyForm = { name: '', type: 'raw' as MaterialType, quantity: 0, unit: '', price: 0, supplier: '', supplierId: '', minStock: 0 };
+const emptyForm = { 
+  name: '', 
+  type: 'raw' as MaterialType, 
+  quantity: 0, 
+  unit: 'kg', 
+  price: 0, 
+  supplier: '', 
+  supplierId: '', 
+  minStock: 0,
+  lot: '',
+  code: '',
+  createdAt: new Date().toISOString().split('T')[0]
+};
 
 export default function Inventory() {
   const { user } = useAuth();
@@ -26,6 +38,7 @@ export default function Inventory() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [historyItem, setHistoryItem] = useState<InventoryItem | null>(null);
@@ -49,6 +62,9 @@ export default function Inventory() {
         price: Number(item.price) || 0,
         quantity: Number(item.quantity) || 0,
         minStock: Number(item.minStock) || 0,
+        lot: item.lot || '',
+        code: item.code || '',
+        createdAt: item.createdAt?.split('T')[0] || item.created_at?.split('T')[0] || '',
         history: (item.history || []).map((h: any) => ({
           id: String(h.id),
           field: h.field,
@@ -89,16 +105,61 @@ export default function Inventory() {
   const filtered = items.filter(i => {
     const matchesSearch = i.name.toLowerCase().includes(search.toLowerCase()) || i.supplier.toLowerCase().includes(search.toLowerCase());
     const matchesType = typeFilter === 'all' || i.type === typeFilter;
+    
+    // Status Logic (Manual check to match StockBadge logic)
+    const isLow = i.quantity > 0 && i.minStock > 0 && i.quantity <= i.minStock;
+    const isOut = i.quantity <= 0;
+    const status = isOut ? 'out' : (isLow ? 'low' : 'ok');
+    const matchesStatus = statusFilter === 'all' || status === statusFilter;
+
     if (dateFilter && i.createdAt > dateFilter) return false;
-    return matchesSearch && matchesType;
+    return matchesSearch && matchesType && matchesStatus;
   });
+
+  const handleNameSelect = (name: string) => {
+    const existing = items.find(i => i.name === name);
+    if (existing) {
+      setForm(p => ({ 
+        ...p, 
+        name,
+        type: existing.type,
+        unit: existing.unit,
+        price: existing.price,
+        supplierId: existing.supplierId,
+        supplier: existing.supplier,
+        minStock: existing.minStock
+      }));
+    } else {
+      setForm(p => ({ ...p, name }));
+    }
+  };
 
   const openCreate = () => { setEditingItem(null); setForm(emptyForm); setDialogOpen(true); };
   const openEdit = (item: InventoryItem) => {
     setEditingItem(item);
-    setForm({ name: item.name, type: item.type, quantity: item.quantity, unit: item.unit, price: item.price, supplier: item.supplier, supplierId: item.supplierId, minStock: item.minStock });
+    setForm({ 
+      name: item.name, 
+      type: item.type, 
+      quantity: item.quantity, 
+      unit: item.unit, 
+      price: item.price, 
+      supplier: item.supplier, 
+      supplierId: item.supplierId, 
+      minStock: item.minStock,
+      lot: item.lot || '',
+      code: item.code || '',
+      createdAt: item.createdAt || ''
+    });
     setDialogOpen(true);
   };
+
+  // Simple code generation
+  useEffect(() => {
+    if (form.name && form.lot && !editingItem) {
+      const generatedCode = `${form.name.substring(0,3).toUpperCase()}-${form.lot}`;
+      setForm(p => ({ ...p, code: generatedCode }));
+    }
+  }, [form.name, form.lot, editingItem]);
 
   const handleSave = async () => {
     if (!form.name || !form.unit) return;
@@ -146,7 +207,17 @@ export default function Inventory() {
               <div className="space-y-4 py-2">
                 <div className="space-y-1.5">
                   <Label>Name</Label>
-                  <Input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder="e.g. Whole Milk" />
+                  <Input 
+                    value={form.name} 
+                    list="inventory-names"
+                    onChange={e => handleNameSelect(e.target.value)} 
+                    placeholder="e.g. Whole Milk" 
+                  />
+                  <datalist id="inventory-names">
+                    {Array.from(new Set(items.map(i => i.name))).map(name => (
+                      <option key={name} value={name} />
+                    ))}
+                  </datalist>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
@@ -164,6 +235,16 @@ export default function Inventory() {
                     <Input value={form.unit} onChange={e => setForm(p => ({ ...p, unit: e.target.value }))} placeholder="kg, liters, units" />
                   </div>
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label>Lot / Batch Number</Label>
+                    <Input value={form.lot} onChange={e => setForm(p => ({ ...p, lot: e.target.value }))} placeholder="e.g. LOT-2024-001" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Code (Internal)</Label>
+                    <Input value={form.code} onChange={e => setForm(p => ({ ...p, code: e.target.value }))} placeholder="Auto-generated" />
+                  </div>
+                </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1.5">
                     <Label>Quantity</Label>
@@ -178,14 +259,23 @@ export default function Inventory() {
                     <Input type="number" value={form.minStock} onChange={e => setForm(p => ({ ...p, minStock: Number(e.target.value) }))} />
                   </div>
                 </div>
-                <div className="space-y-1.5">
-                  <Label>Supplier</Label>
-                  <Select value={form.supplierId} onValueChange={handleSupplierChange}>
-                    <SelectTrigger><SelectValue placeholder="Select supplier" /></SelectTrigger>
-                    <SelectContent>
-                      {suppliers.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label>Entry Date (Created At)</Label>
+                    <div className="relative">
+                      <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input type="date" className="pl-9" value={form.createdAt} onChange={e => setForm(p => ({ ...p, createdAt: e.target.value }))} />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Supplier</Label>
+                    <Select value={form.supplierId} onValueChange={handleSupplierChange}>
+                      <SelectTrigger><SelectValue placeholder="Select supplier" /></SelectTrigger>
+                      <SelectContent>
+                        {suppliers.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
               <DialogFooter>
@@ -200,18 +290,28 @@ export default function Inventory() {
       <Card className="shadow-card">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-3 mb-4 print:hidden">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input className="pl-9" placeholder="Search inventory..." value={search} onChange={e => setSearch(e.target.value)} />
             </div>
+            <div className="flex flex-wrap items-center gap-2">
             <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[130px]"><SelectValue placeholder="Type" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="raw">Raw Materials</SelectItem>
                 <SelectItem value="packaging">Packaging</SelectItem>
               </SelectContent>
             </Select>
+
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[130px]"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="ok">In Stock (OK)</SelectItem>
+                <SelectItem value="low">Low Stock</SelectItem>
+                <SelectItem value="out">Out of Stock</SelectItem>
+              </SelectContent>
+            </Select>
+
             <div className="relative">
               <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -243,6 +343,8 @@ export default function Inventory() {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead className="hidden sm:table-cell">Type</TableHead>
+                    <TableHead className="hidden lg:table-cell">Lot</TableHead>
+                    <TableHead className="hidden lg:table-cell">Code</TableHead>
                     <TableHead className="text-right">Qty</TableHead>
                     <TableHead className="hidden sm:table-cell">Unit</TableHead>
                     <TableHead className="text-right hidden sm:table-cell">Price (€)</TableHead>
@@ -256,8 +358,15 @@ export default function Inventory() {
                     const displayQty = dateFilter ? getStockAtDate(item, dateFilter) : item.quantity;
                     return (
                       <motion.tr key={item.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: idx * 0.03 }} className="border-b">
-                        <TableCell className="font-medium">{item.name}</TableCell>
+                        <TableCell className="font-medium">
+                          <div>{item.name}</div>
+                          <div className="text-[10px] text-muted-foreground lg:hidden">
+                            {item.code && `[${item.code}] `}{item.lot && `Lot: ${item.lot}`}
+                          </div>
+                        </TableCell>
                         <TableCell className="capitalize hidden sm:table-cell">{item.type}</TableCell>
+                        <TableCell className="hidden lg:table-cell font-mono text-xs">{item.lot || '—'}</TableCell>
+                        <TableCell className="hidden lg:table-cell font-mono text-xs">{item.code || '—'}</TableCell>
                         <TableCell className="text-right">{displayQty !== null ? displayQty.toLocaleString() : '—'}</TableCell>
                         <TableCell className="hidden sm:table-cell">{item.unit}</TableCell>
                         <TableCell className="text-right hidden sm:table-cell">€{item.price.toFixed(2)}</TableCell>

@@ -13,8 +13,25 @@ class InventoryItem extends Model
         'unit',
         'price',
         'supplier_id',
-        'min_stock'
+        'lot',
+        'code',
+        'min_stock',
+        'status',
     ];
+
+    public static function booted()
+    {
+        static::saving(function ($item) {
+            // Auto-calculate status based on quantity and min_stock
+            if ($item->quantity <= 0) {
+                $item->status = 'out';
+            } elseif ($item->min_stock > 0 && $item->quantity <= $item->min_stock) {
+                $item->status = 'low';
+            } else {
+                $item->status = 'ok';
+            }
+        });
+    }
 
     public function supplier()
     {

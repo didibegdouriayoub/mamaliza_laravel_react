@@ -33,6 +33,32 @@ class BatchController extends Controller
         }
 
         $batch = Batch::create($validated);
+
+        // T9.1: Reduce inventory for each input material
+        if (isset($validated['input_materials']) && is_array($validated['input_materials'])) {
+            foreach ($validated['input_materials'] as $material) {
+                $materialId = $material['material_id'] ?? $material['id'] ?? null;
+                $quantity = $material['quantity'] ?? 0;
+
+                if ($materialId && $quantity > 0) {
+                    $item = \App\Models\InventoryItem::find($materialId);
+                    if ($item) {
+                        $oldQty = $item->quantity;
+                        $item->decrement('quantity', $quantity);
+                        
+                        // Record Inventory History
+                        \App\Models\InventoryHistory::create([
+                            'item_id' => $item->id,
+                            'field' => 'quantity',
+                            'old_value' => (string)$oldQty,
+                            'new_value' => (string)$item->quantity,
+                            'changed_by' => auth()->id() ?: 1, // Fallback to admin if not auth
+                        ]);
+                    }
+                }
+            }
+        }
+
         return response()->json($batch, 201);
     }
 
@@ -61,6 +87,31 @@ class BatchController extends Controller
 
     public function destroy(Batch $batch)
     {
+        // T9.1: Restore inventory levels before deleting the batch
+        if (isset($batch->input_materials) && is_array($batch->input_materials)) {
+            foreach ($batch->input_materials as $material) {
+                $materialId = $material['material_id'] ?? $material['id'] ?? null;
+                $quantity = $material['quantity'] ?? 0;
+
+                if ($materialId && $quantity > 0) {
+                    $item = \App\Models\InventoryItem::find($materialId);
+                    if ($item) {
+                        $oldQty = $item->quantity;
+                        $item->increment('quantity', $quantity);
+
+                        // Record Inventory History
+                        \App\Models\InventoryHistory::create([
+                            'item_id' => $item->id,
+                            'field' => 'quantity',
+                            'old_value' => (string)$oldQty,
+                            'new_value' => (string)$item->quantity,
+                            'changed_by' => auth()->id() ?: 1,
+                        ]);
+                    }
+                }
+            }
+        }
+
         $batch->delete();
         return response()->json(null, 204);
     }

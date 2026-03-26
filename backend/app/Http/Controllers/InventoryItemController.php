@@ -19,6 +19,9 @@ class InventoryItemController extends Controller
         if ($request->filled('type')) {
             $query->where('type', $request->type);
         }
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
 
         return response()->json($query->latest()->get());
     }
@@ -33,6 +36,9 @@ class InventoryItemController extends Controller
             'price' => 'required|numeric|min:0',
             'supplier_id' => 'required|exists:suppliers,id',
             'min_stock' => 'required|numeric|min:0',
+            'lot' => 'nullable|string|max:50',
+            'code' => 'nullable|string|max:100',
+            'created_at' => 'nullable|date',
         ]);
 
         $item = InventoryItem::create($validated);
@@ -54,10 +60,15 @@ class InventoryItemController extends Controller
             'price' => 'sometimes|numeric|min:0',
             'supplier_id' => 'sometimes|exists:suppliers,id',
             'min_stock' => 'sometimes|numeric|min:0',
+            'lot' => 'nullable|string|max:50',
+            'code' => 'nullable|string|max:100',
+            'created_at' => 'nullable|date',
         ]);
 
         // Record history
         foreach ($validated as $key => $value) {
+            if ($key === 'created_at') continue; // Don't track created_at changes in history for now
+            if (!isset($inventory->$key) && $value === null) continue;
             if ($inventory->$key != $value) {
                 InventoryHistory::create([
                     'item_id' => $inventory->id,

@@ -59,6 +59,9 @@ export interface InventoryItem {
   price: number;
   supplier: string;
   supplierId: string;
+  lot?: string;
+  code?: string;
+  status: 'ok' | 'low' | 'out';
   minStock: number;
   createdAt: string;
   updatedAt: string;
