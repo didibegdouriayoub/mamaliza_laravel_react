@@ -20,6 +20,7 @@ import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import Permissions from "./pages/Permissions";
 import Customers from "./pages/Customers";
+import Suppliers from "./pages/Suppliers";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ function AppRoutes() {
         <Route path="/quality" element={<ProtectedRoute permissions={['manage_quality']}><Quality /></ProtectedRoute>} />
         <Route path="/estimation" element={<ProtectedRoute permissions={['manage_inventory']}><Estimation /></ProtectedRoute>} />
         <Route path="/customers" element={<ProtectedRoute permissions={['manage_sales']}><Customers /></ProtectedRoute>} />
+        <Route path="/suppliers" element={<ProtectedRoute permissions={['manage_inventory']}><Suppliers /></ProtectedRoute>} />
         <Route path="/sales" element={<ProtectedRoute permissions={['manage_sales']}><Sales /></ProtectedRoute>} />
         <Route path="/analytics" element={<ProtectedRoute permissions={['view_analytics']}><Analytics /></ProtectedRoute>} />
         <Route path="/users" element={<ProtectedRoute permissions={['manage_users']}><UserManagement /></ProtectedRoute>} />

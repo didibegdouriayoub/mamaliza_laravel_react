@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Package, BookOpen, Factory, ShieldCheck,
-  ShoppingCart, BarChart3, Users, Calculator, ClipboardList,
+  ShoppingCart, BarChart3, Users, Calculator, ClipboardList, Truck,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,6 +22,7 @@ const navItems: { title: string; url: string; icon: typeof LayoutDashboard; perm
   { title: 'Quality', url: '/quality', icon: ShieldCheck, permission: 'manage_quality' },
   { title: 'Estimation', url: '/estimation', icon: Calculator, permission: 'manage_inventory' },
   { title: 'Customers', url: '/customers', icon: Users, permission: 'manage_sales' },
+  { title: 'Suppliers', url: '/suppliers', icon: Truck, permission: 'manage_inventory' },
   { title: 'Sales', url: '/sales', icon: ShoppingCart, permission: 'manage_sales' },
   { title: 'Analytics', url: '/analytics', icon: BarChart3, permission: 'view_analytics' },
   { title: 'Users', url: '/users', icon: Users, permission: 'manage_users' },
