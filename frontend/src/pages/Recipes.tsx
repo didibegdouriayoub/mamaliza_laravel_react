@@ -53,7 +53,14 @@ export default function Recipes() {
           unitPrice: Number(i.unitPrice ?? i.unit_price) || 0,
         })),
         steps: r.steps || [],
-        history: r.history || [],
+        history: (r.history || []).map((h: any) => ({
+          id: String(h.id),
+          field: h.field,
+          oldValue: String(h.oldValue ?? h.old_value ?? ''),
+          newValue: String(h.newValue ?? h.new_value ?? ''),
+          changedBy: h.user?.name || 'System',
+          changedAt: h.changedAt || h.changed_at || '',
+        })),
         version: r.version || 1,
       }));
       setRecipes(recipeData);
@@ -85,17 +92,7 @@ export default function Recipes() {
     const validSteps = steps.filter(s => s.trim());
 
     if (editingRecipe) {
-      // Track changes in history
-      const changes: { id: string; field: string; oldValue: string; newValue: string; changedBy: string; changedAt: string }[] = [];
-      const now = new Date().toISOString().split('T')[0];
-      if (editingRecipe.name !== name) changes.push({ id: `rh${Date.now()}a`, field: 'name', oldValue: editingRecipe.name, newValue: name, changedBy: user?.name || 'System', changedAt: now });
-      if (editingRecipe.description !== description) changes.push({ id: `rh${Date.now()}b`, field: 'description', oldValue: editingRecipe.description, newValue: description, changedBy: user?.name || 'System', changedAt: now });
-      const oldIngStr = JSON.stringify(editingRecipe.ingredients.map(i => `${i.materialName}:${i.quantity}`));
-      const newIngStr = JSON.stringify(validIngs.map(i => `${i.materialName}:${i.quantity}`));
-      if (oldIngStr !== newIngStr) changes.push({ id: `rh${Date.now()}c`, field: 'ingredients', oldValue: `${editingRecipe.ingredients.length} items`, newValue: `${validIngs.length} items`, changedBy: user?.name || 'System', changedAt: now });
-
-      const newHistory = [...(editingRecipe.history || []), ...changes];
-      await recipeService.update(editingRecipe.id, { name, description, ingredients: validIngs, steps: validSteps, yield: yieldVal, yieldUnit, history: newHistory });
+      await recipeService.update(editingRecipe.id, { name, description, ingredients: validIngs, steps: validSteps, yield: yieldVal, yieldUnit });
       toast({ title: 'Recipe updated' });
     } else {
       await recipeService.create({ name, description, ingredients: validIngs, steps: validSteps, yield: yieldVal, yieldUnit });
