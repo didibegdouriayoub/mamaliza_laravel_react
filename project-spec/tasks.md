@@ -141,7 +141,7 @@
 
 | # | Task | Priority | Status |
 |---|---|---|---|
-| T7.0 | **Permissions page:** list, create, edit, delete permissions | 🟠 | ☐ 
+| T7.0 | **Permissions page:** list, create, edit, delete permissions | 🟠 | ✅ |
 | T7.1 | **Inventory page:** fix bug http://localhost:5173/inventory dont loaded perfectly api good | 🟠 | ✅ |
 | T7.2 | **Recipe page:** fix bug view details dont work and create recipe and problem NaN in recipe details | 🟠 | ✅ |
 | T7.3 | **Customers page:** list, create, edit, delete customers | 🟠 | ☐ |

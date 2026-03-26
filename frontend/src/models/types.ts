@@ -26,6 +26,14 @@ export interface ChangeRecord {
 }
 
 // ============ ENTITIES ============
+export interface PermissionEntity {
+  id: string | number;
+  name: string;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface User {
   id: string;
   name: string;

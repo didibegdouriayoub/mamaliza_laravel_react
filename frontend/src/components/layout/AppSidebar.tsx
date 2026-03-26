@@ -24,6 +24,7 @@ const navItems: { title: string; url: string; icon: typeof LayoutDashboard; perm
   { title: 'Sales', url: '/sales', icon: ShoppingCart, permission: 'manage_sales' },
   { title: 'Analytics', url: '/analytics', icon: BarChart3, permission: 'view_analytics' },
   { title: 'Users', url: '/users', icon: Users, permission: 'manage_users' },
+  { title: 'Permissions', url: '/permissions', icon: ShieldCheck, permission: 'manage_users' },
 ];
 
 export function AppSidebar() {

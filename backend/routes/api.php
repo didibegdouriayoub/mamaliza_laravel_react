@@ -13,6 +13,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Core Resources
     Route::apiResource('users', \App\Http\Controllers\UserController::class);
+    Route::apiResource('permissions', \App\Http\Controllers\PermissionController::class);
     Route::apiResource('suppliers', \App\Http\Controllers\SupplierController::class);
     Route::apiResource('inventory', \App\Http\Controllers\InventoryItemController::class);
     Route::apiResource('recipes', \App\Http\Controllers\RecipeController::class);

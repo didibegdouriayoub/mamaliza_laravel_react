@@ -13,19 +13,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { TableSkeleton, EmptyState } from '@/components/DataStates';
 import { useAuth } from '@/contexts/AuthContext';
 import { userService } from '@/services/userService';
+import { permissionService, PermissionEntity } from '@/services/permissionService';
 import { useToast } from '@/hooks/use-toast';
 import type { User, UserRole, Permission } from '@/models/types';
-
-const allPermissions: { value: Permission; label: string }[] = [
-  { value: 'manage_inventory', label: 'Manage Inventory' },
-  { value: 'manage_recipes', label: 'Manage Recipes' },
-  { value: 'manage_batches', label: 'Manage Batches' },
-  { value: 'manage_sales', label: 'Manage Sales' },
-  { value: 'view_analytics', label: 'View Analytics' },
-  { value: 'manage_quality', label: 'Manage Quality' },
-  { value: 'manage_packaging', label: 'Manage Packaging' },
-  { value: 'manage_users', label: 'Manage Users' },
-];
 
 const roleBadgeClass: Record<UserRole, string> = {
   admin: 'bg-primary text-primary-foreground',
@@ -37,6 +27,7 @@ export default function UserManagement() {
   const { hasPermission } = useAuth();
   const { toast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
+  const [availablePermissions, setAvailablePermissions] = useState<PermissionEntity[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editPerms, setEditPerms] = useState<Permission[]>([]);
@@ -49,16 +40,20 @@ export default function UserManagement() {
   const [newPassword, setNewPassword] = useState('');
   const [newRole, setNewRole] = useState<UserRole>('operator');
 
-  const loadUsers = async () => {
+  const loadData = async () => {
     setLoading(true);
     try {
-      const data = await userService.getAll();
-      setUsers(data || []);
+      const [userData, permData] = await Promise.all([
+        userService.getAll(),
+        permissionService.getAll()
+      ]);
+      setUsers(userData || []);
+      setAvailablePermissions(permData || []);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
 
-  useEffect(() => { loadUsers(); }, []);
+  useEffect(() => { loadData(); }, []);
 
   if (!hasPermission('manage_users')) {
     return (
@@ -84,7 +79,7 @@ export default function UserManagement() {
       await userService.update(editingUser.id, { role: editRole, permissions: editPerms });
       toast({ title: 'User updated' });
       setEditingUser(null);
-      loadUsers();
+      loadData();
     } catch (e: any) {
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
     }
@@ -97,7 +92,7 @@ export default function UserManagement() {
       toast({ title: 'User created' });
       setCreateOpen(false);
       setNewName(''); setNewEmail(''); setNewPassword(''); setNewRole('operator');
-      loadUsers();
+      loadData();
     } catch (e: any) {
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
     }
@@ -107,7 +102,7 @@ export default function UserManagement() {
     try {
       await userService.delete(id);
       toast({ title: 'User deleted', variant: 'destructive' });
-      loadUsers();
+      loadData();
     } catch (e: any) {
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
     }
@@ -193,11 +188,11 @@ export default function UserManagement() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Permissions</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {allPermissions.map(p => (
-                      <label key={p.value} className="flex items-center gap-2 text-sm cursor-pointer">
-                        <Checkbox checked={editPerms.includes(p.value)} onCheckedChange={() => togglePerm(p.value)} />
-                        {p.label}
+                  <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1">
+                    {availablePermissions.map(p => (
+                      <label key={p.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox checked={editPerms.includes(p.name as Permission)} onCheckedChange={() => togglePerm(p.name as Permission)} />
+                        {p.name.replace('manage_', '').replace('view_', '')}
                       </label>
                     ))}
                   </div>

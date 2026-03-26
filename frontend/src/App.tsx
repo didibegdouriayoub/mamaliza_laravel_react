@@ -18,6 +18,7 @@ import Estimation from "./pages/Estimation";
 import Production from "./pages/Production";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+import Permissions from "./pages/Permissions";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ function AppRoutes() {
         <Route path="/sales" element={<ProtectedRoute permissions={['manage_sales']}><Sales /></ProtectedRoute>} />
         <Route path="/analytics" element={<ProtectedRoute permissions={['view_analytics']}><Analytics /></ProtectedRoute>} />
         <Route path="/users" element={<ProtectedRoute permissions={['manage_users']}><UserManagement /></ProtectedRoute>} />
+        <Route path="/permissions" element={<ProtectedRoute permissions={['manage_users']}><Permissions /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AppLayout>
