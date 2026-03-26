@@ -15,10 +15,10 @@
 
 | # | Task | Priority | Status |
 |---|---|---|---|
-| T0.1 | Choose backend framework (laravel) | 🔴 | ☐ |
-| T0.2 | Initialize backend project with folder structure | 🔴 | ☐ |
-| T0.3 | Set up MySQL database and connect ORM | 🔴 | ☐ |
-| T0.4 | Run database migrations for all core tables | 🔴 | ☐ |
+| T0.1 | Choose backend framework (laravel) | 🔴 | ✅ |
+| T0.2 | Initialize backend project with folder structure | 🔴 | ✅ |
+| T0.3 | Set up MySQL database and connect ORM | 🔴 | ✅ |
+| T0.4 | Run database migrations for all core tables | 🔴 | ✅ |
 | T0.5 | Add `VITE_API_URL` env variable to frontend | 🔴 | ✅ |
 | T0.6 | Configure CORS (allow frontend origin) | 🔴 | ✅ |
 | T0.7 | Add global error handler middleware | 🟠 | ✅ |
@@ -141,12 +141,15 @@
 
 | # | Task | Priority | Status |
 |---|---|---|---|
-| T7.1 | **Customers page:** list, create, edit, delete customers | 🟠 | ☐ |
-| T7.2 | **Suppliers page:** list, create, edit, delete suppliers | 🟠 | ☐ |
-| T7.3 | **Notifications panel:** bell icon in nav, list, mark-as-read | 🟡 | ☐ |
-| T7.4 | **Estimation → Batches:** "Create Batches from Estimation" button | 🟡 | ☐ |
-| T7.5 | **Estimation:** configurable packaging ratios (not hardcoded) | 🟢 | ☐ |
-| T7.6 | **Production Log leftovers → Inventory:** return leftover quantities to stock | 🟡 | ☐ |
+| T7.0 | **Permissions page:** list, create, edit, delete permissions | 🟠 | ☐ 
+| T7.1 | **Inventory page:** fix bug http://localhost:5173/inventory dont loaded perfectly api good | 🟠 |  ☐ 
+| T7.2 | **Recipe page:** fix bug view details dont work and create recipe and problem NaN in recipe details | 🟠 |  ☐    
+| T7.3 | **Customers page:** list, create, edit, delete customers | 🟠 | ☐ |
+| T7.4 | **Suppliers page:** list, create, edit, delete suppliers | 🟠 | ☐ |
+| T7.5 | **Notifications panel:** bell icon in nav, list, mark-as-read | 🟡 | ☐ |
+| T7.6 | **Estimation → Batches:** "Create Batches from Estimation" button | 🟡 | ☐ |
+| T7.7 | **Estimation:** configurable packaging ratios (not hardcoded) | 🟢 | ☐ |
+| T7.8 | **Production Log leftovers → Inventory:** return leftover quantities to stock | 🟡 | ☐ |
 
 ---
 
