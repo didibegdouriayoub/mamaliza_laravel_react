@@ -25,6 +25,7 @@ export default function Estimation() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [isCreating, setIsCreating] = useState(false);
+  const [pkgRatios, setPkgRatios] = useState<Record<string, number>>({});
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -36,6 +37,12 @@ export default function Estimation() {
           inventoryService.getAll()
         ]);
         setRecipes(recipeData || []);
+        
+        const initialRatios: Record<string, number> = {};
+        (invData || []).filter(i => i.type === 'packaging').forEach(p => {
+          initialRatios[p.id] = p.name.toLowerCase().includes('label') ? 1 : 0.1;
+        });
+        setPkgRatios(initialRatios);
         setInventory(invData || []);
       } catch(e) { console.error(e); }
     };
@@ -107,7 +114,7 @@ export default function Estimation() {
     });
   });
 
-  // Also estimate packaging needs (simple: 1 label + some wrapping per yield unit)
+  // Also estimate packaging needs based on dynamic ratios per yield unit
   const totalYield = lines.reduce((sum, line) => {
     const recipe = recipes.find(r => String(r.id) === String(line.recipeId));
     return sum + (recipe ? recipe.yield * line.batchCount : 0);
@@ -115,7 +122,7 @@ export default function Estimation() {
 
   const packagingNeeds = inventory.filter(i => i.type === 'packaging').map(pkg => ({
     ...pkg,
-    estimated: pkg.name.toLowerCase().includes('label') ? totalYield : Math.ceil(totalYield * 0.1),
+    estimated: Math.ceil(totalYield * (pkgRatios[pkg.id] || 0)),
   }));
 
   const ingredientList = Array.from(aggregated.values());
@@ -254,6 +261,7 @@ export default function Estimation() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Material</TableHead>
+                    <TableHead className="w-24">Ratio/Unit</TableHead>
                     <TableHead className="text-right">Estimated</TableHead>
                     <TableHead>Unit</TableHead>
                     <TableHead className="text-right">In Stock</TableHead>
@@ -265,6 +273,16 @@ export default function Estimation() {
                   {packagingNeeds.map((pkg, i) => (
                     <TableRow key={i}>
                       <TableCell className="font-medium">{pkg.name}</TableCell>
+                      <TableCell>
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          min="0"
+                          className="h-8 text-xs py-1"
+                          value={pkgRatios[pkg.id] ?? ''} 
+                          onChange={e => setPkgRatios(p => ({ ...p, [pkg.id]: Number(e.target.value) || 0 }))} 
+                        />
+                      </TableCell>
                       <TableCell className="text-right">{pkg.estimated}</TableCell>
                       <TableCell>{pkg.unit}</TableCell>
                       <TableCell className="text-right">{pkg.quantity}</TableCell>
