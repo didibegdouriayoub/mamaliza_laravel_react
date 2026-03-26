@@ -149,29 +149,15 @@
 | T7.5 | **Notifications panel:** bell icon in nav, list, mark-as-read | 🟡 | ✅ |
 | T7.6 | **Estimation → Batches:** "Create Batches from Estimation" button | 🟡 | ✅ |
 | T7.7 | **Estimation:** configurable packaging ratios (not hardcoded) | 🟢 | ✅ |
-| T7.8 | **Production Log leftovers → Inventory:** return leftover quantities to stock | 🟡 | ☐ |
+| T7.8 | **Production Log leftovers → Inventory:** return leftover quantities to stock | 🟡 | ✅ |
 
 ---
-
-## Phase 8 — React Query Migration (Optional but Recommended)
-
-| # | Task | Priority | Status |
-|---|---|---|---|
-| T8.1 | Replace `useEffect + loadData()` in Inventory with `useQuery` | 🟡 | ☐ |
-| T8.2 | Replace `useEffect + loadData()` in Recipes with `useQuery` | 🟡 | ☐ |
-| T8.3 | Replace `useEffect + loadData()` in Batches with `useQuery` | 🟡 | ☐ |
-| T8.4 | Replace `useEffect + loadData()` in Quality with `useQuery` | 🟡 | ☐ |
-| T8.5 | Replace `useEffect + loadData()` in Sales with `useQuery` | 🟡 | ☐ |
-| T8.6 | Replace all create/update/delete handlers with `useMutation` | 🟡 | ☐ |
-
----
-
-## Milestone Summary
-
-| Milestone | Tasks | Outcome |
-|---|---|---|
-| **M1: Backend up + Auth** | T0.x + T1.x | Login works; JWT issued; session persists |
-| **M2: Live CRUD** | T2.x + T3.x | All mock data replaced; real DB reads/writes |
-| **M3: Business Rules** | T4.x + T5.x | Inventory deducts on batch; QC syncs score; orders auto-update |
-| **M4: Complete Features** | T6.x + T7.x | Customers, Suppliers, Notifications, permission guards |
-| **M5: Polish** | T8.x | React Query, error boundaries, loading skeletons everywhere |
+## Phase 8 — Fix bugs
+| #  | Task                                                                             | Priority | Status |
+| -- | -------------------------------------------------------------------------------- | -------- | ------ |
+| T8.1 | Ensure seeder is idempotent (safe to run multiple times)                         | 🔴       | ☐      |
+| T8.2 | Validate unique email constraint is respected during seeding                     | 🔴       | ☐      |
+| T8.3 | Add and register `GET /api/permissions` endpoint to return permissions list | 🔴       | ☐      |
+| T8.4 | Fix bug http://localhost:5173/inventory dont loaded perfectly api good | 🔴       | ☐      |
+| T8.5 | Fix bug view details dont work and create recipe and problem NaN in recipe details | 🔴       | ☐      |
+| T8.6 | Ensure `unitPrice` is always a number (parse or validate API data before calling `.toFixed`) | 🔴       | ☐      |
