@@ -40,11 +40,12 @@ export default function Inventory() {
         inventoryService.getAll(),
         supplierService.getAll()
       ]);
-      // Map supplier relationship object to flat fields
+      // supplierId / minStock / createdAt now come as camelCase from apiClient.
+      // supplier is a nested object — flatten name & id.
       const invData = (invRaw || []).map((item: any) => ({
         ...item,
-        supplier: item.supplier?.name || item.supplier || '',
-        supplierId: item.supplierId || item.supplier?.id || '',
+        supplier: item.supplier?.name ?? item.supplier ?? '',
+        supplierId: item.supplierId ?? item.supplier?.id ?? '',
       }));
       setItems(invData);
       setSuppliers(supData || []);

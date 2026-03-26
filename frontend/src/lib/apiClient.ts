@@ -2,6 +2,39 @@ export const getAuthToken = () => localStorage.getItem('auth_token');
 export const setAuthToken = (token: string) => localStorage.setItem('auth_token', token);
 export const removeAuthToken = () => localStorage.removeItem('auth_token');
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** snake_case → camelCase (single key) */
+const camelize = (s: string) =>
+  s.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+
+/** Deep-convert all object keys from snake_case to camelCase */
+export function toCamelCase<T = any>(data: unknown): T {
+  if (Array.isArray(data)) return data.map(toCamelCase) as unknown as T;
+  if (data !== null && typeof data === 'object') {
+    return Object.fromEntries(
+      Object.entries(data as Record<string, unknown>).map(([k, v]) => [
+        camelize(k),
+        toCamelCase(v),
+      ])
+    ) as T;
+  }
+  return data as T;
+}
+
+/** camelCase → snake_case (single key) */
+const snakify = (s: string) =>
+  s.replace(/([A-Z])/g, (c) => `_${c.toLowerCase()}`);
+
+/** Shallow-convert top-level object keys from camelCase to snake_case (for outgoing payloads) */
+export function toSnakeCase<T = Record<string, unknown>>(obj: Record<string, unknown>): T {
+  return Object.fromEntries(
+    Object.entries(obj).map(([k, v]) => [snakify(k), v])
+  ) as T;
+}
+
+// ── API Client ────────────────────────────────────────────────────────────────
+
 export const apiClient = {
   async fetch(endpoint: string, options: RequestInit = {}) {
     const token = getAuthToken();
@@ -22,7 +55,6 @@ export const apiClient = {
       });
 
       if (response.status === 401) {
-        // Only dispatch unauthorized if there was actually a token (session expired)
         if (getAuthToken()) {
           removeAuthToken();
           window.dispatchEvent(new Event('auth:unauthorized'));
@@ -34,13 +66,14 @@ export const apiClient = {
         try {
           const errData = await response.json();
           if (errData.message) errorMsg = errData.message;
-        } catch (e) { }
+        } catch (_) { }
         throw new Error(errorMsg || 'API Error');
       }
 
       if (response.status === 204) return null;
 
-      return response.json();
+      const json = await response.json();
+      return toCamelCase(json);
     } catch (error) {
       throw error;
     }
@@ -54,6 +87,9 @@ export const apiClient = {
   },
   put(endpoint: string, body: any, options?: RequestInit) {
     return this.fetch(endpoint, { ...options, method: 'PUT', body: JSON.stringify(body) });
+  },
+  patch(endpoint: string, body: any, options?: RequestInit) {
+    return this.fetch(endpoint, { ...options, method: 'PATCH', body: JSON.stringify(body) });
   },
   delete(endpoint: string, options?: RequestInit) {
     return this.fetch(endpoint, { ...options, method: 'DELETE' });
