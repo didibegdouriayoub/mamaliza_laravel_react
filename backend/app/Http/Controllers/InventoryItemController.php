@@ -38,12 +38,12 @@ class InventoryItemController extends Controller
         return response()->json($item->load('supplier'), 201);
     }
 
-    public function show(InventoryItem $inventoryItem)
+    public function show(InventoryItem $inventory)
     {
-        return response()->json($inventoryItem->load(['supplier', 'history.user']));
+        return response()->json($inventory->load(['supplier', 'history.user']));
     }
 
-    public function update(Request $request, InventoryItem $inventoryItem)
+    public function update(Request $request, InventoryItem $inventory)
     {
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -55,13 +55,13 @@ class InventoryItemController extends Controller
             'min_stock' => 'sometimes|numeric|min:0',
         ]);
 
-        $inventoryItem->update($validated);
-        return response()->json($inventoryItem->load('supplier'));
+        $inventory->update($validated);
+        return response()->json($inventory->refresh()->load('supplier'));
     }
 
-    public function destroy(InventoryItem $inventoryItem)
+    public function destroy(InventoryItem $inventory)
     {
-        $inventoryItem->delete();
+        $inventory->delete();
         return response()->json(null, 204);
     }
 }
