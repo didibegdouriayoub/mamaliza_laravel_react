@@ -168,4 +168,5 @@
 | T8.11 | Fix Quality Control error: "The selected evaluated by is invalid" | 🔴       | ✅      |
 | T8.12 | Fix Inventory update issue: `{"supplier":null}` and not updating | 🔴       | ✅      |
 | T8.13 | Fix Inventory Change History: changes not being recorded on update | 🔴       | ✅      |
-| T8.14 | Fix Recipe Change History: changes not being recorded on update | 🔴       | ☐      |
+| T8.14 | Fix Recipe Change History: changes not being recorded on update | 🔴       | ✅      |
+| T8.15 | Improve Recipe History: record changes for steps and detailed ingredients | 🔴       | ☐      |

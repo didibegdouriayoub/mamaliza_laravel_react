@@ -50,31 +50,40 @@ class RecipeController extends Controller
             'ingredients.*.quantity' => 'required|numeric|min:0',
         ]);
 
-        // Record history for main fields
-        foreach (['name', 'description', 'yield', 'yield_unit'] as $field) {
-            if (isset($validated[$field]) && $recipe->$field != $validated[$field]) {
-                RecipeHistory::create([
-                    'recipe_id' => $recipe->id,
-                    'field' => $field,
-                    'old_value' => (string) $recipe->$field,
-                    'new_value' => (string) $validated[$field],
-                    'changed_by' => auth()->id(),
-                ]);
+        // Record history for main fields (including steps array)
+        foreach (['name', 'description', 'yield', 'yield_unit', 'steps'] as $field) {
+            if (isset($validated[$field])) {
+                $oldVal = $recipe->$field;
+                $newVal = $validated[$field];
+                
+                $oldStr = is_array($oldVal) ? json_encode($oldVal) : (string)$oldVal;
+                $newStr = is_array($newVal) ? json_encode($newVal) : (string)$newVal;
+
+                if ($oldStr !== $newStr) {
+                    RecipeHistory::create([
+                        'recipe_id' => $recipe->id,
+                        'field' => $field,
+                        'old_value' => $oldStr,
+                        'new_value' => $newStr,
+                        'changed_by' => auth()->id(),
+                    ]);
+                }
             }
         }
 
         $recipe->update($validated);
 
         if (isset($validated['ingredients'])) {
-            // Track ingredient change summary
-            $oldIngCount = $recipe->ingredients()->count();
-            $newIngCount = count($validated['ingredients']);
-            if ($oldIngCount != $newIngCount) {
+            // Check if ingredients actually changed
+            $oldIngs = $recipe->ingredients->map(fn($i) => ['material_id' => $i->material_id, 'quantity' => (float)$i->quantity])->values()->all();
+            $newIngs = collect($validated['ingredients'])->map(fn($i) => ['material_id' => $i['material_id'], 'quantity' => (float)$i['quantity']])->values()->all();
+
+            if (json_encode($oldIngs) !== json_encode($newIngs)) {
                  RecipeHistory::create([
                     'recipe_id' => $recipe->id,
                     'field' => 'ingredients',
-                    'old_value' => "$oldIngCount items",
-                    'new_value' => "$newIngCount items",
+                    'old_value' => count($oldIngs) . " ingredients",
+                    'new_value' => count($newIngs) . " ingredients (updated)",
                     'changed_by' => auth()->id(),
                 ]);
             }
@@ -82,11 +91,9 @@ class RecipeController extends Controller
             // Sync ingredients
             $recipe->ingredients()->delete();
             foreach ($validated['ingredients'] as $ing) {
-                // Fetch material details to keep name/unit consistent if needed
                 $material = \App\Models\InventoryItem::find($ing['material_id']);
                 $recipe->ingredients()->create([
-                    'inventory_item_id' => $ing['material_id'], // Adjust column name if it differs
-                    'material_id' => $ing['material_id'],      // Check migration
+                    'material_id' => $ing['material_id'],
                     'material_name' => $material->name,
                     'quantity' => $ing['quantity'],
                     'unit' => $material->unit,
