@@ -169,4 +169,17 @@
 | T8.12 | Fix Inventory update issue: `{"supplier":null}` and not updating | 🔴       | ✅      |
 | T8.13 | Fix Inventory Change History: changes not being recorded on update | 🔴       | ✅      |
 | T8.14 | Fix Recipe Change History: changes not being recorded on update | 🔴       | ✅      |
-| T8.15 | Improve Recipe History: record changes for steps and detailed ingredients | 🔴       | ☐      |
+| T8.15 | Improve Recipe History: record changes for steps and detailed ingredients | 🔴       | ✅      |
+
+### Phase 9: Inventory & Batch Integration + UX Improvements
+
+| Task  | Description | Priority | Status |
+| :--- | :--- | :--- | :--- |
+| T9.1 | Inventory: Automatic quantity reduction on Batch creation and restoration on deletion | 🔴       | ☐      |
+| T9.2 | System: Set default unit to `kg` across the application | 🟡       | ☐      |
+| T9.3 | Inventory: Add `lot` and `code` attributes (migration + model + frontend) | 🔴       | ☐      |
+| T9.4 | UI/UX: Inventory name autocomplete/suggestion with field auto-fill | 🟡       | ☐      |
+| T9.5 | Logic: Dynamic Stock Status (`ok`, `low`, `out of stock`) update | 🔴       | ☐      |
+| T9.6 | UI: Filter inventory by Stock Status | 🟡       | ☐      |
+| T9.7 | API: Allow manual `created_at` timestamp override for inventory | 🟡       | ☐      |
+
