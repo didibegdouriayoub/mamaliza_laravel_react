@@ -118,7 +118,8 @@ export interface QualityControl {
   smell: number;
   overallScore: number;
   approved: boolean;
-  evaluatedBy: string;
+  evaluatedBy: string | number;
+  evaluator: string;
   evaluatedAt: string;
   notes: string;
 }

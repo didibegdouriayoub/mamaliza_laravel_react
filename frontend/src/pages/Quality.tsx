@@ -64,7 +64,7 @@ export default function Quality() {
     if (!batchId) return;
     await qualityService.create({
       batchId, taste, texture, smell, overallScore, approved,
-      evaluatedBy: user.name, notes,
+      evaluatedBy: user.id, evaluator: user.name, notes,
     });
     toast({ title: approved ? 'Batch approved' : 'Batch rejected' });
     setFormOpen(false);

@@ -27,6 +27,10 @@ class QualityControlController extends Controller
             'evaluated_at' => 'nullable|date',
         ]);
 
+        if (!isset($validated['evaluated_at'])) {
+            $validated['evaluated_at'] = now()->toDateString();
+        }
+
         $qualityControl = QualityControl::create($validated);
         return response()->json($qualityControl, 201);
     }

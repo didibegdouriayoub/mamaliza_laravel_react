@@ -9,7 +9,7 @@ const toPayload = (e: Partial<QualityControl>) => ({
   overall_score: e.overallScore,
   approved: e.approved,
   evaluated_by: e.evaluatedBy,
-  evaluator: e.evaluatedBy,   // backend expects both evaluated_by (userId) and evaluator (name)
+  evaluator: e.evaluator,
   notes: e.notes,
   evaluated_at: e.evaluatedAt,
 });
