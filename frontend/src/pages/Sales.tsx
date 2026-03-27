@@ -13,6 +13,7 @@ import { Order } from '@/models/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Sales() {
@@ -28,6 +29,7 @@ export default function Sales() {
   const [retQty, setRetQty] = useState(1);
   const [retReason, setRetReason] = useState('');
   const [retRefund, setRetRefund] = useState(0);
+  const { user, hasPermission } = useAuth();
   const { toast } = useToast();
 
   const loadData = async () => {
@@ -171,14 +173,16 @@ export default function Sales() {
                   </div>
                 )}
 
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={() => { setPayAmount(balance(selected)); setPaymentOpen(true); }}>
-                    <CreditCard className="h-3 w-3 mr-1" /> Record Payment
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => { setRetProductName(selected.items[0]?.productName || ''); setRetQty(1); setRetReason(''); setRetRefund(0); setReturnOpen(true); }}>
-                    <Undo2 className="h-3 w-3 mr-1" /> Record Return
-                  </Button>
-                </div>
+                {hasPermission('sales.write') && (
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => { setPayAmount(balance(selected)); setPaymentOpen(true); }}>
+                      <CreditCard className="h-3 w-3 mr-1" /> Record Payment
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => { setRetProductName(selected.items[0]?.productName || ''); setRetQty(1); setRetReason(''); setRetRefund(0); setReturnOpen(true); }}>
+                      <Undo2 className="h-3 w-3 mr-1" /> Record Return
+                    </Button>
+                  </div>
+                )}
               </div>
             </>
           )}

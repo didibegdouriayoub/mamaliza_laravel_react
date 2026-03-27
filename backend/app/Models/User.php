@@ -47,4 +47,25 @@ class User extends Authenticatable
             'permissions' => 'array',
         ];
     }
+
+    public function hasPermission(string $permission): bool
+    {
+        if ($this->role === 'admin') {
+            return true;
+        }
+
+        if (in_array($permission, $this->permissions ?? [])) {
+            return true;
+        }
+
+        // Inheritance: write implies read
+        if (str_ends_with($permission, '.read')) {
+            $writePerm = str_replace('.read', '.write', $permission);
+            if (in_array($writePerm, $this->permissions ?? [])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

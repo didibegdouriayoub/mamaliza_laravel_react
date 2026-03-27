@@ -192,3 +192,14 @@
 | T10.4 | UI: Update Recipe page to reflect weight renames and new status | 🔴 | ✅ |
 | T10.5 | UI: Add packaging selection/management within the Recipe form | 🔴 | ✅ |
 | T10.6 | Verification: Ensure calculations and history tracking still work after renames | 🔴 | ✅ |
+
+### Phase 11: Granular Permissions (RBAC)
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T11.1 | Update `types.ts` and Backend models with new permission naming convention (`module.read`, `module.write`) | 🔴 | ☐ |
+| T11.2 | Backend: Update Authorization Middleware to support granular and inherited permissions | 🔴 | ☐ |
+| T11.3 | Frontend: Enhance `useAuth` hook with helper `hasPermission(perm)` that handles write->read inheritance | 🔴 | ☐ |
+| T11.4 | UI: Guard sidebar menu items with `.read` permissions | 🔴 | ☐ |
+| T11.5 | UI: Guard action buttons (Add, Edit, Delete) with `.write` permissions across all pages | 🔴 | ☐ |
+| T11.6 | User Management: Update permission selector to support the new granular options | 🟠 | ☐ |
+| T11.7 | Migration: Update existing users/roles to the new permission format | 🔴 | ☐ |

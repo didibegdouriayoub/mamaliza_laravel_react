@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { TableSkeleton, EmptyState } from '@/components/DataStates';
 import { customerService } from '@/services/customerService';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import type { Customer } from '@/models/types';
 
@@ -25,6 +26,7 @@ export default function Customers() {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   
+  const { user, hasPermission } = useAuth();
   const { toast } = useToast();
 
   const loadData = async () => {
@@ -96,38 +98,40 @@ export default function Customers() {
           </h1>
           <p className="text-sm text-muted-foreground">Manage your B2B clients and individual customers</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> Add Customer</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="font-display">{editingCustomer ? 'Edit Customer' : 'Add New Customer'}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-2">
-              <div className="space-y-1.5">
-                <Label>Customer Name</Label>
-                <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Cheese Lovers Shop" />
+        {hasPermission('customers.write') && (
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> Add Customer</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="font-display">{editingCustomer ? 'Edit Customer' : 'Add New Customer'}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="space-y-1.5">
+                  <Label>Customer Name</Label>
+                  <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Cheese Lovers Shop" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Email</Label>
+                  <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="hello@cheeselovers.com" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Phone</Label>
+                  <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+1 234 567 890" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Address</Label>
+                  <Input value={address} onChange={e => setAddress(e.target.value)} placeholder="123 Dairy Lane, City" />
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label>Email</Label>
-                <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="hello@cheeselovers.com" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Phone</Label>
-                <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+1 234 567 890" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Address</Label>
-                <Input value={address} onChange={e => setAddress(e.target.value)} placeholder="123 Dairy Lane, City" />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleSave}>{editingCustomer ? 'Update' : 'Create'}</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleSave}>{editingCustomer ? 'Update' : 'Create'}</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <Card className="shadow-card">
@@ -158,26 +162,28 @@ export default function Customers() {
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">{cust.address || '—'}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(cust)}>
-                            <Edit className="h-4 w-4 text-foreground" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete {cust.name}?</AlertDialogTitle>
-                                <AlertDialogDescription>It will permanently delete the customer configuration inside the system. Ensure all outstanding orders are cleared.</AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(cust.id)}>Delete</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
+                        {hasPermission('customers.write') && (
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(cust)}>
+                              <Edit className="h-4 w-4 text-foreground" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete {cust.name}?</AlertDialogTitle>
+                                  <AlertDialogDescription>It will permanently delete the customer configuration inside the system. Ensure all outstanding orders are cleared.</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDelete(cust.id)}>Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        )}
                       </TableCell>
                     </motion.tr>
                   ))}

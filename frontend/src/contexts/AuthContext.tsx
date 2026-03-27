@@ -55,11 +55,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
   }, []);
 
-  const hasPermission = (permission: Permission) => {
+  const hasPermission = (permission: string) => {
     if (!user) return false;
-    // Basic catch-all for admin (if permissions schema was pure roles, but we'll use array check)
     if (user.role === 'admin') return true;
-    return user.permissions?.includes(permission) || false;
+    
+    // Check direct permission
+    if (user.permissions?.includes(permission as Permission)) return true;
+    
+    // Inheritance: write implies read
+    if (permission.endsWith('.read')) {
+      const writePerm = permission.replace('.read', '.write') as Permission;
+      if (user.permissions?.includes(writePerm)) return true;
+    }
+    
+    return false;
   };
 
   const login = async (email: string, password: string) => {

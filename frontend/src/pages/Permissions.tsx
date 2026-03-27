@@ -10,6 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from '@/components/ui/label';
 import { TableSkeleton, EmptyState } from '@/components/DataStates';
 import { permissionService, PermissionEntity } from '@/services/permissionService';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Permissions() {
@@ -19,6 +20,7 @@ export default function Permissions() {
   const [editingPermission, setEditingPermission] = useState<PermissionEntity | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const { hasPermission } = useAuth();
   const { toast } = useToast();
 
   const loadData = async () => {
@@ -34,6 +36,14 @@ export default function Permissions() {
   };
 
   useEffect(() => { loadData(); }, []);
+
+  if (!hasPermission('permissions.read')) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">You don't have permission to view permissions.</p>
+      </div>
+    );
+  }
 
   const openCreate = () => {
     setEditingPermission(null);
@@ -84,31 +94,33 @@ export default function Permissions() {
           <h1 className="text-2xl font-display font-bold flex items-center gap-2"><ShieldCheck className="h-6 w-6" /> Permissions</h1>
           <p className="text-sm text-muted-foreground">Manage system permissions that can be assigned to users</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> Add Permission</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="font-display">{editingPermission ? 'Edit Permission' : 'Add New Permission'}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-2">
-              <div className="space-y-1.5">
-                <Label>Name</Label>
-                <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. manage_reports" />
-                <p className="text-xs text-muted-foreground mt-1">Use lowercase and underscores (e.g. manage_inventory)</p>
+        {hasPermission('permissions.write') && (
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> Add Permission</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="font-display">{editingPermission ? 'Edit Permission' : 'Add New Permission'}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="space-y-1.5">
+                  <Label>Name</Label>
+                  <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. manage_reports" />
+                  <p className="text-xs text-muted-foreground mt-1">Use lowercase and underscores (e.g. manage_inventory)</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Description</Label>
+                  <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Grants access to run reports" />
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label>Description</Label>
-                <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Grants access to run reports" />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleSave}>{editingPermission ? 'Update' : 'Create'}</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleSave}>{editingPermission ? 'Update' : 'Create'}</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <Card className="shadow-card">
@@ -131,26 +143,28 @@ export default function Permissions() {
                       <TableCell className="font-medium font-mono text-sm">{permission.name}</TableCell>
                       <TableCell className="text-muted-foreground">{permission.description || '—'}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(permission)}>
-                            <Edit className="h-4 w-4 text-foreground" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete {permission.name}?</AlertDialogTitle>
-                                <AlertDialogDescription>If this permission is removed, users who have it may lose access to certain features. Are you sure?</AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(permission.id)}>Delete</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
+                        {hasPermission('permissions.write') && (
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(permission)}>
+                              <Edit className="h-4 w-4 text-foreground" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete {permission.name}?</AlertDialogTitle>
+                                  <AlertDialogDescription>If this permission is removed, users who have it may lose access to certain features. Are you sure?</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDelete(permission.id)}>Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        )}
                       </TableCell>
                     </motion.tr>
                   ))}

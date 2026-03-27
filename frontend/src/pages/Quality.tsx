@@ -40,7 +40,7 @@ export default function Quality() {
   const [smell, setSmell] = useState(3);
   const [notes, setNotes] = useState('');
   const [approved, setApproved] = useState(true);
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const { toast } = useToast();
 
   const loadData = async () => {
@@ -81,9 +81,11 @@ export default function Quality() {
           <h1 className="text-2xl font-display font-bold flex items-center gap-2"><ShieldCheck className="h-6 w-6" /> Quality Control</h1>
           <p className="text-sm text-muted-foreground">Evaluate and approve production batches</p>
         </div>
-        <Button onClick={() => { setFormOpen(true); setBatchId(''); setTaste(3); setTexture(3); setSmell(3); setNotes(''); setApproved(true); }}>
-          <Plus className="h-4 w-4 mr-1" /> New Evaluation
-        </Button>
+        {hasPermission('quality.write') && (
+          <Button onClick={() => { setFormOpen(true); setBatchId(''); setTaste(3); setTexture(3); setSmell(3); setNotes(''); setApproved(true); }}>
+            <Plus className="h-4 w-4 mr-1" /> New Evaluation
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

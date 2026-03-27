@@ -14,19 +14,19 @@ import type { Permission, UserRole } from '@/models/types';
 import cheeseLogo from '@/assets/cheese-logo.png';
 
 const navItems: { title: string; url: string; icon: typeof LayoutDashboard; permission?: Permission }[] = [
-  { title: 'Dashboard', url: '/', icon: LayoutDashboard, permission: 'view_analytics' },
-  { title: 'Inventory', url: '/inventory', icon: Package, permission: 'manage_inventory' },
-  { title: 'Recipes', url: '/recipes', icon: BookOpen, permission: 'manage_recipes' },
-  { title: 'Batches', url: '/batches', icon: Factory, permission: 'manage_batches' },
-  { title: 'Production', url: '/production', icon: ClipboardList, permission: 'manage_batches' },
-  { title: 'Quality', url: '/quality', icon: ShieldCheck, permission: 'manage_quality' },
-  { title: 'Estimation', url: '/estimation', icon: Calculator, permission: 'manage_inventory' },
-  { title: 'Customers', url: '/customers', icon: Users, permission: 'manage_sales' },
-  { title: 'Suppliers', url: '/suppliers', icon: Truck, permission: 'manage_inventory' },
-  { title: 'Sales', url: '/sales', icon: ShoppingCart, permission: 'manage_sales' },
-  { title: 'Analytics', url: '/analytics', icon: BarChart3, permission: 'view_analytics' },
-  { title: 'Users', url: '/users', icon: Users, permission: 'manage_users' },
-  { title: 'Permissions', url: '/permissions', icon: ShieldCheck, permission: 'manage_users' },
+  { title: 'Dashboard', url: '/', icon: LayoutDashboard, permission: 'analytics.read' },
+  { title: 'Inventory', url: '/inventory', icon: Package, permission: 'inventory.read' },
+  { title: 'Recipes', url: '/recipes', icon: BookOpen, permission: 'recipes.read' },
+  { title: 'Batches', url: '/batches', icon: Factory, permission: 'batches.read' },
+  { title: 'Production', url: '/production', icon: ClipboardList, permission: 'batches.read' },
+  { title: 'Quality', url: '/quality', icon: ShieldCheck, permission: 'quality.read' },
+  { title: 'Estimation', url: '/estimation', icon: Calculator, permission: 'inventory.read' },
+  { title: 'Customers', url: '/customers', icon: Users, permission: 'customers.read' },
+  { title: 'Suppliers', url: '/suppliers', icon: Truck, permission: 'suppliers.read' },
+  { title: 'Sales', url: '/sales', icon: ShoppingCart, permission: 'sales.read' },
+  { title: 'Analytics', url: '/analytics', icon: BarChart3, permission: 'analytics.read' },
+  { title: 'Users', url: '/users', icon: Users, permission: 'users.read' },
+  { title: 'Permissions', url: '/permissions', icon: ShieldCheck, permission: 'permissions.read' },
 ];
 
 export function AppSidebar() {

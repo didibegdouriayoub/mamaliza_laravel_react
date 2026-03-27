@@ -62,7 +62,7 @@ export default function UserManagement() {
 
   useEffect(() => { loadData(); }, []);
 
-  if (!hasPermission('manage_users')) {
+  if (!hasPermission('users.read')) {
     return (
       <div className="flex items-center justify-center h-64">
         <p className="text-muted-foreground">You don't have permission to manage users.</p>
@@ -124,7 +124,9 @@ export default function UserManagement() {
           <h1 className="text-2xl font-display font-bold flex items-center gap-2"><Users className="h-6 w-6" /> User Management</h1>
           <p className="text-sm text-muted-foreground">Manage user roles and permissions</p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4 mr-1" /> New User</Button>
+        {hasPermission('users.write') && (
+          <Button onClick={() => setCreateOpen(true)}><Plus className="h-4 w-4 mr-1" /> New User</Button>
+        )}
       </div>
 
       {users.length === 0 ? <EmptyState title="No users" description="Create the first user." icon="👤" /> : (
@@ -149,23 +151,25 @@ export default function UserManagement() {
                 <CardContent>
                   <div className="flex flex-wrap gap-1 mb-3">
                     {(u.permissions || []).map((p: string) => (
-                      <Badge key={p} variant="outline" className="text-[10px]">{p.replace('manage_', '').replace('view_', '')}</Badge>
+                      <Badge key={p} variant="outline" className="text-[10px]">{p}</Badge>
                     ))}
                   </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1" onClick={() => openEdit(u)}>
-                      <Shield className="h-3 w-3 mr-1" /> Edit
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm"><Trash2 className="h-3 w-3 text-destructive" /></Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader><AlertDialogTitle>Delete {u.name}?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-                        <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDelete(u.id)}>Delete</AlertDialogAction></AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
+                    {hasPermission('users.write') && (
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => openEdit(u)}>
+                          <Shield className="h-3 w-3 mr-1" /> Edit
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" size="sm"><Trash2 className="h-3 w-3 text-destructive" /></Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader><AlertDialogTitle>Delete {u.name}?</AlertDialogTitle><AlertDialogDescription>This action cannot be undone.</AlertDialogDescription></AlertDialogHeader>
+                            <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDelete(u.id)}>Delete</AlertDialogAction></AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    )}
                 </CardContent>
               </Card>
             </motion.div>
@@ -199,7 +203,7 @@ export default function UserManagement() {
                     {availablePermissions.map(p => (
                       <label key={p.id} className="flex items-center gap-2 text-sm cursor-pointer">
                         <Checkbox checked={editPerms.includes(p.name as Permission)} onCheckedChange={() => togglePerm(p.name as Permission)} />
-                        {p.name.replace('manage_', '').replace('view_', '')}
+                        {p.name}
                       </label>
                     ))}
                   </div>

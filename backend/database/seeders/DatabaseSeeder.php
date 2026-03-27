@@ -27,13 +27,33 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        // 2. Permissions
+        $permissions = [
+            'inventory.read', 'inventory.write',
+            'recipes.read', 'recipes.write',
+            'batches.read', 'batches.write',
+            'quality.read', 'quality.write',
+            'sales.read', 'sales.write',
+            'suppliers.read', 'suppliers.write',
+            'customers.read', 'customers.write',
+            'users.read', 'users.write',
+            'permissions.read', 'permissions.write',
+        ];
+
+        foreach ($permissions as $p) {
+            \Illuminate\Support\Facades\DB::table('permissions')->updateOrInsert(
+                ['name' => $p],
+                ['created_at' => now(), 'updated_at' => now()]
+            );
+        }
+
         $operator = \App\Models\User::updateOrCreate(
             ['email' => 'operator@fromagerie.com'],
             [
                 'name' => 'Production Operator',
                 'password' => \Illuminate\Support\Facades\Hash::make('password'),
                 'role' => 'operator',
-                'permissions' => json_encode(['production.read', 'production.write']),
+                'permissions' => json_encode(['batches.read', 'batches.write', 'recipes.read']),
             ]
         );
 

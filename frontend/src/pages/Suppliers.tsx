@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { TableSkeleton, EmptyState } from '@/components/DataStates';
 import { supplierService } from '@/services/supplierService';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import type { Supplier } from '@/models/types';
 
@@ -24,6 +25,7 @@ export default function Suppliers() {
   const [email, setEmail] = useState('');
   const [contact, setContact] = useState('');
   
+  const { user, hasPermission } = useAuth();
   const { toast } = useToast();
 
   const loadData = async () => {
@@ -93,34 +95,36 @@ export default function Suppliers() {
           </h1>
           <p className="text-sm text-muted-foreground">Manage raw material providers and vendors</p>
         </div>
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> Add Supplier</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="font-display">{editingSupplier ? 'Edit Supplier' : 'Add New Supplier'}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-2">
-              <div className="space-y-1.5">
-                <Label>Supplier Name</Label>
-                <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Alpine Dairy Co." />
+        {hasPermission('suppliers.write') && (
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> Add Supplier</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="font-display">{editingSupplier ? 'Edit Supplier' : 'Add New Supplier'}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="space-y-1.5">
+                  <Label>Supplier Name</Label>
+                  <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Alpine Dairy Co." />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Email</Label>
+                  <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="orders@alpinedairy.com" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Contact Info / Phone</Label>
+                  <Input value={contact} onChange={e => setContact(e.target.value)} placeholder="John Doe (+1 234 567 890)" />
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label>Email</Label>
-                <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="orders@alpinedairy.com" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Contact Info / Phone</Label>
-                <Input value={contact} onChange={e => setContact(e.target.value)} placeholder="John Doe (+1 234 567 890)" />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleSave}>{editingSupplier ? 'Update' : 'Create'}</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleSave}>{editingSupplier ? 'Update' : 'Create'}</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <Card className="shadow-card">
@@ -145,26 +149,28 @@ export default function Suppliers() {
                       <TableCell className="text-muted-foreground text-sm">{supp.contact || '—'}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">{supp.email || '—'}</TableCell>
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button variant="ghost" size="icon" onClick={() => openEdit(supp)}>
-                            <Edit className="h-4 w-4 text-foreground" />
-                          </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete {supp.name}?</AlertDialogTitle>
-                                <AlertDialogDescription>It will permanently delete the supplier configuration. Inventory items linked to this supplier might lose their origin trace.</AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => handleDelete(supp.id)}>Delete</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
+                        {hasPermission('suppliers.write') && (
+                          <div className="flex justify-end gap-1">
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(supp)}>
+                              <Edit className="h-4 w-4 text-foreground" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete {supp.name}?</AlertDialogTitle>
+                                  <AlertDialogDescription>It will permanently delete the supplier configuration. Inventory items linked to this supplier might lose their origin trace.</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDelete(supp.id)}>Delete</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        )}
                       </TableCell>
                     </motion.tr>
                   ))}

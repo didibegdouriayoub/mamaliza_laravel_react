@@ -38,7 +38,7 @@ export default function Batches() {
   const [outputQty, setOutputQty] = useState(0);
   const [noteText, setNoteText] = useState('');
   const [printableData, setPrintableData] = useState<{ recipe: Recipe; count: number } | null>(null);
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const { toast } = useToast();
 
   const loadData = async () => {
@@ -143,7 +143,9 @@ export default function Batches() {
               <TabsTrigger value="table">Table</TabsTrigger>
             </TabsList>
           </Tabs>
-          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> New Batch</Button>
+          {hasPermission('batches.write') && (
+            <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> New Batch</Button>
+          )}
         </div>
       </div>
 
@@ -233,26 +235,32 @@ export default function Batches() {
                 )}
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold">Change Status</Label>
-                  <div className="flex gap-2 flex-wrap">
-                    {statusOrder.filter(s => s !== selected.status).map(s => (
-                      <Button key={s} variant="outline" size="sm" onClick={() => handleStatusChange(selected.id, s)} className="capitalize">
-                        {s.replace('_', ' ')}
-                      </Button>
-                    ))}
-                  </div>
+                  {hasPermission('batches.write') && (
+                    <div className="flex gap-2 flex-wrap">
+                      {statusOrder.filter(s => s !== selected.status).map(s => (
+                        <Button key={s} variant="outline" size="sm" onClick={() => handleStatusChange(selected.id, s)} className="capitalize">
+                          {s.replace('_', ' ')}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
               <DialogFooter className="gap-2">
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="sm"><Trash2 className="h-3 w-3 mr-1" /> Delete</Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader><AlertDialogTitle>Delete this batch?</AlertDialogTitle><AlertDialogDescription>This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-                    <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDelete(selected.id)}>Delete</AlertDialogAction></AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-                <Button size="sm" onClick={() => openEdit(selected)}><Edit className="h-3 w-3 mr-1" /> Edit</Button>
+                {hasPermission('batches.write') && (
+                  <>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm"><Trash2 className="h-3 w-3 mr-1" /> Delete</Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader><AlertDialogTitle>Delete this batch?</AlertDialogTitle><AlertDialogDescription>This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
+                        <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDelete(selected.id)}>Delete</AlertDialogAction></AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                    <Button size="sm" onClick={() => openEdit(selected)}><Edit className="h-3 w-3 mr-1" /> Edit</Button>
+                  </>
+                )}
               </DialogFooter>
             </>
           )}

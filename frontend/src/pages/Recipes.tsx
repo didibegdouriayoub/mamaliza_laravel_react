@@ -20,7 +20,7 @@ import { useToast } from '@/hooks/use-toast';
 const emptyIng: RecipeIngredient = { materialId: '', materialName: '', quantity: 0, unit: '', unitPrice: 0 };
 
 export default function Recipes() {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,7 +145,9 @@ export default function Recipes() {
           <h1 className="text-2xl font-display font-bold flex items-center gap-2"><BookOpen className="h-6 w-6" /> Recipes</h1>
           <p className="text-sm text-muted-foreground">Manage your cheese recipes and formulations</p>
         </div>
-        <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> New Recipe</Button>
+        {hasPermission('recipes.write') && (
+          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> New Recipe</Button>
+        )}
       </div>
 
       {recipes.length === 0 ? <EmptyState title="No recipes yet" description="Create your first recipe to get started." icon="📖" /> : (
@@ -243,16 +245,20 @@ export default function Recipes() {
                 <Button variant="outline" size="sm" onClick={() => { setHistoryRecipe(selected); setSelected(null); }}>
                   <History className="h-3 w-3 mr-1" /> History
                 </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline" size="sm"><Trash2 className="h-3 w-3 mr-1" /> Delete</Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader><AlertDialogTitle>Delete {selected.name}?</AlertDialogTitle><AlertDialogDescription>This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
-                    <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDelete(selected.id)}>Delete</AlertDialogAction></AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-                <Button size="sm" onClick={() => openEdit(selected)}><Edit className="h-3 w-3 mr-1" /> Edit</Button>
+                {hasPermission('recipes.write') && (
+                  <>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm"><Trash2 className="h-3 w-3 mr-1" /> Delete</Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader><AlertDialogTitle>Delete {selected.name}?</AlertDialogTitle><AlertDialogDescription>This cannot be undone.</AlertDialogDescription></AlertDialogHeader>
+                        <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleDelete(selected.id)}>Delete</AlertDialogAction></AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                    <Button size="sm" onClick={() => openEdit(selected)}><Edit className="h-3 w-3 mr-1" /> Edit</Button>
+                  </>
+                )}
               </DialogFooter>
             </>
           )}

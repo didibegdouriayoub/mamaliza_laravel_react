@@ -2,14 +2,17 @@
 export type UserRole = 'admin' | 'supervisor' | 'operator';
 
 export type Permission =
-  | 'manage_inventory'
-  | 'manage_recipes'
-  | 'manage_batches'
-  | 'manage_sales'
-  | 'view_analytics'
-  | 'manage_quality'
-  | 'manage_packaging'
-  | 'manage_users';
+  | 'inventory.read' | 'inventory.write'
+  | 'recipes.read' | 'recipes.write'
+  | 'batches.read' | 'batches.write'
+  | 'quality.read' | 'quality.write'
+  | 'sales.read' | 'sales.write'
+  | 'users.read' | 'users.write'
+  | 'suppliers.read' | 'suppliers.write'
+  | 'customers.read' | 'customers.write'
+  | 'analytics.read'
+  | 'permissions.read' | 'permissions.write'
+  | 'packaging.read' | 'packaging.write';
 
 export type MaterialType = 'raw' | 'packaging';
 export type BatchStatus = 'draft' | 'in_production' | 'completed' | 'failed';
