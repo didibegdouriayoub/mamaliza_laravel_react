@@ -10,13 +10,16 @@ class Recipe extends Model
         'name',
         'description',
         'steps',
-        'yield',
-        'yield_unit',
+        'target_weight',
+        'piece_weight',
+        'recipe_status',
+        'packages',
         'version'
     ];
 
     protected $casts = [
         'steps' => 'array',
+        'packages' => 'array',
     ];
 
     public function ingredients()

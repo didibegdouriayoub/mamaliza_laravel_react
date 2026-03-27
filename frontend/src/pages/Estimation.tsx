@@ -38,7 +38,8 @@ export default function Estimation() {
         ]);
         const rData = (recipeData || []).map((r: any) => ({
           ...r,
-          yield: Number(r.yield) || 0,
+          targetWeight: Number(r.target_weight ?? r.targetWeight) || 0,
+          pieceWeight: r.piece_weight ?? r.pieceWeight ?? '',
           ingredients: (r.ingredients || []).map((i: any) => ({ ...i, quantity: Number(i.quantity) || 0, unitPrice: Number(i.unitPrice ?? i.unit_price) || 0 })),
         }));
         setRecipes(rData);
@@ -74,7 +75,7 @@ export default function Estimation() {
             status: 'draft' as BatchStatus,
             inputMaterials: recipe.ingredients,
             outputQuantity: 0,
-            outputUnit: recipe.yieldUnit,
+            outputUnit: recipe.pieceWeight,
             operatorId: user.id as string,
             operatorName: user.name,
             startedAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
@@ -123,7 +124,7 @@ export default function Estimation() {
   // Also estimate packaging needs based on dynamic ratios per yield unit
   const totalYield = lines.reduce((sum, line) => {
     const recipe = recipes.find(r => String(r.id) === String(line.recipeId));
-    return sum + (recipe ? recipe.yield * line.batchCount : 0);
+    return sum + (recipe ? recipe.targetWeight * line.batchCount : 0);
   }, 0);
 
   const packagingNeeds = inventory.filter(i => i.type === 'packaging').map(pkg => ({
@@ -177,7 +178,7 @@ export default function Estimation() {
                 <Select value={line.recipeId} onValueChange={v => updateLine(idx, { recipeId: v })}>
                   <SelectTrigger><SelectValue placeholder="Select recipe" /></SelectTrigger>
                   <SelectContent>
-                    {recipes.map(r => <SelectItem key={r.id} value={String(r.id)}>{r.name} (yields {r.yield} {r.yieldUnit})</SelectItem>)}
+                    {recipes.map(r => <SelectItem key={r.id} value={String(r.id)}>{r.name} (yields {r.targetWeight} {r.pieceWeight})</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -329,8 +330,8 @@ export default function Estimation() {
                       <TableRow key={i}>
                         <TableCell className="font-medium">{recipe.name}</TableCell>
                         <TableCell className="text-right">{line.batchCount}</TableCell>
-                        <TableCell className="text-right">{recipe.yield} {recipe.yieldUnit}</TableCell>
-                        <TableCell className="text-right font-semibold">{recipe.yield * line.batchCount} {recipe.yieldUnit}</TableCell>
+                        <TableCell className="text-right">{recipe.targetWeight} {recipe.pieceWeight}</TableCell>
+                        <TableCell className="text-right font-semibold">{recipe.targetWeight * line.batchCount} {recipe.pieceWeight}</TableCell>
                         <TableCell className="text-right">€{batchCost.toFixed(2)}</TableCell>
                       </TableRow>
                     );

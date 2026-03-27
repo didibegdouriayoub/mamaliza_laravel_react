@@ -175,11 +175,20 @@
 
 | Task  | Description | Priority | Status |
 | :--- | :--- | :--- | :--- |
-| T9.1 | Inventory: Automatic quantity reduction on Batch creation and restoration on deletion | 🔴       | ☐      |
-| T9.2 | System: Set default unit to `kg` across the application | 🟡       | ☐      |
-| T9.3 | Inventory: Add `lot` and `code` attributes (migration + model + frontend) | 🔴       | ☐      |
-| T9.4 | UI/UX: Inventory name autocomplete/suggestion with field auto-fill | 🟡       | ☐      |
-| T9.5 | Logic: Dynamic Stock Status (`ok`, `low`, `out of stock`) update | 🔴       | ☐      |
-| T9.6 | UI: Filter inventory by Stock Status | 🟡       | ☐      |
-| T9.7 | API: Allow manual `created_at` timestamp override for inventory | 🟡       | ☐      |
+| T9.1 | Inventory: Automatic quantity reduction on Batch creation and restoration on deletion | 🔴       | ✅      |
+| T9.2 | System: Set default unit to `kg` across the application | 🟡       | ✅      |
+| T9.3 | Inventory: Add `lot` and `code` attributes (migration + model + frontend) | 🔴       | ✅      |
+| T9.4 | UI/UX: Inventory name autocomplete/suggestion with field auto-fill | 🟡       | ✅      |
+| T9.5 | Logic: Dynamic Stock Status (`ok`, `low`, `out of stock`) update | 🔴       | ✅      |
+| T9.6 | UI: Filter inventory by Stock Status | 🟡       | ✅      |
+| T9.7 | API: Allow manual `created_at` timestamp override for inventory | 🟡       | ✅      |
 
+### Phase 10: Recipe Enhancements & Packaging
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T10.1 | Database: Rename yield to target_weight and yield_unit to piece_weight in recipes table | 🔴 | ✅ |
+| T10.2 | Database: Add recipe_status (semi_final, final) to recipes table | 🔴 | ✅ |
+| T10.3 | Database: Add packages support for recipes (many-to-many or JSON?) | 🔴 | ✅ |
+| T10.4 | UI: Update Recipe page to reflect weight renames and new status | 🔴 | ✅ |
+| T10.5 | UI: Add packaging selection/management within the Recipe form | 🔴 | ✅ |
+| T10.6 | Verification: Ensure calculations and history tracking still work after renames | 🔴 | ✅ |

@@ -15,8 +15,10 @@ const toPayload = (r: Partial<Recipe>) => ({
   name: r.name,
   description: r.description,
   steps: r.steps,
-  yield: r.yield,
-  yield_unit: r.yieldUnit,
+  target_weight: r.targetWeight,
+  piece_weight: r.pieceWeight,
+  recipe_status: r.recipeStatus,
+  packages: r.packages,
   version: r.version,
   ingredients: r.ingredients?.map(ingToPayload),
 });

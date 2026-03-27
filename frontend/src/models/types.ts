@@ -80,11 +80,13 @@ export interface Recipe {
   id: string;
   name: string;
   description: string;
-  ingredients: RecipeIngredient[];
+  targetWeight: number;
+  pieceWeight: string;   // Keeping as string to match old yield_unit type, can be weight e.g. "500g"
+  recipeStatus: 'semi_final' | 'final';
+  packages: Array<{ id: string; name: string; quantity: number }>;
   steps: string[];
+  ingredients: RecipeIngredient[];
   version: number;
-  yield: number;
-  yieldUnit: string;
   createdAt: string;
   updatedAt: string;
   history?: ChangeRecord[];

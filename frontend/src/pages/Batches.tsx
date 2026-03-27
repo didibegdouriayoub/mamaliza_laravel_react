@@ -56,7 +56,8 @@ export default function Batches() {
       setBatches(bData);
       const rData = (recipeData || []).map((r: any) => ({
         ...r,
-        yield: Number(r.yield) || 0,
+        targetWeight: Number(r.target_weight ?? r.targetWeight) || 0,
+        pieceWeight: r.piece_weight ?? r.pieceWeight ?? '',
         ingredients: (r.ingredients || []).map((i: any) => ({ ...i, quantity: Number(i.quantity) || 0, unitPrice: Number(i.unitPrice ?? i.unit_price) || 0 })),
       }));
       setRecipes(rData);
@@ -94,7 +95,7 @@ export default function Batches() {
         await batchService.create({
           recipeId, recipeName: recipe.name, status,
           inputMaterials: recipe.ingredients,
-          outputQuantity: outputQty || recipe.yield, outputUnit: recipe.yieldUnit,
+          outputQuantity: outputQty || recipe.targetWeight, outputUnit: recipe.pieceWeight,
           notes: noteText.trim() && i === 0 ? [{ id: `n${Date.now()}`, text: noteText, author: user.name, createdAt: new Date().toISOString().split('T')[0] }] : [],
           operatorId: user.id, operatorName: user.name,
         });
@@ -292,7 +293,7 @@ export default function Batches() {
               </div>
               <div className="space-y-1.5">
                 <Label>Output Qty</Label>
-                <Input type="number" value={outputQty} onChange={e => setOutputQty(Number(e.target.value))} placeholder={selectedRecipe ? String(selectedRecipe.yield) : ''} />
+                <Input type="number" value={outputQty} onChange={e => setOutputQty(Number(e.target.value))} placeholder={selectedRecipe ? String(selectedRecipe.targetWeight) : ''} />
               </div>
             </div>
 
@@ -300,7 +301,7 @@ export default function Batches() {
             {selectedRecipe && !editingBatch && batchCount > 0 && (
               <div className="border rounded-lg p-3 space-y-2 bg-accent/30">
                 <p className="text-sm font-semibold">Preview: {batchCount} × {selectedRecipe.name}</p>
-                <p className="text-xs text-muted-foreground">Total yield: {selectedRecipe.yield * batchCount} {selectedRecipe.yieldUnit}</p>
+                <p className="text-xs text-muted-foreground">Total yield: {selectedRecipe.targetWeight * batchCount} {selectedRecipe.pieceWeight}</p>
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -356,7 +357,7 @@ export default function Batches() {
                 <div className="flex justify-between text-sm">
                   <span>Date: {new Date().toISOString().split('T')[0]}</span>
                   <span>Batches: {printableData.count}</span>
-                  <span>Total Yield: {printableData.recipe.yield * printableData.count} {printableData.recipe.yieldUnit}</span>
+                  <span>Total Yield: {printableData.recipe.targetWeight * printableData.count} {printableData.recipe.pieceWeight}</span>
                 </div>
                 <Table>
                   <TableHeader>
