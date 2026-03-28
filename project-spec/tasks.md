@@ -203,4 +203,6 @@
 | T11.5 | UI: Guard action buttons (Add, Edit, Delete) with `.write` permissions across all pages | 🔴 | ✅ |
 | T11.6 | User Management: Update permission selector to support the new granular options | 🟠 | ✅ |
 | T11.7 | Migration: Update existing users/roles to the new permission format | 🔴 | ✅ |
-| T11.8 | Bug: Fix syntax error in `Inventory.tsx` introduced during RBAC implementation | 🔴 | ✅ |
+| T11.8 | Bug: Fix syntax error in `Inventory.tsx` introduced during RBAC implementation | 🔴 | ✅ |
+| T11.9 | Git: Commit all changes and merge to Master | 🔴 | ✅ |
+| T11.11 | Bug: Fix ReferenceError `hasPermission is not defined` in Inventory and other pages | 🔴 | ✅ |
