@@ -205,4 +205,5 @@
 | T11.7 | Migration: Update existing users/roles to the new permission format | 🔴 | ✅ |
 | T11.8 | Bug: Fix syntax error in `Inventory.tsx` introduced during RBAC implementation | 🔴 | ✅ |
 | T11.9 | Git: Commit all changes and merge to Master | 🔴 | ✅ |
-| T11.11 | Bug: Fix ReferenceError `hasPermission is not defined` in Inventory and other pages | 🔴 | ✅ |
+| T11.11 | Bug: Fix ReferenceError `hasPermission is not defined` in Inventory and other pages | 🔴 | ✅ |
+=
