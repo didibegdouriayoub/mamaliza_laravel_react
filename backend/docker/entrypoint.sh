@@ -15,8 +15,28 @@ if [ -z "$APP_KEY" ]; then
     export APP_KEY="base64:$(php -r 'echo base64_encode(random_bytes(32));')"
 fi
 
-# Write a minimal .env so Laravel config system picks up env vars reliably
-printf "APP_KEY=%s\n" "$APP_KEY" > /var/www/html/.env
+# Write a complete .env so Laravel always has DB + app config regardless of
+# how system env vars are resolved. Volume mount shares this file with the host.
+cat > /var/www/html/.env << EOF
+APP_NAME=${APP_NAME:-Fromagerie}
+APP_ENV=${APP_ENV:-local}
+APP_KEY=${APP_KEY}
+APP_DEBUG=${APP_DEBUG:-true}
+APP_URL=${APP_URL:-http://localhost:8000}
+
+DB_CONNECTION=${DB_CONNECTION:-mysql}
+DB_HOST=${DB_HOST:-db}
+DB_PORT=${DB_PORT:-3306}
+DB_DATABASE=${DB_DATABASE:-fromagerie}
+DB_USERNAME=${DB_USERNAME:-fromagerie}
+DB_PASSWORD=${DB_PASSWORD:-secret}
+
+CACHE_STORE=${CACHE_STORE:-database}
+QUEUE_CONNECTION=${QUEUE_CONNECTION:-database}
+
+SANCTUM_STATELESS_DOMAINS=${SANCTUM_STATELESS_DOMAINS:-localhost:5173}
+FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
+EOF
 
 # Wait for MySQL (db healthcheck already passed, but belt-and-suspenders)
 echo "==> Checking database connection..."
