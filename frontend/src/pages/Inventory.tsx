@@ -163,15 +163,19 @@ export default function Inventory() {
 
   const handleSave = async () => {
     if (!form.name || !form.unit) return;
-    if (editingItem) {
-      await inventoryService.update(editingItem.id, form);
-      toast({ title: 'Item updated', description: `${form.name} has been updated.` });
-    } else {
-      await inventoryService.create(form);
-      toast({ title: 'Item created', description: `${form.name} has been added.` });
+    try {
+      if (editingItem) {
+        await inventoryService.update(editingItem.id, form);
+        toast({ title: 'Item updated', description: `${form.name} has been updated.` });
+      } else {
+        await inventoryService.create(form);
+        toast({ title: 'Item created', description: `${form.name} has been added.` });
+      }
+      setDialogOpen(false);
+      loadData();
+    } catch (err: any) {
+      toast({ title: 'Save failed', description: err.message || 'An error occurred.', variant: 'destructive' });
     }
-    setDialogOpen(false);
-    loadData();
   };
 
   const handleDelete = async (id: string) => {
@@ -292,7 +296,10 @@ export default function Inventory() {
       <Card className="shadow-card">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-3 mb-4 print:hidden">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input className="pl-9" placeholder="Search inventory..." value={search} onChange={e => setSearch(e.target.value)} />
+            </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
             <Select value={typeFilter} onValueChange={setTypeFilter}>

@@ -13,7 +13,7 @@
 |---|---|---|---|
 | T12.1 | Verify Docker setup: confirm frontend port mapping (`5173:8080`) is correct and app loads | 🔴 | ✅ |
 | T12.2 | Login flow: verify login, token storage, session restore on refresh, logout | 🔴 | ✅ |
-| T12.3 | Inventory: test full CRUD + history recording + auto status (ok/low/out) | 🔴 | ☐ |
+| T12.3 | Inventory: test full CRUD + history recording + auto status (ok/low/out) | 🔴 | ✅ |
 | T12.4 | Recipes: test full CRUD + ingredient sync + history recording | 🔴 | ☐ |
 | T12.5 | Batches: test create (inventory deduction) + delete (inventory restoration) | 🔴 | ☐ |
 | T12.6 | Quality: test create evaluation → verify batch quality_score is updated | 🔴 | ☐ |

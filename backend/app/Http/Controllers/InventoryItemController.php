@@ -34,14 +34,23 @@ class InventoryItemController extends Controller
             'quantity' => 'required|numeric|min:0',
             'unit' => 'required|string|max:50',
             'price' => 'required|numeric|min:0',
-            'supplier_id' => 'required|exists:suppliers,id',
+            'supplier_id' => 'nullable|exists:suppliers,id',
             'min_stock' => 'required|numeric|min:0',
             'lot' => 'nullable|string|max:50',
             'code' => 'nullable|string|max:100',
             'created_at' => 'nullable|date',
         ]);
 
-        $item = InventoryItem::create($validated);
+        // created_at is not in $fillable, so set it manually after instantiation
+        $createdAt = $validated['created_at'] ?? null;
+        unset($validated['created_at']);
+
+        $item = new InventoryItem($validated);
+        if ($createdAt) {
+            $item->created_at = $createdAt;
+        }
+        $item->save();
+
         return response()->json($item->load('supplier'), 201);
     }
 
