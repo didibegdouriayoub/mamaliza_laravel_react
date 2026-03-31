@@ -10,7 +10,7 @@ RUN bun install
 # Copy project files
 COPY . .
 
-EXPOSE 5173
+EXPOSE 8080
 
-# Run the dev server exposing host
+# Run the dev server exposing host (vite.config.ts sets port 8080)
 CMD ["bun", "run", "dev", "--host", "0.0.0.0"]
