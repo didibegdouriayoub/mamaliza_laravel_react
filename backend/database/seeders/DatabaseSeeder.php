@@ -15,15 +15,14 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Users
-        $admin = \App\Models\User::updateOrCreate(
-            ['email' => 'admin@fromagerie.com'],
+        // 1. Users (emails match Login page demo accounts)
+        \App\Models\User::updateOrCreate(
+            ['email' => 'marie@fromagerie.com'],
             [
-                'name' => 'Admin User',
+                'name' => 'Marie Laurent',
                 'password' => \Illuminate\Support\Facades\Hash::make('password'),
                 'role' => 'admin',
-                // Keep permissions array since model casts to json or handles it
-                'permissions' => json_encode(['all']),
+                'permissions' => json_encode([]),
             ]
         );
 
@@ -38,6 +37,7 @@ class DatabaseSeeder extends Seeder
             'customers.read', 'customers.write',
             'users.read', 'users.write',
             'permissions.read', 'permissions.write',
+            'analytics.read',
         ];
 
         foreach ($permissions as $p) {
@@ -47,13 +47,34 @@ class DatabaseSeeder extends Seeder
             );
         }
 
-        $operator = \App\Models\User::updateOrCreate(
-            ['email' => 'operator@fromagerie.com'],
+        \App\Models\User::updateOrCreate(
+            ['email' => 'jean@fromagerie.com'],
             [
-                'name' => 'Production Operator',
+                'name' => 'Jean Dupont',
+                'password' => \Illuminate\Support\Facades\Hash::make('password'),
+                'role' => 'supervisor',
+                'permissions' => json_encode([
+                    'analytics.read',
+                    'inventory.read',
+                    'recipes.read',
+                    'batches.read', 'batches.write',
+                    'quality.read', 'quality.write',
+                    'users.read',
+                ]),
+            ]
+        );
+
+        \App\Models\User::updateOrCreate(
+            ['email' => 'sophie@fromagerie.com'],
+            [
+                'name' => 'Sophie Martin',
                 'password' => \Illuminate\Support\Facades\Hash::make('password'),
                 'role' => 'operator',
-                'permissions' => json_encode(['batches.read', 'batches.write', 'recipes.read']),
+                'permissions' => json_encode([
+                    'inventory.read', 'inventory.write',
+                    'recipes.read',
+                    'batches.read', 'batches.write',
+                ]),
             ]
         );
 
@@ -118,8 +139,9 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Classic Tomme'],
             [
                 'description' => 'A traditional semi-hard cheese recipe.',
-                'yield' => 10.0,
-                'yield_unit' => 'kg',
+                'target_weight' => 10.0,
+                'piece_weight' => '500g',
+                'recipe_status' => 'final',
                 'version' => 1,
             ]
         );
