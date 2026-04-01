@@ -9,7 +9,7 @@ class BatchController extends Controller
 {
     public function index()
     {
-        return response()->json(Batch::latest('id')->get());
+        return response()->json(Batch::with(['notes', 'qualityControl'])->latest('id')->get());
     }
 
     public function store(Request $request)
@@ -83,6 +83,21 @@ class BatchController extends Controller
 
         $batch->update($validated);
         return response()->json($batch);
+    }
+
+    public function storeNote(Request $request, Batch $batch)
+    {
+        $validated = $request->validate([
+            'text'   => 'required|string',
+            'author' => 'nullable|string|max:255',
+        ]);
+
+        $note = $batch->notes()->create([
+            'text'   => $validated['text'],
+            'author' => $validated['author'] ?? (auth()->user()?->name ?? 'Unknown'),
+        ]);
+
+        return response()->json($note, 201);
     }
 
     public function destroy(Batch $batch)

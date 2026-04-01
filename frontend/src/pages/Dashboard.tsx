@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Package, Factory, ShoppingCart, TrendingUp, AlertTriangle,
+  Package, Factory, ShoppingCart, AlertTriangle,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { KpiCard } from '@/components/KpiCard';
 import { BatchStatusBadge } from '@/components/StatusBadge';
 import { TableSkeleton } from '@/components/DataStates';
-import { salesChartData, batchChartData } from '@/data/mockData';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { inventoryService } from '@/services/inventoryService';
 import { batchService } from '@/services/batchService';
@@ -21,6 +20,8 @@ export default function Dashboard() {
   const [activeBatchesCount, setActiveBatchesCount] = useState(0);
   const [inventoryCount, setInventoryCount] = useState(0);
   const [recentBatches, setRecentBatches] = useState<any[]>([]);
+  const [salesChartData, setSalesChartData] = useState<{ month: string; sales: number }[]>([]);
+  const [batchChartData, setBatchChartData] = useState<{ month: string; completed: number; failed: number }[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -40,6 +41,36 @@ export default function Dashboard() {
         setActiveBatchesCount(active);
         setCompletedBatches(comp);
         setRecentBatches((bts || []).slice(0, 4));
+
+        // Build sales chart: last 6 months grouped by createdAt
+        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const salesByMonth: Record<string, number> = {};
+        (ord || []).forEach((o: any) => {
+          const d = new Date(o.createdAt || o.created_at);
+          if (!isNaN(d.getTime())) {
+            const key = monthNames[d.getMonth()];
+            salesByMonth[key] = (salesByMonth[key] || 0) + (Number(o.totalAmount) || 0);
+          }
+        });
+        const last6 = Array.from({ length: 6 }, (_, i) => {
+          const d = new Date(); d.setMonth(d.getMonth() - (5 - i));
+          return monthNames[d.getMonth()];
+        });
+        setSalesChartData(last6.map(m => ({ month: m, sales: Math.round(salesByMonth[m] || 0) })));
+
+        // Build batch chart: last 6 months grouped by startedAt
+        const batchByMonth: Record<string, { completed: number; failed: number }> = {};
+        (bts || []).forEach((b: any) => {
+          const d = new Date(b.startedAt || b.started_at);
+          if (!isNaN(d.getTime())) {
+            const key = monthNames[d.getMonth()];
+            if (!batchByMonth[key]) batchByMonth[key] = { completed: 0, failed: 0 };
+            if (b.status === 'completed') batchByMonth[key].completed++;
+            if (b.status === 'failed') batchByMonth[key].failed++;
+          }
+        });
+        setBatchChartData(last6.map(m => ({ month: m, completed: batchByMonth[m]?.completed || 0, failed: batchByMonth[m]?.failed || 0 })));
+
       } catch (e) { console.error(e); }
       setLoading(false);
     };

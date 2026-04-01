@@ -11,6 +11,7 @@ class OrderReturn extends Model
     protected $fillable = [
         'order_id',
         'order_item_id',
+        'product_name',
         'quantity',
         'reason',
         'refund_amount',

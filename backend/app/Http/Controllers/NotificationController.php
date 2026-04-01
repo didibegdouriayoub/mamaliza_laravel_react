@@ -52,6 +52,18 @@ class NotificationController extends Controller
         return response()->json($notification);
     }
 
+    // T12.9.1: Append authenticated user to read_by list
+    public function markAsRead(Request $request, Notification $notification)
+    {
+        $userId = $request->user()->id;
+        $readBy = $notification->read_by ?? [];
+        if (!in_array($userId, $readBy)) {
+            $readBy[] = $userId;
+            $notification->update(['read_by' => $readBy]);
+        }
+        return response()->json($notification);
+    }
+
     public function destroy(Notification $notification)
     {
         $notification->delete();

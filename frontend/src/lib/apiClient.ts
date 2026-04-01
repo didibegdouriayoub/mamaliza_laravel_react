@@ -65,7 +65,13 @@ export const apiClient = {
         let errorMsg = response.statusText;
         try {
           const errData = await response.json();
-          if (errData.message) errorMsg = errData.message;
+          if (errData.errors) {
+            // T12.19: Laravel 422 — join all field-level messages for display in toasts
+            const fieldMsgs = (Object.values(errData.errors) as string[][]).flat().join(' | ');
+            errorMsg = fieldMsgs || errData.message || errorMsg;
+          } else if (errData.message) {
+            errorMsg = errData.message;
+          }
         } catch (_) { }
         throw new Error(errorMsg || 'API Error');
       }

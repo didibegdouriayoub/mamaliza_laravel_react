@@ -34,19 +34,19 @@ function AppRoutes() {
   return (
     <AppLayout>
       <Routes>
-        <Route path="/" element={<ProtectedRoute permissions={['view_analytics']}><Dashboard /></ProtectedRoute>} />
-        <Route path="/inventory" element={<ProtectedRoute permissions={['manage_inventory']}><Inventory /></ProtectedRoute>} />
-        <Route path="/recipes" element={<ProtectedRoute permissions={['manage_recipes']}><Recipes /></ProtectedRoute>} />
-        <Route path="/batches" element={<ProtectedRoute permissions={['manage_batches']}><Batches /></ProtectedRoute>} />
-        <Route path="/production" element={<ProtectedRoute permissions={['manage_batches']}><Production /></ProtectedRoute>} />
-        <Route path="/quality" element={<ProtectedRoute permissions={['manage_quality']}><Quality /></ProtectedRoute>} />
-        <Route path="/estimation" element={<ProtectedRoute permissions={['manage_inventory']}><Estimation /></ProtectedRoute>} />
-        <Route path="/customers" element={<ProtectedRoute permissions={['manage_sales']}><Customers /></ProtectedRoute>} />
-        <Route path="/suppliers" element={<ProtectedRoute permissions={['manage_inventory']}><Suppliers /></ProtectedRoute>} />
-        <Route path="/sales" element={<ProtectedRoute permissions={['manage_sales']}><Sales /></ProtectedRoute>} />
-        <Route path="/analytics" element={<ProtectedRoute permissions={['view_analytics']}><Analytics /></ProtectedRoute>} />
-        <Route path="/users" element={<ProtectedRoute permissions={['manage_users']}><UserManagement /></ProtectedRoute>} />
-        <Route path="/permissions" element={<ProtectedRoute permissions={['manage_users']}><Permissions /></ProtectedRoute>} />
+        <Route path="/" element={<ProtectedRoute permissions={['analytics.read']}><Dashboard /></ProtectedRoute>} />
+        <Route path="/inventory" element={<ProtectedRoute permissions={['inventory.read']}><Inventory /></ProtectedRoute>} />
+        <Route path="/recipes" element={<ProtectedRoute permissions={['recipes.read']}><Recipes /></ProtectedRoute>} />
+        <Route path="/batches" element={<ProtectedRoute permissions={['batches.read']}><Batches /></ProtectedRoute>} />
+        <Route path="/production" element={<ProtectedRoute permissions={['batches.read']}><Production /></ProtectedRoute>} />
+        <Route path="/quality" element={<ProtectedRoute permissions={['quality.read']}><Quality /></ProtectedRoute>} />
+        <Route path="/estimation" element={<ProtectedRoute permissions={['inventory.read']}><Estimation /></ProtectedRoute>} />
+        <Route path="/customers" element={<ProtectedRoute permissions={['customers.read']}><Customers /></ProtectedRoute>} />
+        <Route path="/suppliers" element={<ProtectedRoute permissions={['suppliers.read']}><Suppliers /></ProtectedRoute>} />
+        <Route path="/sales" element={<ProtectedRoute permissions={['sales.read']}><Sales /></ProtectedRoute>} />
+        <Route path="/analytics" element={<ProtectedRoute permissions={['analytics.read']}><Analytics /></ProtectedRoute>} />
+        <Route path="/users" element={<ProtectedRoute permissions={['users.read']}><UserManagement /></ProtectedRoute>} />
+        <Route path="/permissions" element={<ProtectedRoute permissions={['users.read']}><Permissions /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AppLayout>

@@ -11,7 +11,7 @@ export function ProtectedRoute({ children, permissions = [] }: ProtectedRoutePro
   const { isAuthenticated, hasPermission, isLoading } = useAuth();
 
   if (isLoading) return null;
-  
+
   if (!isAuthenticated) {
     return <Navigate to="/" replace />;
   }
@@ -21,9 +21,17 @@ export function ProtectedRoute({ children, permissions = [] }: ProtectedRoutePro
   }
 
   const isAuthorized = permissions.every(p => hasPermission(p));
-  
+
   if (!isAuthorized) {
-    return <Navigate to="/" replace />;
+    return (
+      <div className="flex flex-col items-center justify-center h-full py-24 text-center gap-3">
+        <p className="text-4xl">🔒</p>
+        <h2 className="text-xl font-semibold">Access Denied</h2>
+        <p className="text-sm text-muted-foreground">
+          You don't have permission to view this page.
+        </p>
+      </div>
+    );
   }
 
   return <>{children}</>;

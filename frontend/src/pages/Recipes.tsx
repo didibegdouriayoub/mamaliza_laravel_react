@@ -101,21 +101,25 @@ export default function Recipes() {
     const validIngs = ingredients.filter(i => i.materialId);
     const validSteps = steps.filter(s => s.trim());
 
-    if (editingRecipe) {
-      await recipeService.update(editingRecipe.id, { 
-        name, description, ingredients: validIngs, steps: validSteps, 
-        targetWeight, pieceWeight, recipeStatus, packages: recipePackages 
-      });
-      toast({ title: 'Recipe updated' });
-    } else {
-      await recipeService.create({ 
-        name, description, ingredients: validIngs, steps: validSteps, 
-        targetWeight, pieceWeight, recipeStatus, packages: recipePackages 
-      });
-      toast({ title: 'Recipe created' });
+    try {
+      if (editingRecipe) {
+        await recipeService.update(editingRecipe.id, {
+          name, description, ingredients: validIngs, steps: validSteps,
+          targetWeight, pieceWeight, recipeStatus, packages: recipePackages,
+        });
+        toast({ title: 'Recipe updated' });
+      } else {
+        await recipeService.create({
+          name, description, ingredients: validIngs, steps: validSteps,
+          targetWeight, pieceWeight, recipeStatus, packages: recipePackages,
+        });
+        toast({ title: 'Recipe created' });
+      }
+      setFormOpen(false);
+      loadData();
+    } catch (err: any) {
+      toast({ title: 'Save failed', description: err.message || 'An error occurred.', variant: 'destructive' });
     }
-    setFormOpen(false);
-    loadData();
   };
 
   const handleDelete = async (id: string) => {

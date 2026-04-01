@@ -150,7 +150,7 @@ export interface OrderItem {
 export interface Payment {
   id: string;
   amount: number;
-  date: string;
+  paidAt: string;   // T12.7.8: was `date`, API returns paid_at → paidAt
   method: string;
 }
 
@@ -160,7 +160,7 @@ export interface ReturnItem {
   quantity: number;
   reason: string;
   refundAmount: number;
-  date: string;
+  returnedAt: string; // T12.7.8: was `date`, API returns returned_at → returnedAt
 }
 
 export interface Order {

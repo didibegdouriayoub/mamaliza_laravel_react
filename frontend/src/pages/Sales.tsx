@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingCart, Search, Plus, Undo2, CreditCard } from 'lucide-react';
+import { ShoppingCart, Search, Plus, Undo2, CreditCard, Download } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,8 @@ export default function Sales() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
   const [selected, setSelected] = useState<Order | null>(null);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [returnOpen, setReturnOpen] = useState(false);
@@ -34,84 +36,125 @@ export default function Sales() {
 
   const loadData = async () => {
     setLoading(true);
-    const data = await orderService.getAll();
-    setOrders(data);
+    try {
+      const data = await orderService.getAll();
+      setOrders(data || []);
+    } catch (e) { console.error(e); }
     setLoading(false);
   };
 
   useEffect(() => { loadData(); }, []);
 
+  const handleExportCsv = () => {
+    const headers = ['Order #', 'Customer', 'Total (€)', 'Paid (€)', 'Returned (€)', 'Balance (€)', 'Status', 'Date'];
+    const rows = filtered.map(o => [
+      o.id, o.customerName,
+      o.totalAmount.toFixed(2), o.amountPaid.toFixed(2), o.amountReturned.toFixed(2),
+      Math.max(0, o.totalAmount - o.amountPaid + o.amountReturned).toFixed(2),
+      o.status, o.createdAt,
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'orders.csv'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const filtered = orders.filter(o => o.customerName.toLowerCase().includes(search.toLowerCase()));
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const handlePayment = async () => {
     if (!selected || payAmount <= 0) return;
-    await orderService.addPayment(selected.id, { amount: payAmount, method: payMethod, date: new Date().toISOString().split('T')[0] });
-    toast({ title: 'Payment recorded', description: `€${payAmount} received.` });
-    setPaymentOpen(false);
-    const updated = await orderService.getAll();
-    setOrders(updated);
-    const refreshed = updated.find(o => o.id === selected.id);
-    setSelected(refreshed || null);
+    try {
+      await orderService.addPayment(selected.id, { amount: payAmount, method: payMethod, date: new Date().toISOString().split('T')[0] });
+      toast({ title: 'Payment recorded', description: `€${payAmount} received.` });
+      setPaymentOpen(false);
+      const updated = await orderService.getAll();
+      setOrders(updated);
+      const refreshed = updated.find(o => o.id === selected.id);
+      setSelected(refreshed || null);
+    } catch (e: any) {
+      toast({ title: 'Error', description: e?.message || 'Failed to record payment', variant: 'destructive' });
+    }
   };
 
   const handleReturn = async () => {
     if (!selected || !retProductName) return;
-    await orderService.addReturn(selected.id, { productName: retProductName, quantity: retQty, reason: retReason, refundAmount: retRefund, date: new Date().toISOString().split('T')[0] });
-    toast({ title: 'Return recorded' });
-    setReturnOpen(false);
-    const updated = await orderService.getAll();
-    setOrders(updated);
-    const refreshed = updated.find(o => o.id === selected.id);
-    setSelected(refreshed || null);
+    try {
+      await orderService.addReturn(selected.id, { productName: retProductName, quantity: retQty, reason: retReason, refundAmount: retRefund });
+      toast({ title: 'Return recorded' });
+      setReturnOpen(false);
+      const updated = await orderService.getAll();
+      setOrders(updated);
+      const refreshed = updated.find(o => o.id === selected.id);
+      setSelected(refreshed || null);
+    } catch (e: any) {
+      toast({ title: 'Error', description: e?.message || 'Failed to record return', variant: 'destructive' });
+    }
   };
 
   const balance = (o: Order) => o.totalAmount - o.amountPaid + o.amountReturned;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-display font-bold flex items-center gap-2"><ShoppingCart className="h-6 w-6" /> Sales</h1>
-        <p className="text-sm text-muted-foreground">Manage orders, payments, and returns</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-display font-bold flex items-center gap-2"><ShoppingCart className="h-6 w-6" /> Sales</h1>
+          <p className="text-sm text-muted-foreground">Manage orders, payments, and returns</p>
+        </div>
+        <Button variant="outline" onClick={handleExportCsv}><Download className="h-4 w-4 mr-1" /> CSV</Button>
       </div>
 
       <Card className="shadow-card">
         <CardContent className="p-4">
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input className="pl-9" placeholder="Search orders..." value={search} onChange={e => setSearch(e.target.value)} />
+            <Input className="pl-9" placeholder="Search orders..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
           </div>
 
           {loading ? <TableSkeleton /> : filtered.length === 0 ? (
             <EmptyState title="No orders found" description="Orders will appear here." icon="🛒" />
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Order</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead className="text-right">Total</TableHead>
-                  <TableHead className="text-right">Paid</TableHead>
-                  <TableHead className="text-right">Returned</TableHead>
-                  <TableHead className="text-right">Balance</TableHead>
+                  <TableHead className="text-right hidden sm:table-cell">Paid</TableHead>
+                  <TableHead className="text-right hidden md:table-cell">Returned</TableHead>
+                  <TableHead className="text-right hidden sm:table-cell">Balance</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead className="hidden md:table-cell">Date</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((order, idx) => (
+                {paginated.map((order, idx) => (
                   <motion.tr key={order.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: idx * 0.04 }} className="border-b cursor-pointer hover:bg-accent/30" onClick={() => setSelected(order)}>
                     <TableCell className="font-medium">#{order.id}</TableCell>
                     <TableCell>{order.customerName}</TableCell>
                     <TableCell className="text-right font-medium">€{order.totalAmount.toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-success">€{order.amountPaid.toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-destructive">€{order.amountReturned.toLocaleString()}</TableCell>
-                    <TableCell className="text-right font-semibold">{balance(order) > 0 ? <span className="text-warning">€{balance(order)}</span> : <span className="text-success">€0</span>}</TableCell>
+                    <TableCell className="text-right text-success hidden sm:table-cell">€{order.amountPaid.toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-destructive hidden md:table-cell">€{order.amountReturned.toLocaleString()}</TableCell>
+                    <TableCell className="text-right font-semibold hidden sm:table-cell">{balance(order) > 0 ? <span className="text-warning">€{balance(order)}</span> : <span className="text-success">€0</span>}</TableCell>
                     <TableCell><OrderStatusBadge status={order.status} /></TableCell>
-                    <TableCell className="text-muted-foreground">{order.createdAt}</TableCell>
+                    <TableCell className="text-muted-foreground hidden md:table-cell">{order.createdAt}</TableCell>
                   </motion.tr>
                 ))}
               </TableBody>
             </Table>
+            </div>
+          )}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-3 text-sm text-muted-foreground">
+              <span>{filtered.length} orders · page {page} of {totalPages}</span>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</Button>
+                <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next</Button>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -150,7 +193,7 @@ export default function Sales() {
                     <h4 className="font-display font-semibold text-sm mb-1">Payments</h4>
                     {selected.payments.map(p => (
                       <div key={p.id} className="flex justify-between text-sm py-1 border-b last:border-0">
-                        <span className="text-muted-foreground">{p.date} — {p.method}</span>
+                        <span className="text-muted-foreground">{p.paidAt} — {p.method}</span>
                         <span className="text-success font-medium">€{p.amount}</span>
                       </div>
                     ))}
@@ -167,7 +210,7 @@ export default function Sales() {
                           <span>{r.productName} × {r.quantity}</span>
                           <span className="text-destructive font-medium">-€{r.refundAmount}</span>
                         </div>
-                        <p className="text-xs text-muted-foreground">{r.reason} — {r.date}</p>
+                        <p className="text-xs text-muted-foreground">{r.reason} — {r.returnedAt}</p>
                       </div>
                     ))}
                   </div>

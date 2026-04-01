@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Factory, Plus, Edit, Trash2, Printer } from 'lucide-react';
+import { Factory, Plus, Edit, Trash2, Printer, Search } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { BatchStatusBadge } from '@/components/StatusBadge';
 import { TableSkeleton } from '@/components/DataStates';
 import { batchService } from '@/services/batchService';
-import { Batch, BatchStatus } from '@/models/types';
+import { Batch, BatchStatus, Recipe } from '@/models/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -38,6 +38,7 @@ export default function Batches() {
   const [outputQty, setOutputQty] = useState(0);
   const [noteText, setNoteText] = useState('');
   const [printableData, setPrintableData] = useState<{ recipe: Recipe; count: number } | null>(null);
+  const [search, setSearch] = useState('');
   const { user, hasPermission } = useAuth();
   const { toast } = useToast();
 
@@ -82,50 +83,77 @@ export default function Batches() {
   const handleSave = async () => {
     const recipe = recipes.find(r => String(r.id) === String(recipeId));
     if (!recipe) return;
-    if (editingBatch) {
-      await batchService.update(editingBatch.id, {
-        recipeId, recipeName: recipe.name, status, outputQuantity: outputQty,
-        inputMaterials: recipe.ingredients,
-      });
-      if (noteText.trim()) await batchService.addNote(editingBatch.id, noteText, user.name);
-      toast({ title: 'Batch updated' });
-    } else {
-      // Create multiple batches
-      for (let i = 0; i < batchCount; i++) {
-        await batchService.create({
-          recipeId, recipeName: recipe.name, status,
+    try {
+      if (editingBatch) {
+        await batchService.update(editingBatch.id, {
+          recipeId, recipeName: recipe.name, status, outputQuantity: outputQty,
           inputMaterials: recipe.ingredients,
-          outputQuantity: outputQty || recipe.targetWeight, outputUnit: recipe.pieceWeight,
-          notes: noteText.trim() && i === 0 ? [{ id: `n${Date.now()}`, text: noteText, author: user.name, createdAt: new Date().toISOString().split('T')[0] }] : [],
-          operatorId: user.id, operatorName: user.name,
         });
+        if (noteText.trim()) {
+          await batchService.addNote(editingBatch.id, { text: noteText, author: user?.name || 'Unknown' });
+        }
+        toast({ title: 'Batch updated' });
+      } else {
+        // Create multiple batches
+        for (let i = 0; i < batchCount; i++) {
+          const created = await batchService.create({
+            recipeId, recipeName: recipe.name, status,
+            inputMaterials: recipe.ingredients,
+            outputQuantity: outputQty || recipe.targetWeight, outputUnit: recipe.pieceWeight,
+            operatorId: user?.id, operatorName: user?.name,
+          });
+          // T12.14: add note to first batch after creation
+          if (noteText.trim() && i === 0 && created?.id) {
+            await batchService.addNote(created.id, { text: noteText, author: user?.name || 'Unknown' });
+          }
+        }
+        toast({ title: `${batchCount} batch${batchCount > 1 ? 'es' : ''} created` });
+        setPrintableData({ recipe, count: batchCount });
       }
-      toast({ title: `${batchCount} batch${batchCount > 1 ? 'es' : ''} created` });
-      // Show printable table
-      setPrintableData({ recipe, count: batchCount });
+      setFormOpen(false);
+      loadData();
+    } catch (err: any) {
+      toast({ title: 'Save failed', description: err.message || 'An error occurred.', variant: 'destructive' });
     }
-    setFormOpen(false); loadData();
   };
 
   const handleDelete = async (id: string) => {
-    await batchService.delete(id);
-    toast({ title: 'Batch deleted', variant: 'destructive' });
-    setSelected(null); loadData();
+    try {
+      await batchService.delete(id);
+      toast({ title: 'Batch deleted', variant: 'destructive' });
+      setSelected(null);
+      loadData();
+    } catch (err: any) {
+      toast({ title: 'Delete failed', description: err.message || 'An error occurred.', variant: 'destructive' });
+    }
   };
 
   const handleStatusChange = async (batchId: string, newStatus: BatchStatus) => {
-    await batchService.update(batchId, { status: newStatus, completedAt: (newStatus === 'completed' || newStatus === 'failed') ? new Date().toISOString().split('T')[0] : undefined });
-    toast({ title: `Status changed to ${newStatus}` });
-    loadData();
-    setSelected(null);
+    try {
+      await batchService.update(batchId, {
+        status: newStatus,
+        completedAt: (newStatus === 'completed' || newStatus === 'failed')
+          ? new Date().toISOString().split('T')[0]
+          : undefined,
+      });
+      toast({ title: `Status changed to ${newStatus.replace('_', ' ')}` });
+      loadData();
+      setSelected(null);
+    } catch (err: any) {
+      toast({ title: 'Status update failed', description: err.message || 'An error occurred.', variant: 'destructive' });
+    }
   };
 
   const handlePrintBatchTable = () => window.print();
 
   if (loading) return <div className="space-y-6"><TableSkeleton /></div>;
 
+  const visibleBatches = search.trim()
+    ? batches.filter(b => b.recipeName.toLowerCase().includes(search.toLowerCase()) || b.operatorName.toLowerCase().includes(search.toLowerCase()))
+    : batches;
+
   const grouped = statusOrder.reduce((acc, s) => {
-    acc[s] = batches.filter(b => b.status === s);
+    acc[s] = visibleBatches.filter(b => b.status === s);
     return acc;
   }, {} as Record<BatchStatus, Batch[]>);
 
@@ -136,7 +164,11 @@ export default function Batches() {
           <h1 className="text-2xl font-display font-bold flex items-center gap-2"><Factory className="h-6 w-6" /> Batches</h1>
           <p className="text-sm text-muted-foreground">Track production batches from draft to completion</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 items-center">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input className="pl-9 w-48" placeholder="Search batches..." value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
           <Tabs value={view} onValueChange={v => setView(v as 'kanban' | 'table')}>
             <TabsList>
               <TabsTrigger value="kanban">Kanban</TabsTrigger>

@@ -14,10 +14,12 @@ import { batchService } from '@/services/batchService';
 import { Batch } from '@/models/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { TableSkeleton } from '@/components/DataStates';
 
 export default function Production() {
   const [logs, setLogs] = useState<any[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
+  const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [batchId, setBatchId] = useState('');
   const [producedPieces, setProducedPieces] = useState(0);
@@ -27,6 +29,7 @@ export default function Production() {
   const { toast } = useToast();
 
   const loadData = async () => {
+    setLoading(true);
     try {
       const [logData, batchData] = await Promise.all([
         productionLogService.getAll(),
@@ -35,6 +38,7 @@ export default function Production() {
       setLogs(logData || []);
       setBatches(batchData || []);
     } catch(e) { console.error(e); }
+    setLoading(false);
   };
 
   useEffect(() => { loadData(); }, []);
@@ -46,24 +50,26 @@ export default function Production() {
   const handleSave = async () => {
     const batch = batches.find(b => String(b.id) === String(batchId));
     if (!batch) return;
-    
-    await productionLogService.create({
-      batch_id: batchId,
-      recipe_name: batch.recipeName,
-      operator_id: user?.id,
-      operator_name: user?.name,
-      produced_pieces: producedPieces,
-      unit: batch.outputUnit,
-      leftovers: leftovers.filter(l => l.materialName.trim()),
-      notes: notes,
-      logged_at: new Date().toISOString().split('T')[0],
-    });
-    
-    toast({ title: 'Production log saved' });
-    setFormOpen(false);
-    setBatchId(''); setProducedPieces(0); setNotes('');
-    setLeftovers([{ materialName: '', quantity: 0, unit: '' }]);
-    loadData();
+    try {
+      await productionLogService.create({
+        batch_id: batchId,
+        recipe_name: batch.recipeName,
+        operator_id: user?.id,
+        operator_name: user?.name,
+        produced_pieces: producedPieces,
+        unit: batch.outputUnit,
+        leftovers: leftovers.filter(l => l.materialName.trim()),
+        notes: notes,
+        logged_at: new Date().toISOString().split('T')[0],
+      });
+      toast({ title: 'Production log saved' });
+      setFormOpen(false);
+      setBatchId(''); setProducedPieces(0); setNotes('');
+      setLeftovers([{ materialName: '', quantity: 0, unit: '' }]);
+      loadData();
+    } catch (e: any) {
+      toast({ title: 'Error', description: e?.message || 'Failed to save production log', variant: 'destructive' });
+    }
   };
 
   return (
@@ -76,7 +82,9 @@ export default function Production() {
         <Button onClick={() => setFormOpen(true)}><Plus className="h-4 w-4 mr-1" /> Log Production</Button>
       </div>
 
-      {logs.length === 0 ? (
+      {loading ? (
+        <Card className="shadow-card"><CardContent className="p-4"><TableSkeleton /></CardContent></Card>
+      ) : logs.length === 0 ? (
         <Card className="shadow-card"><CardContent className="p-8 text-center text-muted-foreground">No production logs yet.</CardContent></Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -103,8 +111,8 @@ export default function Production() {
                       <p className="text-xs font-semibold text-muted-foreground mb-1">Leftovers (can be reused)</p>
                       {log.leftovers.map((l: any, i: number) => (
                         <div key={i} className="flex justify-between text-sm py-0.5">
-                          <span>{l.materialName || l.material_name}</span>
-                          <span className="text-muted-foreground">{l.quantity} {l.unit}</span>
+                          <span>{l.item}</span>
+                          <span className="text-muted-foreground">{l.amount} {l.unit}</span>
                         </div>
                       ))}
                     </div>
