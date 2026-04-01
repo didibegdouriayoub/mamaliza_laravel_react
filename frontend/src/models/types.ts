@@ -14,8 +14,8 @@ export type Permission =
   | 'permissions.read' | 'permissions.write'
   | 'packaging.read' | 'packaging.write';
 
-export type MaterialType = 'raw' | 'packaging';
-export type BatchStatus = 'draft' | 'in_production' | 'completed' | 'failed';
+export type MaterialType = 'raw' | 'packaging' | 'leftover' | 'product';
+export type BatchStatus = 'completed' | 'failed';
 export type OrderStatus = 'pending' | 'partial' | 'paid' | 'shipped' | 'cancelled';
 
 // ============ CHANGE HISTORY ============
@@ -104,6 +104,7 @@ export interface BatchNote {
 
 export interface Batch {
   id: string;
+  batchGroupId?: string;
   recipeId: string;
   recipeName: string;
   status: BatchStatus;
@@ -116,6 +117,21 @@ export interface Batch {
   completedAt?: string;
   operatorId: string;
   operatorName: string;
+}
+
+export interface BatchGroup {
+  id: string;
+  recipeId: string;
+  recipeName: string;
+  batchCount: number;
+  targetWeight: number;
+  pieceWeightValue: number;
+  piecesProduced?: number;
+  leftoverQty?: number;
+  leftoverUnit?: string;
+  createdBy?: string;
+  createdAt: string;
+  batches?: Batch[];
 }
 
 export interface QualityControl {

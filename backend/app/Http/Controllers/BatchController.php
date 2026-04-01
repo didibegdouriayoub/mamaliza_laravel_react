@@ -17,7 +17,8 @@ class BatchController extends Controller
         $validated = $request->validate([
             'recipe_id' => 'required|exists:recipes,id',
             'recipe_name' => 'required|string|max:255',
-            'status' => 'required|string|max:50',
+            'status' => 'nullable|string|in:completed,failed',
+            'batch_group_id' => 'nullable|exists:batch_groups,id',
             'input_materials' => 'nullable|array',
             'output_quantity' => 'nullable|numeric|min:0',
             'output_unit' => 'nullable|string|max:50',
@@ -27,6 +28,10 @@ class BatchController extends Controller
             'started_at' => 'nullable|date',
             'completed_at' => 'nullable|date',
         ]);
+
+        if (!isset($validated['status'])) {
+            $validated['status'] = 'completed';
+        }
 
         if (!isset($validated['started_at'])) {
             $validated['started_at'] = now()->toDateTimeString();
@@ -70,7 +75,7 @@ class BatchController extends Controller
     public function update(Request $request, Batch $batch)
     {
         $validated = $request->validate([
-            'status' => 'sometimes|string|max:50',
+            'status' => 'sometimes|string|in:completed,failed',
             'input_materials' => 'nullable|array',
             'output_quantity' => 'nullable|numeric|min:0',
             'output_unit' => 'nullable|string|max:50',

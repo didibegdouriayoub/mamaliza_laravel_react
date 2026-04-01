@@ -10,6 +10,7 @@ class Batch extends Model
 
     protected $fillable = [
         'recipe_id',
+        'batch_group_id',
         'recipe_name',
         'status',
         'input_materials',

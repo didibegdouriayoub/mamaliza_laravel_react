@@ -254,6 +254,8 @@ export default function Inventory() {
                       <SelectContent>
                         <SelectItem value="raw">Raw Material</SelectItem>
                         <SelectItem value="packaging">Packaging</SelectItem>
+                        <SelectItem value="leftover">Leftover</SelectItem>
+                        <SelectItem value="product">Product</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -328,6 +330,8 @@ export default function Inventory() {
                   <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="raw">Raw Materials</SelectItem>
                   <SelectItem value="packaging">Packaging</SelectItem>
+                  <SelectItem value="leftover">Leftover</SelectItem>
+                  <SelectItem value="product">Products</SelectItem>
                 </SelectContent>
               </Select>
 

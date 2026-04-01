@@ -1,10 +1,11 @@
 import { apiClient } from '../lib/apiClient';
-import { Batch } from '../models/types';
+import { Batch, BatchGroup } from '../models/types';
 
 const toPayload = (b: Partial<Batch>) => ({
   recipe_id: b.recipeId,
   recipe_name: b.recipeName,
   status: b.status,
+  batch_group_id: (b as any).batchGroupId,
   // Serialize ingredients with snake_case keys so the backend can find material_id
   input_materials: b.inputMaterials?.map(m => ({
     material_id: (m as any).materialId ?? (m as any).material_id,
@@ -29,4 +30,25 @@ export const batchService = {
   update: (id: string | number, batch: Partial<Batch>) => apiClient.put(`/batches/${id}`, toPayload(batch)),
   delete: (id: string | number) => apiClient.delete(`/batches/${id}`),
   addNote: (id: string | number, note: any) => apiClient.post(`/batches/${id}/notes`, note),
+};
+
+export const batchGroupService = {
+  getAll: () => apiClient.get('/batch-groups'),
+  create: (group: {
+    recipeId: string; recipeName: string; batchCount: number;
+    targetWeight: number; pieceWeightValue: number; createdBy?: string;
+  }) => apiClient.post('/batch-groups', {
+    recipe_name: group.recipeName,
+    batch_count: group.batchCount,
+    target_weight: group.targetWeight,
+    piece_weight_value: group.pieceWeightValue,
+    created_by: group.createdBy,
+  }),
+  updateStats: (id: string | number, stats: {
+    piecesProduced?: number; leftoverQty?: number; leftoverUnit?: string;
+  }) => apiClient.put(`/batch-groups/${id}`, {
+    pieces_produced: stats.piecesProduced,
+    leftover_qty: stats.leftoverQty,
+    leftover_unit: stats.leftoverUnit,
+  }),
 };

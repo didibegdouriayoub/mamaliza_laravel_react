@@ -23,17 +23,23 @@ class BatchObserver
             return;
         }
 
-        // Deduct materials when batch moves to in_progress
-        if ($batch->status === 'in_progress') {
-            $this->inventoryService->deductForBatch($batch);
-        }
-
-        // T12.9.2: Notify admins when a batch fails
         if ($batch->status === 'failed') {
+            // Auto-create leftover inventory item
+            $date = now()->format('d-m-Y');
+            $name = "LO-{$date}-{$batch->recipe_name}";
+            \App\Models\InventoryItem::create([
+                'name'      => $name,
+                'type'      => 'leftover',
+                'quantity'  => $batch->output_quantity ?? 0,
+                'unit'      => $batch->output_unit ?? 'kg',
+                'price'     => 0,
+                'min_stock' => 0,
+            ]);
+
             $this->notificationService->sendToRole(
                 'admin',
                 'Batch Failed',
-                "Batch #{$batch->id} ({$batch->recipe_name}) has been marked as failed.",
+                "Batch #{$batch->id} ({$batch->recipe_name}) has been marked as failed. Leftover added to inventory.",
                 'error'
             );
         }

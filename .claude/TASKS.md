@@ -103,6 +103,18 @@
 | T13.10 | Batch create — **step 3**: save all batches as a group in a single submit (one API call per batch, but triggered together) | 🔴 | ✅ |
 | T13.11 | Batch print report — generate a **print-friendly report** per batch group showing: recipe name, batch list with lot numbers and quantities, ingredient breakdown per batch | 🟠 | ✅ |
 
+### Sprint 4: Batch Groups, Production Loss & Inventory Types
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T13.12 | Batch table grouped by recipe/creation group (batch_groups) | 🔴 | ✅ |
+| T13.13 | Remove draft + in_production statuses; new batches default to completed | 🔴 | ✅ |
+| T13.14 | Move completed → failed auto-creates leftover inventory item (LO-DD-MM-YYYY-recipe) | 🔴 | ✅ |
+| T13.15 | Add `leftover` and `product` inventory types | 🟠 | ✅ |
+| T13.16 | User fills pieces_produced per batch group → creates product inventory entry | 🔴 | ✅ |
+| T13.17 | User fills leftover_qty per batch group → creates leftover inventory entry | 🔴 | ✅ |
+| T13.18 | Dashboard: Production Loss chart by recipe for selected day | 🔴 | ✅ |
+
 ---
 
 ## Rules for this Project
