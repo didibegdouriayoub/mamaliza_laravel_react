@@ -17,20 +17,38 @@ class RecipeController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'steps' => 'nullable|array',
-            'target_weight' => 'required|numeric|min:0',
-            'piece_weight' => 'required|string|max:50',
-            'recipe_status' => 'nullable|string|in:semi_final,final',
-            'packages' => 'nullable|array',
-            'version' => 'nullable|string|max:50',
+            'name'                         => 'required|string|max:255',
+            'description'                  => 'nullable|string',
+            'steps'                        => 'nullable|array',
+            'target_weight'                => 'nullable|numeric|min:0',
+            'piece_weight'                 => 'nullable|string|max:50',
+            'recipe_status'                => 'nullable|string|in:semi_final,final',
+            'packages'                     => 'nullable|array',
+            'version'                      => 'nullable|integer|min:1',
+            'ingredients'                  => 'nullable|array',
+            'ingredients.*.material_id'    => 'required|exists:inventory_items,id',
+            'ingredients.*.quantity'       => 'required|numeric|min:0',
         ]);
 
-        if (!isset($validated['version'])) $validated['version'] = '1';
+        $validated['version'] = $validated['version'] ?? 1;
+
+        $ingredients = $validated['ingredients'] ?? [];
+        unset($validated['ingredients']);
 
         $recipe = Recipe::create($validated);
-        return response()->json($recipe, 201);
+
+        foreach ($ingredients as $ing) {
+            $material = \App\Models\InventoryItem::find($ing['material_id']);
+            $recipe->ingredients()->create([
+                'material_id'   => $ing['material_id'],
+                'material_name' => $material->name,
+                'quantity'      => $ing['quantity'],
+                'unit'          => $material->unit,
+                'unit_price'    => $material->price,
+            ]);
+        }
+
+        return response()->json($recipe->load(['ingredients', 'history.user']), 201);
     }
 
     public function show(Recipe $recipe)
@@ -48,7 +66,6 @@ class RecipeController extends Controller
             'piece_weight' => 'sometimes|string|max:50',
             'recipe_status' => 'sometimes|string|in:semi_final,final',
             'packages' => 'sometimes|array',
-            'version' => 'sometimes|string|max:50',
             'ingredients' => 'sometimes|array',
             'ingredients.*.material_id' => 'required|exists:inventory_items,id',
             'ingredients.*.quantity' => 'required|numeric|min:0',
@@ -76,6 +93,7 @@ class RecipeController extends Controller
         }
 
         $recipe->update($validated);
+        $recipe->increment('version');
 
         if (isset($validated['ingredients'])) {
             // Check if ingredients actually changed
