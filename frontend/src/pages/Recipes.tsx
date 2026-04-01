@@ -32,7 +32,7 @@ export default function Recipes() {
   const [description, setDescription] = useState('');
   const [ingredients, setIngredients] = useState<RecipeIngredient[]>([{ ...emptyIng }]);
   const [steps, setSteps] = useState<string[]>(['']);
-  const [targetWeight, setTargetWeight] = useState(0);
+  const [targetWeight, setTargetWeight] = useState('');
   const [pieceWeight, setPieceWeight] = useState('');
   const [recipeStatus, setRecipeStatus] = useState<'semi_final' | 'final'>('semi_final');
   const [recipePackages, setRecipePackages] = useState<any[]>([]);
@@ -78,8 +78,8 @@ export default function Recipes() {
 
   const openCreate = () => {
     setEditingRecipe(null);
-    setName(''); setDescription(''); setIngredients([{ ...emptyIng }]); setSteps(['']); 
-    setTargetWeight(0); setPieceWeight(''); setRecipeStatus('semi_final'); setRecipePackages([]);
+    setName(''); setDescription(''); setIngredients([{ ...emptyIng }]); setSteps(['']);
+    setTargetWeight(''); setPieceWeight(''); setRecipeStatus('semi_final'); setRecipePackages([]);
     setFormOpen(true);
   };
 
@@ -88,7 +88,7 @@ export default function Recipes() {
     setName(r.name); setDescription(r.description);
     setIngredients(r.ingredients.map(i => ({ ...i })));
     setSteps([...r.steps]); 
-    setTargetWeight(r.targetWeight); 
+    setTargetWeight(r.targetWeight ? String(r.targetWeight) : '');
     setPieceWeight(r.pieceWeight); 
     setRecipeStatus(r.recipeStatus);
     setRecipePackages(r.packages || []);
@@ -102,16 +102,17 @@ export default function Recipes() {
     const validSteps = steps.filter(s => s.trim());
 
     try {
+      const targetWeightNum = Number(targetWeight) || 0;
       if (editingRecipe) {
         await recipeService.update(editingRecipe.id, {
           name, description, ingredients: validIngs, steps: validSteps,
-          targetWeight, pieceWeight, recipeStatus, packages: recipePackages,
+          targetWeight: targetWeightNum, pieceWeight, recipeStatus, packages: recipePackages,
         });
         toast({ title: 'Recipe updated' });
       } else {
         await recipeService.create({
           name, description, ingredients: validIngs, steps: validSteps,
-          targetWeight, pieceWeight, recipeStatus, packages: recipePackages,
+          targetWeight: targetWeightNum, pieceWeight, recipeStatus, packages: recipePackages,
         });
         toast({ title: 'Recipe created' });
       }
@@ -139,6 +140,10 @@ export default function Recipes() {
   };
 
   const totalCost = ingredients.reduce((sum, i) => sum + (i.quantity * i.unitPrice), 0);
+  const packagingCost = recipePackages.reduce((sum, pkg) => {
+    const item = inventory.find(m => String(m.id) === String(pkg.id));
+    return sum + (pkg.quantity * (item?.price || 0));
+  }, 0);
 
   if (loading) return <div className="space-y-6"><TableSkeleton /></div>;
 
@@ -325,7 +330,7 @@ export default function Recipes() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5"><Label>Target Weight (Batch Total)</Label><Input type="number" value={targetWeight} onChange={e => setTargetWeight(Number(e.target.value))} /></div>
+              <div className="space-y-1.5"><Label>Target Weight (Batch Total)</Label><Input type="number" value={targetWeight} onChange={e => setTargetWeight(e.target.value)} /></div>
               <div className="space-y-1.5"><Label>Piece Weight (Unit)</Label><Input value={pieceWeight} onChange={e => setPieceWeight(e.target.value)} placeholder="e.g. 500g" /></div>
             </div>
             <div className="space-y-1.5">
@@ -361,23 +366,31 @@ export default function Recipes() {
                 <Label>Standard Packaging</Label>
                 <Button type="button" variant="ghost" size="sm" onClick={() => setRecipePackages(p => [...p, { id: '', name: '', quantity: 1 }])}><Plus className="h-3 w-3 mr-1" /> Add</Button>
               </div>
-              {recipePackages.map((pkg, idx) => (
-                <div key={idx} className="grid grid-cols-1 sm:grid-cols-[1fr_100px_40px] gap-2 items-end">
-                  <Select value={pkg.id} onValueChange={v => {
-                    const item = inventory.find(m => String(m.id) === String(v));
-                    if (item) setRecipePackages(p => p.map((x, i) => i === idx ? { id: String(item.id), name: item.name, quantity: x.quantity } : x));
-                  }}>
-                    <SelectTrigger><SelectValue placeholder="Packaging Item" /></SelectTrigger>
-                    <SelectContent>
-                      {inventory.filter(m => m.type === 'packaging').map(m => (
-                        <SelectItem key={m.id} value={String(m.id)}>{m.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Input type="number" placeholder="Qty" value={pkg.quantity || ''} onChange={e => setRecipePackages(p => p.map((x, i) => i === idx ? { ...x, quantity: Number(e.target.value) } : x))} />
-                  <Button type="button" variant="ghost" size="icon" onClick={() => setRecipePackages(p => p.filter((_, i) => i !== idx))}><Trash2 className="h-3 w-3" /></Button>
-                </div>
-              ))}
+              {recipePackages.map((pkg, idx) => {
+                const pkgItem = inventory.find(m => String(m.id) === String(pkg.id));
+                const rowCost = pkg.quantity * (pkgItem?.price || 0);
+                return (
+                  <div key={idx} className="grid grid-cols-1 sm:grid-cols-[1fr_100px_80px_40px] gap-2 items-end">
+                    <Select value={pkg.id} onValueChange={v => {
+                      const item = inventory.find(m => String(m.id) === String(v));
+                      if (item) setRecipePackages(p => p.map((x, i) => i === idx ? { id: String(item.id), name: item.name, quantity: x.quantity } : x));
+                    }}>
+                      <SelectTrigger><SelectValue placeholder="Packaging Item" /></SelectTrigger>
+                      <SelectContent>
+                        {inventory.filter(m => m.type === 'packaging').map(m => (
+                          <SelectItem key={m.id} value={String(m.id)}>{m.name} (€{m.price}/{m.unit})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input type="number" placeholder="Qty" value={pkg.quantity || ''} onChange={e => setRecipePackages(p => p.map((x, i) => i === idx ? { ...x, quantity: Number(e.target.value) } : x))} />
+                    <span className="text-xs text-muted-foreground py-2">€{rowCost.toFixed(2)}</span>
+                    <Button type="button" variant="ghost" size="icon" onClick={() => setRecipePackages(p => p.filter((_, i) => i !== idx))}><Trash2 className="h-3 w-3" /></Button>
+                  </div>
+                );
+              })}
+              {recipePackages.length > 0 && (
+                <p className="text-sm font-medium text-right">Packaging: €{packagingCost.toFixed(2)}</p>
+              )}
             </div>
 
             <div className="space-y-2">

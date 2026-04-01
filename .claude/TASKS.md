@@ -91,8 +91,8 @@
 
 | # | Task | Priority | Status |
 |---|---|---|---|
-| T13.6 | Recipe — display live **packaging cost** estimate (from packaging inventory items × quantities) inside the create and update forms | 🟠 | ☐ |
-| T13.7 | **Bug:** Recipe — `targetWeight` field resets / updates itself when another field is edited in the form — investigate controlled-input state binding and fix | 🔴 | ☐ |
+| T13.6 | Recipe — display live **packaging cost** estimate (from packaging inventory items × quantities) inside the create and update forms | 🟠 | ✅ |
+| T13.7 | **Bug:** Recipe — `targetWeight` field resets / updates itself when another field is edited in the form — investigate controlled-input state binding and fix | 🔴 | ✅ |
 
 ### Sprint 3: Batch Create Redesign + Print Report
 
