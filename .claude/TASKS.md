@@ -39,8 +39,8 @@
 | T12.10 | Production logs: test create log + leftover return to inventory | 🟠 | ✅ |
 | T12.10.1 | **Bug:** Production.tsx displays `l.materialName`/`l.material_name` but DB stores `item`; displays `l.quantity` but DB stores `amount` → leftover list always blank | 🔴 | ✅ |
 | T12.10.2 | **Bug:** `handleSave` in Production.tsx has no try/catch → silent failure on error | 🟠 | ✅ |
-| T12.11 | Estimation: test recipe selection → ingredient requirements → create batches | 🟡 | ☐ |
-| T12.12 | Analytics: verify dashboard KPIs and charts load from live API data | 🟡 | ☐ |
+| T12.11 | Estimation: test recipe selection → ingredient requirements → create batches | 🟡 | ✅ |
+| T12.12 | Analytics: verify dashboard KPIs and charts load from live API data | 🟡 | ✅ |
 
 ### Sprint 2: Known Potential Bugs
 
