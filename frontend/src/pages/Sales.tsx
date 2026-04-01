@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingCart, Search, Plus, Undo2, CreditCard } from 'lucide-react';
+import { ShoppingCart, Search, Plus, Undo2, CreditCard, Download } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -45,6 +45,21 @@ export default function Sales() {
 
   useEffect(() => { loadData(); }, []);
 
+  const handleExportCsv = () => {
+    const headers = ['Order #', 'Customer', 'Total (€)', 'Paid (€)', 'Returned (€)', 'Balance (€)', 'Status', 'Date'];
+    const rows = filtered.map(o => [
+      o.id, o.customerName,
+      o.totalAmount.toFixed(2), o.amountPaid.toFixed(2), o.amountReturned.toFixed(2),
+      Math.max(0, o.totalAmount - o.amountPaid + o.amountReturned).toFixed(2),
+      o.status, o.createdAt,
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'orders.csv'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const filtered = orders.filter(o => o.customerName.toLowerCase().includes(search.toLowerCase()));
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -83,9 +98,12 @@ export default function Sales() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-display font-bold flex items-center gap-2"><ShoppingCart className="h-6 w-6" /> Sales</h1>
-        <p className="text-sm text-muted-foreground">Manage orders, payments, and returns</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-display font-bold flex items-center gap-2"><ShoppingCart className="h-6 w-6" /> Sales</h1>
+          <p className="text-sm text-muted-foreground">Manage orders, payments, and returns</p>
+        </div>
+        <Button variant="outline" onClick={handleExportCsv}><Download className="h-4 w-4 mr-1" /> CSV</Button>
       </div>
 
       <Card className="shadow-card">

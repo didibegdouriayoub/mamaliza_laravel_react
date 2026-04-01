@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Search, Trash2, Edit, Package, History, Printer, CalendarDays } from 'lucide-react';
+import { Plus, Search, Trash2, Edit, Package, History, Printer, CalendarDays, Download } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -196,6 +196,20 @@ export default function Inventory() {
 
   const handlePrint = () => window.print();
 
+  const handleExportCsv = () => {
+    const headers = ['Name', 'Type', 'Lot', 'Code', 'Quantity', 'Unit', 'Price (€)', 'Supplier', 'Min Stock', 'Status', 'Added'];
+    const rows = filtered.map(i => [
+      i.name, i.type, i.lot || '', i.code || '',
+      i.quantity, i.unit, i.price.toFixed(2), i.supplier,
+      i.minStock, i.status, i.createdAt,
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'inventory.csv'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 print:hidden">
@@ -205,6 +219,7 @@ export default function Inventory() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handlePrint}><Printer className="h-4 w-4 mr-1" /> Print</Button>
+          <Button variant="outline" onClick={handleExportCsv}><Download className="h-4 w-4 mr-1" /> CSV</Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             {hasPermission('inventory.write') && (
               <DialogTrigger asChild>
