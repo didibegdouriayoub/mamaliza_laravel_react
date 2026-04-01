@@ -36,7 +36,9 @@
 | T12.9.1 | **Bug:** `notificationService.markAsRead` calls `PUT /notifications/{id}` but only `PATCH /notifications/{id}/read` exists → 404; and `NotificationController::markAsRead` method is missing → 500 if the correct route is hit | 🔴 | ✅ |
 | T12.9.2 | **Bug:** `BatchObserver` has no `failed` status handler → batch-failure notifications never created | 🟠 | ✅ |
 | T12.9.3 | **Bug:** `InventoryItemObserver` sends low-stock with `type:'info'` instead of `type:'warning'` | 🟡 | ✅ |
-| T12.10 | Production logs: test create log + leftover return to inventory | 🟠 | ☐ |
+| T12.10 | Production logs: test create log + leftover return to inventory | 🟠 | ✅ |
+| T12.10.1 | **Bug:** Production.tsx displays `l.materialName`/`l.material_name` but DB stores `item`; displays `l.quantity` but DB stores `amount` → leftover list always blank | 🔴 | ✅ |
+| T12.10.2 | **Bug:** `handleSave` in Production.tsx has no try/catch → silent failure on error | 🟠 | ✅ |
 | T12.11 | Estimation: test recipe selection → ingredient requirements → create batches | 🟡 | ☐ |
 | T12.12 | Analytics: verify dashboard KPIs and charts load from live API data | 🟡 | ☐ |
 

@@ -46,24 +46,26 @@ export default function Production() {
   const handleSave = async () => {
     const batch = batches.find(b => String(b.id) === String(batchId));
     if (!batch) return;
-    
-    await productionLogService.create({
-      batch_id: batchId,
-      recipe_name: batch.recipeName,
-      operator_id: user?.id,
-      operator_name: user?.name,
-      produced_pieces: producedPieces,
-      unit: batch.outputUnit,
-      leftovers: leftovers.filter(l => l.materialName.trim()),
-      notes: notes,
-      logged_at: new Date().toISOString().split('T')[0],
-    });
-    
-    toast({ title: 'Production log saved' });
-    setFormOpen(false);
-    setBatchId(''); setProducedPieces(0); setNotes('');
-    setLeftovers([{ materialName: '', quantity: 0, unit: '' }]);
-    loadData();
+    try {
+      await productionLogService.create({
+        batch_id: batchId,
+        recipe_name: batch.recipeName,
+        operator_id: user?.id,
+        operator_name: user?.name,
+        produced_pieces: producedPieces,
+        unit: batch.outputUnit,
+        leftovers: leftovers.filter(l => l.materialName.trim()),
+        notes: notes,
+        logged_at: new Date().toISOString().split('T')[0],
+      });
+      toast({ title: 'Production log saved' });
+      setFormOpen(false);
+      setBatchId(''); setProducedPieces(0); setNotes('');
+      setLeftovers([{ materialName: '', quantity: 0, unit: '' }]);
+      loadData();
+    } catch (e: any) {
+      toast({ title: 'Error', description: e?.message || 'Failed to save production log', variant: 'destructive' });
+    }
   };
 
   return (
@@ -103,8 +105,8 @@ export default function Production() {
                       <p className="text-xs font-semibold text-muted-foreground mb-1">Leftovers (can be reused)</p>
                       {log.leftovers.map((l: any, i: number) => (
                         <div key={i} className="flex justify-between text-sm py-0.5">
-                          <span>{l.materialName || l.material_name}</span>
-                          <span className="text-muted-foreground">{l.quantity} {l.unit}</span>
+                          <span>{l.item}</span>
+                          <span className="text-muted-foreground">{l.amount} {l.unit}</span>
                         </div>
                       ))}
                     </div>
