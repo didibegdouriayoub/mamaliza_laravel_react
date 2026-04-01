@@ -44,12 +44,13 @@ class BatchGroupController extends Controller
         if (!empty($validated['leftover_qty']) && $validated['leftover_qty'] > 0) {
             $date = now()->format('d-m-Y');
             InventoryItem::create([
-                'name'      => "LO-{$date}-{$batchGroup->recipe_name}",
-                'type'      => 'leftover',
-                'quantity'  => $validated['leftover_qty'],
-                'unit'      => $validated['leftover_unit'] ?? 'kg',
-                'price'     => 0,
-                'min_stock' => 0,
+                'name'        => "LO-{$date}-{$batchGroup->recipe_name}",
+                'type'        => 'leftover',
+                'quantity'    => $validated['leftover_qty'],
+                'unit'        => $validated['leftover_unit'] ?? 'kg',
+                'price'       => 0,
+                'min_stock'   => 0,
+                'supplier_id' => null,
             ]);
         }
 
@@ -61,12 +62,13 @@ class BatchGroupController extends Controller
                 $existing->increment('quantity', $validated['pieces_produced']);
             } else {
                 InventoryItem::create([
-                    'name'      => $batchGroup->recipe_name,
-                    'type'      => 'product',
-                    'quantity'  => $validated['pieces_produced'],
-                    'unit'      => 'pcs',
-                    'price'     => 0,
-                    'min_stock' => 0,
+                    'name'        => $batchGroup->recipe_name,
+                    'type'        => 'product',
+                    'quantity'    => $validated['pieces_produced'],
+                    'unit'        => 'pcs',
+                    'price'       => 0,
+                    'min_stock'   => 0,
+                    'supplier_id' => null,
                 ]);
             }
         }

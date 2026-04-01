@@ -28,12 +28,13 @@ class BatchObserver
             $date = now()->format('d-m-Y');
             $name = "LO-{$date}-{$batch->recipe_name}";
             \App\Models\InventoryItem::create([
-                'name'      => $name,
-                'type'      => 'leftover',
-                'quantity'  => $batch->output_quantity ?? 0,
-                'unit'      => $batch->output_unit ?? 'kg',
-                'price'     => 0,
-                'min_stock' => 0,
+                'name'        => $name,
+                'type'        => 'leftover',
+                'quantity'    => $batch->output_quantity ?? 0,
+                'unit'        => $batch->output_unit ?? 'kg',
+                'price'       => 0,
+                'min_stock'   => 0,
+                'supplier_id' => null,
             ]);
 
             $this->notificationService->sendToRole(
