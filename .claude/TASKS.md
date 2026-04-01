@@ -46,11 +46,12 @@
 
 | # | Task | Priority | Status |
 |---|---|---|---|
-| T12.13 | Investigate and fix any 404/500 errors found during Sprint 1 | 🔴 | ☐ |
-| T12.14 | Verify batch notes (`POST /api/batches/{id}/notes`) works end-to-end in frontend | 🟠 | ☐ |
-| T12.15 | Verify order returns accounting (`amount_returned`) is correct | 🟠 | ☐ |
-| T12.16 | Check that `unit_price` is always numeric — no NaN in recipe ingredients or order items | 🟠 | ☐ |
-| T12.17 | Check Estimation page packaging ratio logic for edge cases | 🟡 | ☐ |
+| T12.13 | Investigate and fix any 404/500 errors found during Sprint 1 | 🔴 | ✅ |
+| T12.14 | Verify batch notes (`POST /api/batches/{id}/notes`) works end-to-end in frontend | 🟠 | ✅ |
+| T12.14.1 | **Bug:** note silently dropped on batch create — `batchService.create` response ID not used to call `addNote` | 🔴 | ✅ |
+| T12.15 | Verify order returns accounting (`amount_returned`) is correct | 🟠 | ✅ |
+| T12.16 | Check that `unit_price` is always numeric — no NaN in recipe ingredients or order items | 🟠 | ✅ |
+| T12.17 | Check Estimation page packaging ratio logic for edge cases | 🟡 | ✅ |
 
 ### Sprint 3: UX Improvements
 

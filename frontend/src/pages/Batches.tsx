@@ -95,15 +95,15 @@ export default function Batches() {
       } else {
         // Create multiple batches
         for (let i = 0; i < batchCount; i++) {
-          await batchService.create({
+          const created = await batchService.create({
             recipeId, recipeName: recipe.name, status,
             inputMaterials: recipe.ingredients,
             outputQuantity: outputQty || recipe.targetWeight, outputUnit: recipe.pieceWeight,
             operatorId: user?.id, operatorName: user?.name,
           });
-          // Add note to the first batch only
-          if (noteText.trim() && i === 0) {
-            // note is added via addNote after creation — handled by backend on create
+          // T12.14: add note to first batch after creation
+          if (noteText.trim() && i === 0 && created?.id) {
+            await batchService.addNote(created.id, { text: noteText, author: user?.name || 'Unknown' });
           }
         }
         toast({ title: `${batchCount} batch${batchCount > 1 ? 'es' : ''} created` });
