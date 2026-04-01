@@ -31,6 +31,8 @@ return new class extends Migration {
             });
         }
 
+        // Coerce legacy statuses to 'completed' before narrowing the ENUM
+        DB::statement("UPDATE batches SET status = 'completed' WHERE status IN ('draft', 'in_production')");
         DB::statement("ALTER TABLE batches MODIFY COLUMN status ENUM('completed','failed') NOT NULL DEFAULT 'completed'");
         DB::statement("ALTER TABLE inventory_items MODIFY COLUMN type ENUM('raw','packaging','leftover','product') NOT NULL DEFAULT 'raw'");
     }
