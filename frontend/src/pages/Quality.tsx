@@ -15,6 +15,7 @@ import { QualityControl, Batch } from '@/models/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { TableSkeleton } from '@/components/DataStates';
+import { formatDate } from '@/lib/formatDate';
 
 function StarRating({ score, max = 5, interactive, onChange }: { score: number; max?: number; interactive?: boolean; onChange?: (v: number) => void }) {
   return (
@@ -116,7 +117,7 @@ export default function Quality() {
                   </div>
                   <div className="flex items-center justify-between text-sm border-t pt-2">
                     <span className="text-muted-foreground">Overall: <span className="font-semibold text-foreground">⭐ {qc.overallScore}/5</span></span>
-                    <span className="text-xs text-muted-foreground">{qc.evaluatedAt}</span>
+                    <span className="text-xs text-muted-foreground">{formatDate(qc.evaluatedAt)}</span>
                   </div>
                   <p className="text-sm text-muted-foreground italic">{qc.notes}</p>
                 </CardContent>
@@ -137,7 +138,7 @@ export default function Quality() {
               <Select value={batchId} onValueChange={setBatchId}>
                 <SelectTrigger><SelectValue placeholder="Select batch" /></SelectTrigger>
                 <SelectContent>
-                  {availableBatches.map(b => <SelectItem key={b.id} value={b.id}>{b.recipeName} ({b.startedAt})</SelectItem>)}
+                  {availableBatches.map(b => <SelectItem key={b.id} value={b.id}>{b.recipeName} ({formatDate(b.startedAt)})</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

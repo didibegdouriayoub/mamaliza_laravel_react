@@ -16,17 +16,7 @@ import { supplierService } from '@/services/supplierService';
 import { InventoryItem, MaterialType, Supplier } from '@/models/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-
-const formatDate = (str: string) => {
-  if (!str) return '—';
-  const d = new Date(str);
-  if (isNaN(d.getTime())) return str;
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const hh = String(d.getHours()).padStart(2, '0');
-  const min = String(d.getMinutes()).padStart(2, '0');
-  return `${dd}-${mm}-${d.getFullYear()} ${hh}:${min}`;
-};
+import { formatDate } from '@/lib/formatDate';
 
 const emptyForm = { 
   name: '', 

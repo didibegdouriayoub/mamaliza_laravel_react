@@ -120,7 +120,10 @@
 | # | Task | Priority | Status |
 |---|---|---|---|
 | T13.19 | Inventory history — format `changedAt` as `DD-MM-YYYY HH:mm` | 🟠 | ✅ |
-| T13.20 | Recipe history — format `changedAt` as `DD-MM-YYYY HH:mm` | 🟠 | ✅ |
+| T13.20 | Recipe history + detail modal `updatedAt` — format as `DD-MM-YYYY HH:mm` | 🟠 | ✅ |
+| T13.21 | Batches — format group `createdAt` and batch `startedAt` as `DD-MM-YYYY HH:mm` | 🟠 | ✅ |
+| T13.22 | Quality — format `evaluatedAt` and batch select `startedAt` as `DD-MM-YYYY HH:mm` | 🟠 | ✅ |
+| T13.23 | Extract shared `formatDate` util to `src/lib/formatDate.ts`; remove inline duplicates | 🟠 | ✅ |
 
 ---
 

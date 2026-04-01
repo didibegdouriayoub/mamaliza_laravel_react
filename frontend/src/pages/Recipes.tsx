@@ -16,17 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-
-const formatDate = (str: string) => {
-  if (!str) return '—';
-  const d = new Date(str);
-  if (isNaN(d.getTime())) return str;
-  const dd = String(d.getDate()).padStart(2, '0');
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const hh = String(d.getHours()).padStart(2, '0');
-  const min = String(d.getMinutes()).padStart(2, '0');
-  return `${dd}-${mm}-${d.getFullYear()} ${hh}:${min}`;
-};
+import { formatDate } from '@/lib/formatDate';
 
 const emptyIng: RecipeIngredient = { materialId: '', materialName: '', quantity: 0, unit: '', unitPrice: 0 };
 
@@ -258,7 +248,7 @@ export default function Recipes() {
                   </div>
                 )}
                 <div className="text-[10px] text-muted-foreground pt-1">
-                  Updated: {selected.updatedAt}
+                  Updated: {formatDate(selected.updatedAt)}
                 </div>
               </div>
               <DialogFooter className="gap-2 flex-wrap">

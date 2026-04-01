@@ -18,6 +18,7 @@ import { recipeService } from '@/services/recipeService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { formatDate } from '@/lib/formatDate';
 
 type BatchDraftIngredient = { materialId: string; materialName: string; quantity: number; unit: string; unitPrice: number; };
 type BatchDraft = { lot: string; outputQty: number; note: string; ingredients: BatchDraftIngredient[]; };
@@ -273,7 +274,7 @@ export default function Batches() {
                     {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                     <div>
                       <p className="font-semibold text-sm">{group.recipeName}</p>
-                      <p className="text-xs text-muted-foreground">{group.createdAt?.split('T')[0] ?? ''} · {group.batchCount} batches</p>
+                      <p className="text-xs text-muted-foreground">{formatDate(group.createdAt)} · {group.batchCount} batches</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -340,7 +341,7 @@ export default function Batches() {
                             </TableCell>
                             <TableCell className="hidden sm:table-cell text-sm">{b.outputQuantity} {b.outputUnit}</TableCell>
                             <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">{b.operatorName}</TableCell>
-                            <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{b.startedAt}</TableCell>
+                            <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{formatDate(b.startedAt)}</TableCell>
                             <TableCell className="text-right print:hidden">
                               {hasPermission('batches.write') && (
                                 <Button
