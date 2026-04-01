@@ -68,6 +68,24 @@ services:
       timeout: 5s
       retries: 15
 
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: fromagerie_phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8888:80"
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: rootsecret
+      MYSQL_ROOT_PASSWORD: rootsecret
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - fromagerie
+
 networks:
   fromagerie:
     driver: bridge
