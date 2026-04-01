@@ -62,13 +62,17 @@ export default function Quality() {
 
   const handleCreate = async () => {
     if (!batchId) return;
-    await qualityService.create({
-      batchId, taste, texture, smell, overallScore, approved,
-      evaluatedBy: user.id, evaluator: user.name, notes,
-    });
-    toast({ title: approved ? 'Batch approved' : 'Batch rejected' });
-    setFormOpen(false);
-    loadData();
+    try {
+      await qualityService.create({
+        batchId, taste, texture, smell, overallScore, approved,
+        evaluatedBy: user.id, evaluator: user.name, notes,
+      });
+      toast({ title: approved ? 'Batch approved' : 'Batch rejected' });
+      setFormOpen(false);
+      loadData();
+    } catch (e: any) {
+      toast({ title: 'Error', description: e?.message || 'Failed to save evaluation', variant: 'destructive' });
+    }
   };
 
   // Batches without existing QC

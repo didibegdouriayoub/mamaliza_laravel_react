@@ -21,7 +21,7 @@
 | T12.3.5 | **Bug:** `POST /batches/{batch}/notes` route and `BatchController::storeNote` method are both missing → `batchService.addNote` always 404s | 🔴 | ✅ |
 | T12.4 | Recipes: test full CRUD + ingredient sync + history recording | 🔴 | ✅ |
 | T12.5 | Batches: test create (inventory deduction) + delete (inventory restoration) | 🔴 | ✅ |
-| T12.6 | Quality: test create evaluation → verify batch quality_score is updated | 🔴 | ☐ |
+| T12.6 | Quality: test create evaluation → verify batch quality_score is updated | 🔴 | ✅ |
 | T12.7 | Sales: test create order + record payment → verify status auto-update | 🔴 | ☐ |
 | T12.8 | RBAC: test that operator cannot access admin-only actions | 🟠 | ☐ |
 | T12.9 | Notifications: verify low-stock and batch-failure notifications are created | 🟠 | ☐ |
