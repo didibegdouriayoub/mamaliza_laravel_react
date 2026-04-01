@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Search, Trash2, Edit, Package, History, Printer, CalendarDays, Download } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -57,13 +57,18 @@ export default function Inventory() {
       ]);
       // supplierId / minStock / createdAt now come as camelCase from apiClient.
       // supplier is a nested object — flatten name & id.
-      const invData = (invRaw || []).map((item: any) => ({
+      const invData = (invRaw || []).map((item: any) => {
+        const qty = Number(item.quantity) || 0;
+        const minStock = Number(item.minStock) || 0;
+        const status: 'ok' | 'low' | 'out' = qty <= 0 ? 'out' : (minStock > 0 && qty <= minStock ? 'low' : 'ok');
+        return {
         ...item,
         supplier: item.supplier?.name ?? item.supplier ?? '',
-        supplierId: item.supplierId ?? item.supplier?.id ?? '',
+        supplierId: String(item.supplierId ?? item.supplier?.id ?? ''),
         price: Number(item.price) || 0,
-        quantity: Number(item.quantity) || 0,
-        minStock: Number(item.minStock) || 0,
+        quantity: qty,
+        minStock,
+        status,
         lot: item.lot || '',
         code: item.code || '',
         createdAt: item.createdAt?.split('T')[0] || item.created_at?.split('T')[0] || '',
@@ -75,7 +80,7 @@ export default function Inventory() {
           changedBy: h.user?.name || 'System',
           changedAt: h.changedAt || h.changed_at || '',
         }))
-      }));
+      };});
       setItems(invData);
       setSuppliers(supData || []);
     } catch(e) { console.error(e); }
@@ -124,13 +129,13 @@ export default function Inventory() {
   const handleNameSelect = (name: string) => {
     const existing = items.find(i => i.name === name);
     if (existing) {
-      setForm(p => ({ 
-        ...p, 
+      setForm(p => ({
+        ...p,
         name,
         type: existing.type,
         unit: existing.unit,
         price: existing.price,
-        supplierId: existing.supplierId,
+        supplierId: String(existing.supplierId ?? ''),
         supplier: existing.supplier,
         minStock: existing.minStock
       }));
@@ -142,14 +147,14 @@ export default function Inventory() {
   const openCreate = () => { setEditingItem(null); setForm(emptyForm); setDialogOpen(true); };
   const openEdit = (item: InventoryItem) => {
     setEditingItem(item);
-    setForm({ 
-      name: item.name, 
-      type: item.type, 
-      quantity: item.quantity, 
-      unit: item.unit, 
-      price: item.price, 
-      supplier: item.supplier, 
-      supplierId: item.supplierId, 
+    setForm({
+      name: item.name,
+      type: item.type,
+      quantity: item.quantity,
+      unit: item.unit,
+      price: item.price,
+      supplier: item.supplier,
+      supplierId: String(item.supplierId ?? ''),
       minStock: item.minStock,
       lot: item.lot || '',
       code: item.code || '',
@@ -158,22 +163,18 @@ export default function Inventory() {
     setDialogOpen(true);
   };
 
-  // Simple code generation
-  useEffect(() => {
-    if (form.name && form.lot && !editingItem) {
-      const generatedCode = `${form.name.substring(0,3).toUpperCase()}-${form.lot}`;
-      setForm(p => ({ ...p, code: generatedCode }));
-    }
-  }, [form.name, form.lot, editingItem]);
-
   const handleSave = async () => {
     if (!form.name || !form.unit) return;
+    const saveForm = form.code ? form : {
+      ...form,
+      code: `INV-${form.name.substring(0, 3).toUpperCase()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+    };
     try {
       if (editingItem) {
-        await inventoryService.update(editingItem.id, form);
+        await inventoryService.update(editingItem.id, saveForm);
         toast({ title: 'Item updated', description: `${form.name} has been updated.` });
       } else {
-        await inventoryService.create(form);
+        await inventoryService.create(saveForm);
         toast({ title: 'Item created', description: `${form.name} has been added.` });
       }
       setDialogOpen(false);
@@ -212,12 +213,12 @@ export default function Inventory() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 print:hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-display font-bold flex items-center gap-2"><Package className="h-6 w-6" /> Inventory</h1>
-          <p className="text-sm text-muted-foreground">Manage raw materials and packaging supplies</p>
+          <p className="text-sm text-muted-foreground print:hidden">Manage raw materials and packaging supplies</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 print:hidden">
           <Button variant="outline" onClick={handlePrint}><Printer className="h-4 w-4 mr-1" /> Print</Button>
           <Button variant="outline" onClick={handleExportCsv}><Download className="h-4 w-4 mr-1" /> CSV</Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -315,45 +316,45 @@ export default function Inventory() {
 
       <Card className="shadow-card">
         <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-3 mb-4 print:hidden">
-            <div className="relative flex-1">
+          <div className="print:hidden space-y-3 mb-4">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input className="pl-9" placeholder="Search inventory..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
             </div>
-            </div>
             <div className="flex flex-wrap items-center gap-2">
-            <Select value={typeFilter} onValueChange={v => { setTypeFilter(v); setPage(1); }}>
-              <SelectTrigger className="w-[130px]"><SelectValue placeholder="Type" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="raw">Raw Materials</SelectItem>
-                <SelectItem value="packaging">Packaging</SelectItem>
-              </SelectContent>
-            </Select>
+              <Select value={typeFilter} onValueChange={v => { setTypeFilter(v); setPage(1); }}>
+                <SelectTrigger className="w-[130px]"><SelectValue placeholder="Type" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="raw">Raw Materials</SelectItem>
+                  <SelectItem value="packaging">Packaging</SelectItem>
+                </SelectContent>
+              </Select>
 
-            <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(1); }}>
-              <SelectTrigger className="w-[130px]"><SelectValue placeholder="Status" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="ok">In Stock (OK)</SelectItem>
-                <SelectItem value="low">Low Stock</SelectItem>
-                <SelectItem value="out">Out of Stock</SelectItem>
-              </SelectContent>
-            </Select>
+              <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(1); }}>
+                <SelectTrigger className="w-[130px]"><SelectValue placeholder="Status" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="ok">In Stock (OK)</SelectItem>
+                  <SelectItem value="low">Low Stock</SelectItem>
+                  <SelectItem value="out">Out of Stock</SelectItem>
+                </SelectContent>
+              </Select>
 
-            <div className="relative">
-              <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="date"
-                className="pl-9 w-full sm:w-44"
-                value={dateFilter}
-                onChange={e => setDateFilter(e.target.value)}
-                placeholder="Stock at date"
-              />
+              <div className="relative">
+                <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="date"
+                  className="pl-9 w-full sm:w-44"
+                  value={dateFilter}
+                  onChange={e => setDateFilter(e.target.value)}
+                  placeholder="Stock at date"
+                />
+              </div>
+              {dateFilter && (
+                <Button variant="ghost" size="sm" onClick={() => setDateFilter('')} className="text-xs">Clear date</Button>
+              )}
             </div>
-            {dateFilter && (
-              <Button variant="ghost" size="sm" onClick={() => setDateFilter('')} className="text-xs">Clear date</Button>
-            )}
           </div>
 
           {dateFilter && (

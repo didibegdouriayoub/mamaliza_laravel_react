@@ -81,11 +81,11 @@
 
 | # | Task | Priority | Status |
 |---|---|---|---|
-| T13.1 | Inventory — pre-select supplier in the **update** modal (currently always blank) | 🔴 | ☐ |
-| T13.2 | Inventory — pre-select supplier when **name is chosen** from the autocomplete on create | 🔴 | ☐ |
-| T13.3 | Inventory — auto-generate `code` field (e.g. `INV-XXXXXX`) on create/update if left blank | 🟠 | ☐ |
-| T13.4 | Inventory — when `quantity` reaches exactly **0**, force status to `out` regardless of `min_stock` | 🔴 | ☐ |
-| T13.5 | Inventory — print view: show only the **page title** and the inventory **table** (hide all controls, filters, dialogs) | 🟡 | ☐ |
+| T13.1 | Inventory — pre-select supplier in the **update** modal (currently always blank) | 🔴 | ✅ |
+| T13.2 | Inventory — pre-select supplier when **name is chosen** from the autocomplete on create | 🔴 | ✅ |
+| T13.3 | Inventory — auto-generate `code` field (e.g. `INV-XXXXXX`) on create/update if left blank | 🟠 | ✅ |
+| T13.4 | Inventory — when `quantity` reaches exactly **0**, force status to `out` regardless of `min_stock` | 🔴 | ✅ |
+| T13.5 | Inventory — print view: show only the **page title** and the inventory **table** (hide all controls, filters, dialogs) | 🟡 | ✅ |
 
 ### Sprint 2: Recipe Page Fixes
 
