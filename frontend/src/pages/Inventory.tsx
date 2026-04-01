@@ -17,6 +17,17 @@ import { InventoryItem, MaterialType, Supplier } from '@/models/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 
+const formatDate = (str: string) => {
+  if (!str) return '—';
+  const d = new Date(str);
+  if (isNaN(d.getTime())) return str;
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  return `${dd}-${mm}-${d.getFullYear()} ${hh}:${min}`;
+};
+
 const emptyForm = { 
   name: '', 
   type: 'raw' as MaterialType, 
@@ -470,7 +481,7 @@ export default function Inventory() {
                     <div key={h.id} className="text-sm py-2 border-b last:border-0">
                       <div className="flex items-center justify-between">
                         <span className="font-medium capitalize">{h.field}</span>
-                        <span className="text-xs text-muted-foreground">{h.changedAt}</span>
+                        <span className="text-xs text-muted-foreground">{formatDate(h.changedAt)}</span>
                       </div>
                       <p className="text-muted-foreground">
                         <span className="line-through">{h.oldValue}</span> → <span className="text-foreground font-medium">{h.newValue}</span>

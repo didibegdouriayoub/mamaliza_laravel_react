@@ -115,6 +115,13 @@
 | T13.17 | User fills leftover_qty per batch group → creates leftover inventory entry | 🔴 | ✅ |
 | T13.18 | Dashboard: Production Loss chart by recipe for selected day | 🔴 | ✅ |
 
+### Sprint 5: UX Fixes
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T13.19 | Inventory history — format `changedAt` as `DD-MM-YYYY HH:mm` | 🟠 | ✅ |
+| T13.20 | Recipe history — format `changedAt` as `DD-MM-YYYY HH:mm` | 🟠 | ✅ |
+
 ---
 
 ## Rules for this Project
