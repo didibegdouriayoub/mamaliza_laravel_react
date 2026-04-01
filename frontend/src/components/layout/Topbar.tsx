@@ -29,8 +29,8 @@ export function Topbar() {
   const handleMarkAsRead = async (notification: Notification) => {
     if (notification.readBy?.includes(user.id as string)) return;
     try {
-      await notificationService.markAsRead(notification.id, notification.readBy || [], user.id as string);
-      setNotifications(prev => prev.map(n => 
+      await notificationService.markAsRead(notification.id);
+      setNotifications(prev => prev.map(n =>
         n.id === notification.id ? { ...n, readBy: [...(n.readBy || []), user.id as string] } : n
       ));
     } catch (e) {

@@ -31,8 +31,11 @@
 | T12.7.6 | **Bug:** `OrderController.store` validates status `in:pending,paid,cancelled,completed` but migration enum is `pending,partial,paid,shipped,cancelled` — 'completed' and 'shipped' mismatch | 🟠 | ✅ |
 | T12.7.7 | **Bug:** `order_returns` table has no `product_name` column but frontend displays `r.productName` in return list — always undefined | 🟠 | ✅ |
 | T12.7.8 | **Bug:** `Payment` and `ReturnItem` types use `date` field but API returns `paidAt` / `returnedAt` — date always shown as undefined in UI | 🟠 | ✅ |
-| T12.8 | RBAC: test that operator cannot access admin-only actions | 🟠 | ☐ |
-| T12.9 | Notifications: verify low-stock and batch-failure notifications are created | 🟠 | ☐ |
+| T12.8 | RBAC: test that operator cannot access admin-only actions | 🟠 | ✅ |
+| T12.9 | Notifications: verify low-stock and batch-failure notifications are created | 🟠 | ✅ |
+| T12.9.1 | **Bug:** `notificationService.markAsRead` calls `PUT /notifications/{id}` but only `PATCH /notifications/{id}/read` exists → 404; and `NotificationController::markAsRead` method is missing → 500 if the correct route is hit | 🔴 | ✅ |
+| T12.9.2 | **Bug:** `BatchObserver` has no `failed` status handler → batch-failure notifications never created | 🟠 | ✅ |
+| T12.9.3 | **Bug:** `InventoryItemObserver` sends low-stock with `type:'info'` instead of `type:'warning'` | 🟡 | ✅ |
 | T12.10 | Production logs: test create log + leftover return to inventory | 🟠 | ☐ |
 | T12.11 | Estimation: test recipe selection → ingredient requirements → create batches | 🟡 | ☐ |
 | T12.12 | Analytics: verify dashboard KPIs and charts load from live API data | 🟡 | ☐ |
