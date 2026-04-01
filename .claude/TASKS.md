@@ -125,6 +125,13 @@
 | T13.22 | Quality — format `evaluatedAt` and batch select `startedAt` as `DD-MM-YYYY HH:mm` | 🟠 | ✅ |
 | T13.23 | Extract shared `formatDate` util to `src/lib/formatDate.ts`; remove inline duplicates | 🟠 | ✅ |
 
+### Sprint 6: Batch Detail & Recipe Update
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T13.24 | Batches — View button per batch row opens detail dialog (ingredients, QC score, notes) | 🟠 | ✅ |
+| T13.25 | Batches — "Update Recipe" button in batch detail only visible when QC `overallScore > 4`; opens inline recipe edit form | 🔴 | ✅ |
+
 ---
 
 ## Rules for this Project

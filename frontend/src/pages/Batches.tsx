@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Factory, Plus, Trash2, Printer, Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, ClipboardList } from 'lucide-react';
+import { Factory, Plus, Trash2, Printer, Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, ClipboardList, Eye, Pencil } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,7 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { TableSkeleton } from '@/components/DataStates';
 import { batchService, batchGroupService } from '@/services/batchService';
 import { inventoryService } from '@/services/inventoryService';
-import { Batch, BatchStatus, BatchGroup, Recipe, InventoryItem } from '@/models/types';
+import { qualityService } from '@/services/qualityService';
+import { Batch, BatchStatus, BatchGroup, Recipe, RecipeIngredient, InventoryItem, QualityControl } from '@/models/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -54,17 +56,36 @@ export default function Batches() {
   // Print
   const [printableData, setPrintableData] = useState<PrintData | null>(null);
 
+  // View batch + update recipe
+  const [qualityControls, setQualityControls] = useState<QualityControl[]>([]);
+  const [viewBatch, setViewBatch] = useState<Batch | null>(null);
+  const [viewMode, setViewMode] = useState<'detail' | 'edit-recipe'>('detail');
+  // recipe edit fields
+  const [rName, setRName] = useState('');
+  const [rDescription, setRDescription] = useState('');
+  const [rTargetWeight, setRTargetWeight] = useState('');
+  const [rPieceWeight, setRPieceWeight] = useState('');
+  const [rStatus, setRStatus] = useState<'semi_final' | 'final'>('semi_final');
+  const [rSteps, setRSteps] = useState<string[]>([]);
+  const [rIngredients, setRIngredients] = useState<RecipeIngredient[]>([]);
+
   const { user, hasPermission } = useAuth();
   const { toast } = useToast();
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [groupData, recipeData, invData] = await Promise.all([
+      const [groupData, recipeData, invData, qcData] = await Promise.all([
         batchGroupService.getAll(),
         recipeService.getAll(),
         inventoryService.getAll(),
+        qualityService.getAll(),
       ]);
+      setQualityControls((qcData || []).map((q: any) => ({
+        ...q,
+        batchId: String(q.batchId ?? q.batch_id ?? ''),
+        overallScore: Number(q.overallScore ?? q.overall_score) || 0,
+      })));
       const gData = (groupData || []).map((g: any) => ({
         ...g,
         recipeId: String(g.recipeId ?? g.recipe_id ?? ''),
@@ -343,14 +364,19 @@ export default function Batches() {
                             <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">{b.operatorName}</TableCell>
                             <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{formatDate(b.startedAt)}</TableCell>
                             <TableCell className="text-right print:hidden">
-                              {hasPermission('batches.write') && (
-                                <Button
-                                  size="sm" variant="ghost" className="h-7 text-xs"
-                                  onClick={() => handleStatusChange(b.id, b.status === 'completed' ? 'failed' : 'completed')}
-                                >
-                                  {b.status === 'completed' ? <><XCircle className="h-3 w-3 mr-1 text-destructive" />Mark Failed</> : <><CheckCircle2 className="h-3 w-3 mr-1 text-green-600" />Mark Completed</>}
+                              <div className="flex gap-1 justify-end">
+                                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setViewBatch(b); setViewMode('detail'); }}>
+                                  <Eye className="h-3 w-3 mr-1" /> View
                                 </Button>
-                              )}
+                                {hasPermission('batches.write') && (
+                                  <Button
+                                    size="sm" variant="ghost" className="h-7 text-xs"
+                                    onClick={() => handleStatusChange(b.id, b.status === 'completed' ? 'failed' : 'completed')}
+                                  >
+                                    {b.status === 'completed' ? <><XCircle className="h-3 w-3 mr-1 text-destructive" />Mark Failed</> : <><CheckCircle2 className="h-3 w-3 mr-1 text-green-600" />Mark Completed</>}
+                                  </Button>
+                                )}
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -495,6 +521,248 @@ export default function Batches() {
             <Button variant="outline" onClick={() => setFillGroup(null)}>Cancel</Button>
             <Button onClick={handleFillDetails} disabled={!fillPieces && !fillLeftover}>Save & Update Inventory</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Batch / Update Recipe dialog */}
+      <Dialog open={!!viewBatch} onOpenChange={v => { if (!v) setViewBatch(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {viewBatch && (() => {
+            const qc = qualityControls.find(q => q.batchId === String(viewBatch.id));
+            const recipe = recipes.find(r => String(r.id) === String(viewBatch.recipeId));
+            const canUpdateRecipe = hasPermission('recipes.write') && qc && qc.overallScore > 4;
+
+            const openEditRecipe = () => {
+              if (!recipe) return;
+              setRName(recipe.name);
+              setRDescription(recipe.description || '');
+              setRTargetWeight(String(recipe.targetWeight || ''));
+              setRPieceWeight(recipe.pieceWeight || '');
+              setRStatus(recipe.recipeStatus || 'semi_final');
+              setRSteps(recipe.steps.length ? [...recipe.steps] : ['']);
+              setRIngredients(recipe.ingredients.map(i => ({ ...i })));
+              setViewMode('edit-recipe');
+            };
+
+            const handleSaveRecipe = async () => {
+              if (!recipe) return;
+              try {
+                await recipeService.update(recipe.id, {
+                  name: rName,
+                  description: rDescription,
+                  targetWeight: Number(rTargetWeight) || 0,
+                  pieceWeight: rPieceWeight,
+                  recipeStatus: rStatus,
+                  steps: rSteps.filter(s => s.trim()),
+                  ingredients: rIngredients,
+                  packages: recipe.packages,
+                  version: (recipe.version || 1) + 1,
+                });
+                toast({ title: 'Recipe updated', description: `${rName} saved with new parameters.` });
+                setViewBatch(null);
+                loadData();
+              } catch (err: any) {
+                toast({ title: 'Update failed', description: err.message, variant: 'destructive' });
+              }
+            };
+
+            if (viewMode === 'detail') {
+              return (
+                <>
+                  <DialogHeader>
+                    <DialogTitle className="font-display flex items-center gap-2">
+                      <Factory className="h-5 w-5" /> Batch — {viewBatch.recipeName}
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-2">
+                    {/* Meta info */}
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Status</p>
+                        <Badge variant={viewBatch.status === 'completed' ? 'default' : 'destructive'} className="capitalize">
+                          {viewBatch.status === 'completed' ? <CheckCircle2 className="h-3 w-3 mr-1 inline" /> : <XCircle className="h-3 w-3 mr-1 inline" />}
+                          {viewBatch.status}
+                        </Badge>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Output</p>
+                        <p className="font-medium">{viewBatch.outputQuantity} {viewBatch.outputUnit}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Operator</p>
+                        <p className="font-medium">{viewBatch.operatorName || '—'}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Started</p>
+                        <p className="font-medium">{formatDate(viewBatch.startedAt)}</p>
+                      </div>
+                    </div>
+
+                    {/* Quality score */}
+                    {qc ? (
+                      <div className="p-3 rounded-lg border bg-accent/20 space-y-1 text-sm">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Quality Evaluation</p>
+                        <div className="flex items-center gap-4">
+                          <span>Taste: <strong>{qc.taste}</strong></span>
+                          <span>Texture: <strong>{qc.texture}</strong></span>
+                          <span>Smell: <strong>{qc.smell}</strong></span>
+                          <span className={cn('font-semibold', qc.overallScore > 4 ? 'text-green-600' : qc.overallScore >= 3 ? 'text-amber-600' : 'text-red-600')}>
+                            ⭐ {qc.overallScore}/5
+                          </span>
+                          <Badge className={qc.approved ? 'bg-success text-success-foreground' : 'bg-destructive text-destructive-foreground'}>
+                            {qc.approved ? 'Approved' : 'Rejected'}
+                          </Badge>
+                        </div>
+                        {qc.notes && <p className="text-xs text-muted-foreground italic mt-1">"{qc.notes}"</p>}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">No quality evaluation yet.</p>
+                    )}
+
+                    {/* Ingredients */}
+                    {viewBatch.inputMaterials && viewBatch.inputMaterials.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Ingredients Used</p>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Material</TableHead>
+                              <TableHead className="text-right">Qty</TableHead>
+                              <TableHead>Unit</TableHead>
+                              <TableHead className="text-right">Unit Price</TableHead>
+                              <TableHead className="text-right">Cost</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {viewBatch.inputMaterials.map((m, i) => (
+                              <TableRow key={i}>
+                                <TableCell className="font-medium">{m.materialName}</TableCell>
+                                <TableCell className="text-right">{m.quantity}</TableCell>
+                                <TableCell>{m.unit}</TableCell>
+                                <TableCell className="text-right">€{Number(m.unitPrice).toFixed(2)}</TableCell>
+                                <TableCell className="text-right font-medium">€{(m.quantity * m.unitPrice).toFixed(2)}</TableCell>
+                              </TableRow>
+                            ))}
+                            <TableRow>
+                              <TableCell colSpan={4} className="text-right font-semibold">Total</TableCell>
+                              <TableCell className="text-right font-bold">
+                                €{viewBatch.inputMaterials.reduce((s, m) => s + m.quantity * m.unitPrice, 0).toFixed(2)}
+                              </TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </div>
+                    )}
+
+                    {/* Notes */}
+                    {viewBatch.notes && viewBatch.notes.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Notes</p>
+                        <div className="space-y-1">
+                          {viewBatch.notes.map(n => (
+                            <div key={n.id} className="text-sm bg-muted/30 rounded px-3 py-2">
+                              <span className="font-medium">{n.author}:</span> {n.text}
+                              <span className="text-xs text-muted-foreground ml-2">{formatDate(n.createdAt)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setViewBatch(null)}>Close</Button>
+                    {canUpdateRecipe && (
+                      <Button onClick={openEditRecipe}>
+                        <Pencil className="h-4 w-4 mr-1" /> Update Recipe
+                      </Button>
+                    )}
+                  </DialogFooter>
+                </>
+              );
+            }
+
+            // edit-recipe mode
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="font-display flex items-center gap-2">
+                    <Pencil className="h-5 w-5" /> Update Recipe — {recipe?.name}
+                  </DialogTitle>
+                </DialogHeader>
+                <p className="text-xs text-muted-foreground -mt-1">Quality score ⭐ {qc?.overallScore}/5 — updating recipe with new parameters.</p>
+                <div className="space-y-4 py-2">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5 col-span-2">
+                      <Label>Name</Label>
+                      <Input value={rName} onChange={e => setRName(e.target.value)} />
+                    </div>
+                    <div className="space-y-1.5 col-span-2">
+                      <Label>Description</Label>
+                      <Textarea value={rDescription} onChange={e => setRDescription(e.target.value)} rows={2} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Target Weight (kg)</Label>
+                      <Input type="number" value={rTargetWeight} onChange={e => setRTargetWeight(e.target.value)} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Piece Weight</Label>
+                      <Input value={rPieceWeight} onChange={e => setRPieceWeight(e.target.value)} placeholder="e.g. 500g" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Status</Label>
+                      <Select value={rStatus} onValueChange={v => setRStatus(v as 'semi_final' | 'final')}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="semi_final">Semi Final</SelectItem>
+                          <SelectItem value="final">Final</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Ingredients */}
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Ingredients</p>
+                    <div className="space-y-2">
+                      {rIngredients.map((ing, i) => (
+                        <div key={i} className="grid grid-cols-[1fr_80px_70px_30px] gap-1.5 items-center">
+                          <span className="text-sm truncate">{ing.materialName}</span>
+                          <Input type="number" className="h-8 text-xs" value={ing.quantity || ''} onChange={e => setRIngredients(prev => prev.map((x, j) => j === i ? { ...x, quantity: Number(e.target.value) } : x))} />
+                          <span className="text-xs text-muted-foreground">{ing.unit}</span>
+                          <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => setRIngredients(prev => prev.filter((_, j) => j !== i))}>
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Steps */}
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Steps</p>
+                    <div className="space-y-2">
+                      {rSteps.map((step, i) => (
+                        <div key={i} className="flex gap-2 items-start">
+                          <span className="text-xs text-muted-foreground mt-2 w-5 shrink-0">{i + 1}.</span>
+                          <Input className="h-8 text-sm flex-1" value={step} onChange={e => setRSteps(prev => prev.map((s, j) => j === i ? e.target.value : s))} />
+                          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setRSteps(prev => prev.filter((_, j) => j !== i))}>
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                          </Button>
+                        </div>
+                      ))}
+                      <Button type="button" variant="ghost" size="sm" className="text-xs h-7" onClick={() => setRSteps(prev => [...prev, ''])}>
+                        <Plus className="h-3 w-3 mr-1" /> Add step
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setViewMode('detail')}>← Back</Button>
+                  <Button onClick={handleSaveRecipe}>Save Recipe</Button>
+                </DialogFooter>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 
