@@ -75,6 +75,36 @@
 
 ---
 
+## Phase 13 — Inventory Fixes, Recipe UX & Batch Redesign
+
+### Sprint 1: Inventory Polish
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T13.1 | Inventory — pre-select supplier in the **update** modal (currently always blank) | 🔴 | ☐ |
+| T13.2 | Inventory — pre-select supplier when **name is chosen** from the autocomplete on create | 🔴 | ☐ |
+| T13.3 | Inventory — auto-generate `code` field (e.g. `INV-XXXXXX`) on create/update if left blank | 🟠 | ☐ |
+| T13.4 | Inventory — when `quantity` reaches exactly **0**, force status to `out` regardless of `min_stock` | 🔴 | ☐ |
+| T13.5 | Inventory — print view: show only the **page title** and the inventory **table** (hide all controls, filters, dialogs) | 🟡 | ☐ |
+
+### Sprint 2: Recipe Page Fixes
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T13.6 | Recipe — display live **packaging cost** estimate (from packaging inventory items × quantities) inside the create and update forms | 🟠 | ☐ |
+| T13.7 | **Bug:** Recipe — `targetWeight` field resets / updates itself when another field is edited in the form — investigate controlled-input state binding and fix | 🔴 | ☐ |
+
+### Sprint 3: Batch Create Redesign + Print Report
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T13.8 | Batch create — **step 1**: select recipe + number of batches | 🔴 | ☐ |
+| T13.9 | Batch create — **step 2**: show one expandable card per batch, each pre-filled with recipe ingredients; allow editing individual ingredient qty and adding extra ingredients per batch | 🔴 | ☐ |
+| T13.10 | Batch create — **step 3**: save all batches as a group in a single submit (one API call per batch, but triggered together) | 🔴 | ☐ |
+| T13.11 | Batch print report — generate a **print-friendly report** per batch group showing: recipe name, batch list with lot numbers and quantities, ingredient breakdown per batch | 🟠 | ☐ |
+
+---
+
 ## Rules for this Project
 1. Take tasks ONE at a time.
 2. After completing a task, make a descriptive git commit immediately.
