@@ -40,6 +40,8 @@ export default function Inventory() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState('');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [historyItem, setHistoryItem] = useState<InventoryItem | null>(null);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
@@ -115,6 +117,9 @@ export default function Inventory() {
     if (dateFilter && i.createdAt > dateFilter) return false;
     return matchesSearch && matchesType && matchesStatus;
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const handleNameSelect = (name: string) => {
     const existing = items.find(i => i.name === name);
@@ -298,11 +303,11 @@ export default function Inventory() {
           <div className="flex flex-col sm:flex-row gap-3 mb-4 print:hidden">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input className="pl-9" placeholder="Search inventory..." value={search} onChange={e => setSearch(e.target.value)} />
+              <Input className="pl-9" placeholder="Search inventory..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
             </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <Select value={typeFilter} onValueChange={v => { setTypeFilter(v); setPage(1); }}>
               <SelectTrigger className="w-[130px]"><SelectValue placeholder="Type" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
@@ -311,7 +316,7 @@ export default function Inventory() {
               </SelectContent>
             </Select>
 
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <Select value={statusFilter} onValueChange={v => { setStatusFilter(v); setPage(1); }}>
               <SelectTrigger className="w-[130px]"><SelectValue placeholder="Status" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
@@ -363,7 +368,7 @@ export default function Inventory() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filtered.map((item, idx) => {
+                  {paginated.map((item, idx) => {
                     const displayQty = dateFilter ? getStockAtDate(item, dateFilter) : item.quantity;
                     return (
                       <motion.tr key={item.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: idx * 0.03 }} className="border-b">
@@ -415,6 +420,15 @@ export default function Inventory() {
                   })}
                 </TableBody>
               </Table>
+            </div>
+          )}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-3 text-sm text-muted-foreground print:hidden">
+              <span>{filtered.length} items · page {page} of {totalPages}</span>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</Button>
+                <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next</Button>
+              </div>
             </div>
           )}
         </CardContent>

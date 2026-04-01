@@ -20,6 +20,8 @@ export default function Sales() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
   const [selected, setSelected] = useState<Order | null>(null);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [returnOpen, setReturnOpen] = useState(false);
@@ -44,6 +46,8 @@ export default function Sales() {
   useEffect(() => { loadData(); }, []);
 
   const filtered = orders.filter(o => o.customerName.toLowerCase().includes(search.toLowerCase()));
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const handlePayment = async () => {
     if (!selected || payAmount <= 0) return;
@@ -88,7 +92,7 @@ export default function Sales() {
         <CardContent className="p-4">
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input className="pl-9" placeholder="Search orders..." value={search} onChange={e => setSearch(e.target.value)} />
+            <Input className="pl-9" placeholder="Search orders..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
           </div>
 
           {loading ? <TableSkeleton /> : filtered.length === 0 ? (
@@ -108,7 +112,7 @@ export default function Sales() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((order, idx) => (
+                {paginated.map((order, idx) => (
                   <motion.tr key={order.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: idx * 0.04 }} className="border-b cursor-pointer hover:bg-accent/30" onClick={() => setSelected(order)}>
                     <TableCell className="font-medium">#{order.id}</TableCell>
                     <TableCell>{order.customerName}</TableCell>
@@ -122,6 +126,15 @@ export default function Sales() {
                 ))}
               </TableBody>
             </Table>
+          )}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-3 text-sm text-muted-foreground">
+              <span>{filtered.length} orders · page {page} of {totalPages}</span>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</Button>
+                <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next</Button>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

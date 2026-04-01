@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Factory, Plus, Edit, Trash2, Printer } from 'lucide-react';
+import { Factory, Plus, Edit, Trash2, Printer, Search } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +38,7 @@ export default function Batches() {
   const [outputQty, setOutputQty] = useState(0);
   const [noteText, setNoteText] = useState('');
   const [printableData, setPrintableData] = useState<{ recipe: Recipe; count: number } | null>(null);
+  const [search, setSearch] = useState('');
   const { user, hasPermission } = useAuth();
   const { toast } = useToast();
 
@@ -147,8 +148,12 @@ export default function Batches() {
 
   if (loading) return <div className="space-y-6"><TableSkeleton /></div>;
 
+  const visibleBatches = search.trim()
+    ? batches.filter(b => b.recipeName.toLowerCase().includes(search.toLowerCase()) || b.operatorName.toLowerCase().includes(search.toLowerCase()))
+    : batches;
+
   const grouped = statusOrder.reduce((acc, s) => {
-    acc[s] = batches.filter(b => b.status === s);
+    acc[s] = visibleBatches.filter(b => b.status === s);
     return acc;
   }, {} as Record<BatchStatus, Batch[]>);
 
@@ -159,7 +164,11 @@ export default function Batches() {
           <h1 className="text-2xl font-display font-bold flex items-center gap-2"><Factory className="h-6 w-6" /> Batches</h1>
           <p className="text-sm text-muted-foreground">Track production batches from draft to completion</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 items-center">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input className="pl-9 w-48" placeholder="Search batches..." value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
           <Tabs value={view} onValueChange={v => setView(v as 'kanban' | 'table')}>
             <TabsList>
               <TabsTrigger value="kanban">Kanban</TabsTrigger>

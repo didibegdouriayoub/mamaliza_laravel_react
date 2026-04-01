@@ -59,9 +59,9 @@
 |---|---|---|---|
 | T12.18 | Add loading states / skeletons to pages that show empty on first load | 🟠 | ✅ |
 | T12.19 | Surface API validation errors in forms (show error message under field) | 🟠 | ✅ |
-| T12.20 | Add pagination or infinite scroll to Inventory list | 🟡 | ☐ |
-| T12.21 | Add pagination to Orders list | 🟡 | ☐ |
-| T12.22 | Add search to Batches page | 🟡 | ☐ |
+| T12.20 | Add pagination or infinite scroll to Inventory list | 🟡 | ✅ |
+| T12.21 | Add pagination to Orders list | 🟡 | ✅ |
+| T12.22 | Add search to Batches page | 🟡 | ✅ |
 
 ### Sprint 4: Nice-to-Have Features
 
