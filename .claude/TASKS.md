@@ -98,10 +98,10 @@
 
 | # | Task | Priority | Status |
 |---|---|---|---|
-| T13.8 | Batch create — **step 1**: select recipe + number of batches | 🔴 | ☐ |
-| T13.9 | Batch create — **step 2**: show one expandable card per batch, each pre-filled with recipe ingredients; allow editing individual ingredient qty and adding extra ingredients per batch | 🔴 | ☐ |
-| T13.10 | Batch create — **step 3**: save all batches as a group in a single submit (one API call per batch, but triggered together) | 🔴 | ☐ |
-| T13.11 | Batch print report — generate a **print-friendly report** per batch group showing: recipe name, batch list with lot numbers and quantities, ingredient breakdown per batch | 🟠 | ☐ |
+| T13.8 | Batch create — **step 1**: select recipe + number of batches | 🔴 | ✅ |
+| T13.9 | Batch create — **step 2**: show one expandable card per batch, each pre-filled with recipe ingredients; allow editing individual ingredient qty and adding extra ingredients per batch | 🔴 | ✅ |
+| T13.10 | Batch create — **step 3**: save all batches as a group in a single submit (one API call per batch, but triggered together) | 🔴 | ✅ |
+| T13.11 | Batch print report — generate a **print-friendly report** per batch group showing: recipe name, batch list with lot numbers and quantities, ingredient breakdown per batch | 🟠 | ✅ |
 
 ---
 
