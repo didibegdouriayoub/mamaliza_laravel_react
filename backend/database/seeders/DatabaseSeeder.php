@@ -174,5 +174,46 @@ class DatabaseSeeder extends Seeder
                 'unit_price' => 25.00,
             ],
         ]);
+
+        // 6. Demo Customers
+        $customer1 = \App\Models\Customer::updateOrCreate(
+            ['email' => 'dupont.fromagerie@example.com'],
+            ['name' => 'Boulangerie Dupont', 'phone' => '01 23 45 67 89', 'address' => '12 Rue du Marché, Lyon']
+        );
+        $customer2 = \App\Models\Customer::updateOrCreate(
+            ['email' => 'restaurant.lepetit@example.com'],
+            ['name' => 'Restaurant Le Petit Bistro', 'phone' => '04 56 78 90 12', 'address' => '5 Place de la République, Grenoble']
+        );
+
+        // 7. Demo Orders (only if none exist yet)
+        if (\App\Models\Order::count() === 0) {
+            $order1 = \App\Models\Order::create([
+                'customer_id'   => $customer1->id,
+                'customer_name' => $customer1->name,
+                'total_amount'  => 250.00,
+                'amount_paid'   => 250.00,
+                'amount_returned' => 0,
+                'status'        => 'paid',
+                'paid_at'       => now()->subDays(5),
+            ]);
+            $order1->items()->createMany([
+                ['product_name' => 'Classic Tomme 500g', 'quantity' => 10, 'unit_price' => 15.00, 'total' => 150.00],
+                ['product_name' => 'Chèvre frais 200g',  'quantity' => 20, 'unit_price' => 5.00,  'total' => 100.00],
+            ]);
+
+            $order2 = \App\Models\Order::create([
+                'customer_id'   => $customer2->id,
+                'customer_name' => $customer2->name,
+                'total_amount'  => 180.00,
+                'amount_paid'   => 100.00,
+                'amount_returned' => 0,
+                'status'        => 'partial',
+                'paid_at'       => null,
+            ]);
+            $order2->items()->createMany([
+                ['product_name' => 'Classic Tomme 500g', 'quantity' => 8, 'unit_price' => 15.00, 'total' => 120.00],
+                ['product_name' => 'Camembert 250g',     'quantity' => 12, 'unit_price' => 5.00,  'total' => 60.00],
+            ]);
+        }
     }
 }

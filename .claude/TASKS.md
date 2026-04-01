@@ -22,7 +22,15 @@
 | T12.4 | Recipes: test full CRUD + ingredient sync + history recording | 🔴 | ✅ |
 | T12.5 | Batches: test create (inventory deduction) + delete (inventory restoration) | 🔴 | ✅ |
 | T12.6 | Quality: test create evaluation → verify batch quality_score is updated | 🔴 | ✅ |
-| T12.7 | Sales: test create order + record payment → verify status auto-update | 🔴 | ☐ |
+| T12.7 | Sales: test create order + record payment → verify status auto-update | 🔴 | ✅ |
+| T12.7.1 | **Bug:** `POST /orders/{order}/payments`, `POST /orders/{order}/returns`, `PATCH /orders/{order}/status` routes missing → orderService.addPayment / addReturn / patchStatus always 404 | 🔴 | ✅ |
+| T12.7.2 | **Bug:** `order_returns.order_item_id` DB column NOT NULL but frontend never sends it → INSERT fails with constraint violation | 🔴 | ✅ |
+| T12.7.3 | **Bug:** Payment method enum is lowercase (`cash`, `bank_transfer`) but frontend sends `"Cash"`, `"Bank Transfer"` → MySQL rejects the insert | 🔴 | ✅ |
+| T12.7.4 | **Bug:** `orderService.addPayment` sends `{method, date}` but backend expects `{method, paid_at}` (wrong field name); `addReturn` sends camelCase keys, backend gets garbage | 🔴 | ✅ |
+| T12.7.5 | **Bug:** `orders.customer_id` is NOT NULL in migration but controller accepts nullable — creating an order without customer 422s from DB | 🟠 | ✅ |
+| T12.7.6 | **Bug:** `OrderController.store` validates status `in:pending,paid,cancelled,completed` but migration enum is `pending,partial,paid,shipped,cancelled` — 'completed' and 'shipped' mismatch | 🟠 | ✅ |
+| T12.7.7 | **Bug:** `order_returns` table has no `product_name` column but frontend displays `r.productName` in return list — always undefined | 🟠 | ✅ |
+| T12.7.8 | **Bug:** `Payment` and `ReturnItem` types use `date` field but API returns `paidAt` / `returnedAt` — date always shown as undefined in UI | 🟠 | ✅ |
 | T12.8 | RBAC: test that operator cannot access admin-only actions | 🟠 | ☐ |
 | T12.9 | Notifications: verify low-stock and batch-failure notifications are created | 🟠 | ☐ |
 | T12.10 | Production logs: test create log + leftover return to inventory | 🟠 | ☐ |

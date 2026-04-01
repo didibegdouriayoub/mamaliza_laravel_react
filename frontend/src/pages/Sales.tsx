@@ -34,8 +34,10 @@ export default function Sales() {
 
   const loadData = async () => {
     setLoading(true);
-    const data = await orderService.getAll();
-    setOrders(data);
+    try {
+      const data = await orderService.getAll();
+      setOrders(data || []);
+    } catch (e) { console.error(e); }
     setLoading(false);
   };
 
@@ -45,24 +47,32 @@ export default function Sales() {
 
   const handlePayment = async () => {
     if (!selected || payAmount <= 0) return;
-    await orderService.addPayment(selected.id, { amount: payAmount, method: payMethod, date: new Date().toISOString().split('T')[0] });
-    toast({ title: 'Payment recorded', description: `€${payAmount} received.` });
-    setPaymentOpen(false);
-    const updated = await orderService.getAll();
-    setOrders(updated);
-    const refreshed = updated.find(o => o.id === selected.id);
-    setSelected(refreshed || null);
+    try {
+      await orderService.addPayment(selected.id, { amount: payAmount, method: payMethod, date: new Date().toISOString().split('T')[0] });
+      toast({ title: 'Payment recorded', description: `€${payAmount} received.` });
+      setPaymentOpen(false);
+      const updated = await orderService.getAll();
+      setOrders(updated);
+      const refreshed = updated.find(o => o.id === selected.id);
+      setSelected(refreshed || null);
+    } catch (e: any) {
+      toast({ title: 'Error', description: e?.message || 'Failed to record payment', variant: 'destructive' });
+    }
   };
 
   const handleReturn = async () => {
     if (!selected || !retProductName) return;
-    await orderService.addReturn(selected.id, { productName: retProductName, quantity: retQty, reason: retReason, refundAmount: retRefund, date: new Date().toISOString().split('T')[0] });
-    toast({ title: 'Return recorded' });
-    setReturnOpen(false);
-    const updated = await orderService.getAll();
-    setOrders(updated);
-    const refreshed = updated.find(o => o.id === selected.id);
-    setSelected(refreshed || null);
+    try {
+      await orderService.addReturn(selected.id, { productName: retProductName, quantity: retQty, reason: retReason, refundAmount: retRefund });
+      toast({ title: 'Return recorded' });
+      setReturnOpen(false);
+      const updated = await orderService.getAll();
+      setOrders(updated);
+      const refreshed = updated.find(o => o.id === selected.id);
+      setSelected(refreshed || null);
+    } catch (e: any) {
+      toast({ title: 'Error', description: e?.message || 'Failed to record return', variant: 'destructive' });
+    }
   };
 
   const balance = (o: Order) => o.totalAmount - o.amountPaid + o.amountReturned;
@@ -150,7 +160,7 @@ export default function Sales() {
                     <h4 className="font-display font-semibold text-sm mb-1">Payments</h4>
                     {selected.payments.map(p => (
                       <div key={p.id} className="flex justify-between text-sm py-1 border-b last:border-0">
-                        <span className="text-muted-foreground">{p.date} — {p.method}</span>
+                        <span className="text-muted-foreground">{p.paidAt} — {p.method}</span>
                         <span className="text-success font-medium">€{p.amount}</span>
                       </div>
                     ))}
@@ -167,7 +177,7 @@ export default function Sales() {
                           <span>{r.productName} × {r.quantity}</span>
                           <span className="text-destructive font-medium">-€{r.refundAmount}</span>
                         </div>
-                        <p className="text-xs text-muted-foreground">{r.reason} — {r.date}</p>
+                        <p className="text-xs text-muted-foreground">{r.reason} — {r.returnedAt}</p>
                       </div>
                     ))}
                   </div>

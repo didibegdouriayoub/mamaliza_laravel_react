@@ -72,6 +72,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orders/{order}', [\App\Http\Controllers\OrderController::class, 'show'])->middleware('permission:sales.read');
     Route::match(['put', 'patch'], '/orders/{order}', [\App\Http\Controllers\OrderController::class, 'update'])->middleware('permission:sales.write');
     Route::delete('/orders/{order}', [\App\Http\Controllers\OrderController::class, 'destroy'])->middleware('permission:sales.write');
+    Route::post('/orders/{order}/payments', [\App\Http\Controllers\OrderController::class, 'storePayment'])->middleware('permission:sales.write');
+    Route::post('/orders/{order}/returns', [\App\Http\Controllers\OrderController::class, 'storeReturn'])->middleware('permission:sales.write');
+    Route::patch('/orders/{order}/status', [\App\Http\Controllers\OrderController::class, 'updateStatus'])->middleware('permission:sales.write');
 
     // Production Logs
     Route::get('/production-logs', [\App\Http\Controllers\ProductionLogController::class, 'index'])->middleware('permission:batches.read');
