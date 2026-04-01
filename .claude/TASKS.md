@@ -17,6 +17,8 @@
 | T12.3.1 | **Bug:** `entrypoint.sh` never runs `composer install` → `vendor/autoload.php` missing → backend crash-loop on every start | 🔴 | ✅ |
 | T12.3.2 | **Bug:** `APP_KEY` missing from `docker-compose.yml` → Laravel throws "No application encryption key" once vendor is fixed | 🔴 | ✅ |
 | T12.3.3 | **Bug:** entrypoint writes `.env` with only `APP_KEY` → volume-mounts it to host → Laravel finds no `DB_CONNECTION` → falls back to SQLite instead of MySQL | 🔴 | ✅ |
+| T12.3.4 | **Bug:** Inventory routes use `{inventory_item}` wildcard but controller methods declare `$inventory` — Laravel implicit binding resolves `{inventory_item}` → `$inventoryItem` (camelCase), not `$inventory` → injects empty model → `item_id` is null on history write, delete silently does nothing | 🔴 | ✅ |
+| T12.3.5 | **Bug:** `POST /batches/{batch}/notes` route and `BatchController::storeNote` method are both missing → `batchService.addNote` always 404s | 🔴 | ✅ |
 | T12.4 | Recipes: test full CRUD + ingredient sync + history recording | 🔴 | ✅ |
 | T12.5 | Batches: test create (inventory deduction) + delete (inventory restoration) | 🔴 | ✅ |
 | T12.6 | Quality: test create evaluation → verify batch quality_score is updated | 🔴 | ☐ |

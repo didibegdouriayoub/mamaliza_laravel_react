@@ -33,9 +33,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Inventory
     Route::get('/inventory', [\App\Http\Controllers\InventoryItemController::class, 'index'])->middleware('permission:inventory.read');
     Route::post('/inventory', [\App\Http\Controllers\InventoryItemController::class, 'store'])->middleware('permission:inventory.write');
-    Route::get('/inventory/{inventory_item}', [\App\Http\Controllers\InventoryItemController::class, 'show'])->middleware('permission:inventory.read');
-    Route::match(['put', 'patch'], '/inventory/{inventory_item}', [\App\Http\Controllers\InventoryItemController::class, 'update'])->middleware('permission:inventory.write');
-    Route::delete('/inventory/{inventory_item}', [\App\Http\Controllers\InventoryItemController::class, 'destroy'])->middleware('permission:inventory.write');
+    Route::get('/inventory/{inventory}', [\App\Http\Controllers\InventoryItemController::class, 'show'])->middleware('permission:inventory.read');
+    Route::match(['put', 'patch'], '/inventory/{inventory}', [\App\Http\Controllers\InventoryItemController::class, 'update'])->middleware('permission:inventory.write');
+    Route::delete('/inventory/{inventory}', [\App\Http\Controllers\InventoryItemController::class, 'destroy'])->middleware('permission:inventory.write');
 
     // Recipes
     Route::get('/recipes', [\App\Http\Controllers\RecipeController::class, 'index'])->middleware('permission:recipes.read');
@@ -50,6 +50,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/batches/{batch}', [\App\Http\Controllers\BatchController::class, 'show'])->middleware('permission:batches.read');
     Route::match(['put', 'patch'], '/batches/{batch}', [\App\Http\Controllers\BatchController::class, 'update'])->middleware('permission:batches.write');
     Route::delete('/batches/{batch}', [\App\Http\Controllers\BatchController::class, 'destroy'])->middleware('permission:batches.write');
+    Route::post('/batches/{batch}/notes', [\App\Http\Controllers\BatchController::class, 'storeNote'])->middleware('permission:batches.write');
 
     // Quality Controls
     Route::get('/quality-controls', [\App\Http\Controllers\QualityControlController::class, 'index'])->middleware('permission:quality.read');

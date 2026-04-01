@@ -85,6 +85,21 @@ class BatchController extends Controller
         return response()->json($batch);
     }
 
+    public function storeNote(Request $request, Batch $batch)
+    {
+        $validated = $request->validate([
+            'text'   => 'required|string',
+            'author' => 'nullable|string|max:255',
+        ]);
+
+        $note = $batch->notes()->create([
+            'text'   => $validated['text'],
+            'author' => $validated['author'] ?? (auth()->user()?->name ?? 'Unknown'),
+        ]);
+
+        return response()->json($note, 201);
+    }
+
     public function destroy(Batch $batch)
     {
         // T9.1: Restore inventory levels before deleting the batch
