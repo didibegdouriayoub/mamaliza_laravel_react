@@ -14,10 +14,12 @@ import { batchService } from '@/services/batchService';
 import { Batch } from '@/models/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { TableSkeleton } from '@/components/DataStates';
 
 export default function Production() {
   const [logs, setLogs] = useState<any[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
+  const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [batchId, setBatchId] = useState('');
   const [producedPieces, setProducedPieces] = useState(0);
@@ -27,6 +29,7 @@ export default function Production() {
   const { toast } = useToast();
 
   const loadData = async () => {
+    setLoading(true);
     try {
       const [logData, batchData] = await Promise.all([
         productionLogService.getAll(),
@@ -35,6 +38,7 @@ export default function Production() {
       setLogs(logData || []);
       setBatches(batchData || []);
     } catch(e) { console.error(e); }
+    setLoading(false);
   };
 
   useEffect(() => { loadData(); }, []);
@@ -78,7 +82,9 @@ export default function Production() {
         <Button onClick={() => setFormOpen(true)}><Plus className="h-4 w-4 mr-1" /> Log Production</Button>
       </div>
 
-      {logs.length === 0 ? (
+      {loading ? (
+        <Card className="shadow-card"><CardContent className="p-4"><TableSkeleton /></CardContent></Card>
+      ) : logs.length === 0 ? (
         <Card className="shadow-card"><CardContent className="p-8 text-center text-muted-foreground">No production logs yet.</CardContent></Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
