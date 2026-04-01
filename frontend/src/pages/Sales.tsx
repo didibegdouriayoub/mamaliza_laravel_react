@@ -116,17 +116,18 @@ export default function Sales() {
           {loading ? <TableSkeleton /> : filtered.length === 0 ? (
             <EmptyState title="No orders found" description="Orders will appear here." icon="🛒" />
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Order</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead className="text-right">Total</TableHead>
-                  <TableHead className="text-right">Paid</TableHead>
-                  <TableHead className="text-right">Returned</TableHead>
-                  <TableHead className="text-right">Balance</TableHead>
+                  <TableHead className="text-right hidden sm:table-cell">Paid</TableHead>
+                  <TableHead className="text-right hidden md:table-cell">Returned</TableHead>
+                  <TableHead className="text-right hidden sm:table-cell">Balance</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Date</TableHead>
+                  <TableHead className="hidden md:table-cell">Date</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -135,15 +136,16 @@ export default function Sales() {
                     <TableCell className="font-medium">#{order.id}</TableCell>
                     <TableCell>{order.customerName}</TableCell>
                     <TableCell className="text-right font-medium">€{order.totalAmount.toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-success">€{order.amountPaid.toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-destructive">€{order.amountReturned.toLocaleString()}</TableCell>
-                    <TableCell className="text-right font-semibold">{balance(order) > 0 ? <span className="text-warning">€{balance(order)}</span> : <span className="text-success">€0</span>}</TableCell>
+                    <TableCell className="text-right text-success hidden sm:table-cell">€{order.amountPaid.toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-destructive hidden md:table-cell">€{order.amountReturned.toLocaleString()}</TableCell>
+                    <TableCell className="text-right font-semibold hidden sm:table-cell">{balance(order) > 0 ? <span className="text-warning">€{balance(order)}</span> : <span className="text-success">€0</span>}</TableCell>
                     <TableCell><OrderStatusBadge status={order.status} /></TableCell>
-                    <TableCell className="text-muted-foreground">{order.createdAt}</TableCell>
+                    <TableCell className="text-muted-foreground hidden md:table-cell">{order.createdAt}</TableCell>
                   </motion.tr>
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-3 text-sm text-muted-foreground">

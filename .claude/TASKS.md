@@ -71,7 +71,7 @@
 | T12.24 | Export inventory list to CSV | 🟢 | ✅ |
 | T12.25 | Export orders to CSV/PDF | 🟢 | ✅ |
 | T12.26 | Save/name estimations to backend | 🟢 | ☐ |
-| T12.27 | Mobile responsiveness audit and fixes | 🟢 | ☐ |
+| T12.27 | Mobile responsiveness audit and fixes | 🟢 | ✅ |
 
 ---
 
