@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Package, BookOpen, Factory, ShieldCheck,
-  ShoppingCart, BarChart3, Users, Calculator, ClipboardList, Truck,
+  ShoppingCart, BarChart3, Users, Calculator, PackageCheck, Recycle, Truck,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,7 +18,8 @@ const navItems: { title: string; url: string; icon: typeof LayoutDashboard; perm
   { title: 'Inventory', url: '/inventory', icon: Package, permission: 'inventory.read' },
   { title: 'Recipes', url: '/recipes', icon: BookOpen, permission: 'recipes.read' },
   { title: 'Batches', url: '/batches', icon: Factory, permission: 'batches.read' },
-  { title: 'Production', url: '/production', icon: ClipboardList, permission: 'batches.read' },
+  { title: 'Pieces Produced', url: '/pieces-produced', icon: PackageCheck, permission: 'batches.read' },
+  { title: 'Leftover', url: '/leftover', icon: Recycle, permission: 'batches.read' },
   { title: 'Quality', url: '/quality', icon: ShieldCheck, permission: 'quality.read' },
   { title: 'Estimation', url: '/estimation', icon: Calculator, permission: 'inventory.read' },
   { title: 'Customers', url: '/customers', icon: Users, permission: 'customers.read' },

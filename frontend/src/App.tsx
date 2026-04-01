@@ -15,7 +15,8 @@ import Sales from "./pages/Sales";
 import Analytics from "./pages/Analytics";
 import UserManagement from "./pages/UserManagement";
 import Estimation from "./pages/Estimation";
-import Production from "./pages/Production";
+import PiecesProduced from "./pages/PiecesProduced";
+import Leftover from "./pages/Leftover";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import Permissions from "./pages/Permissions";
@@ -38,7 +39,8 @@ function AppRoutes() {
         <Route path="/inventory" element={<ProtectedRoute permissions={['inventory.read']}><Inventory /></ProtectedRoute>} />
         <Route path="/recipes" element={<ProtectedRoute permissions={['recipes.read']}><Recipes /></ProtectedRoute>} />
         <Route path="/batches" element={<ProtectedRoute permissions={['batches.read']}><Batches /></ProtectedRoute>} />
-        <Route path="/production" element={<ProtectedRoute permissions={['batches.read']}><Production /></ProtectedRoute>} />
+        <Route path="/pieces-produced" element={<ProtectedRoute permissions={['batches.read']}><PiecesProduced /></ProtectedRoute>} />
+        <Route path="/leftover" element={<ProtectedRoute permissions={['batches.read']}><Leftover /></ProtectedRoute>} />
         <Route path="/quality" element={<ProtectedRoute permissions={['quality.read']}><Quality /></ProtectedRoute>} />
         <Route path="/estimation" element={<ProtectedRoute permissions={['inventory.read']}><Estimation /></ProtectedRoute>} />
         <Route path="/customers" element={<ProtectedRoute permissions={['customers.read']}><Customers /></ProtectedRoute>} />
