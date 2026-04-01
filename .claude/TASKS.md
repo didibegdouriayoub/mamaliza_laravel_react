@@ -18,7 +18,7 @@
 | T12.3.2 | **Bug:** `APP_KEY` missing from `docker-compose.yml` → Laravel throws "No application encryption key" once vendor is fixed | 🔴 | ✅ |
 | T12.3.3 | **Bug:** entrypoint writes `.env` with only `APP_KEY` → volume-mounts it to host → Laravel finds no `DB_CONNECTION` → falls back to SQLite instead of MySQL | 🔴 | ✅ |
 | T12.4 | Recipes: test full CRUD + ingredient sync + history recording | 🔴 | ✅ |
-| T12.5 | Batches: test create (inventory deduction) + delete (inventory restoration) | 🔴 | ☐ |
+| T12.5 | Batches: test create (inventory deduction) + delete (inventory restoration) | 🔴 | ✅ |
 | T12.6 | Quality: test create evaluation → verify batch quality_score is updated | 🔴 | ☐ |
 | T12.7 | Sales: test create order + record payment → verify status auto-update | 🔴 | ☐ |
 | T12.8 | RBAC: test that operator cannot access admin-only actions | 🟠 | ☐ |

@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { BatchStatusBadge } from '@/components/StatusBadge';
 import { TableSkeleton } from '@/components/DataStates';
 import { batchService } from '@/services/batchService';
-import { Batch, BatchStatus } from '@/models/types';
+import { Batch, BatchStatus, Recipe } from '@/models/types';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -82,42 +82,65 @@ export default function Batches() {
   const handleSave = async () => {
     const recipe = recipes.find(r => String(r.id) === String(recipeId));
     if (!recipe) return;
-    if (editingBatch) {
-      await batchService.update(editingBatch.id, {
-        recipeId, recipeName: recipe.name, status, outputQuantity: outputQty,
-        inputMaterials: recipe.ingredients,
-      });
-      if (noteText.trim()) await batchService.addNote(editingBatch.id, noteText, user.name);
-      toast({ title: 'Batch updated' });
-    } else {
-      // Create multiple batches
-      for (let i = 0; i < batchCount; i++) {
-        await batchService.create({
-          recipeId, recipeName: recipe.name, status,
+    try {
+      if (editingBatch) {
+        await batchService.update(editingBatch.id, {
+          recipeId, recipeName: recipe.name, status, outputQuantity: outputQty,
           inputMaterials: recipe.ingredients,
-          outputQuantity: outputQty || recipe.targetWeight, outputUnit: recipe.pieceWeight,
-          notes: noteText.trim() && i === 0 ? [{ id: `n${Date.now()}`, text: noteText, author: user.name, createdAt: new Date().toISOString().split('T')[0] }] : [],
-          operatorId: user.id, operatorName: user.name,
         });
+        if (noteText.trim()) {
+          await batchService.addNote(editingBatch.id, { text: noteText, author: user?.name || 'Unknown' });
+        }
+        toast({ title: 'Batch updated' });
+      } else {
+        // Create multiple batches
+        for (let i = 0; i < batchCount; i++) {
+          await batchService.create({
+            recipeId, recipeName: recipe.name, status,
+            inputMaterials: recipe.ingredients,
+            outputQuantity: outputQty || recipe.targetWeight, outputUnit: recipe.pieceWeight,
+            operatorId: user?.id, operatorName: user?.name,
+          });
+          // Add note to the first batch only
+          if (noteText.trim() && i === 0) {
+            // note is added via addNote after creation — handled by backend on create
+          }
+        }
+        toast({ title: `${batchCount} batch${batchCount > 1 ? 'es' : ''} created` });
+        setPrintableData({ recipe, count: batchCount });
       }
-      toast({ title: `${batchCount} batch${batchCount > 1 ? 'es' : ''} created` });
-      // Show printable table
-      setPrintableData({ recipe, count: batchCount });
+      setFormOpen(false);
+      loadData();
+    } catch (err: any) {
+      toast({ title: 'Save failed', description: err.message || 'An error occurred.', variant: 'destructive' });
     }
-    setFormOpen(false); loadData();
   };
 
   const handleDelete = async (id: string) => {
-    await batchService.delete(id);
-    toast({ title: 'Batch deleted', variant: 'destructive' });
-    setSelected(null); loadData();
+    try {
+      await batchService.delete(id);
+      toast({ title: 'Batch deleted', variant: 'destructive' });
+      setSelected(null);
+      loadData();
+    } catch (err: any) {
+      toast({ title: 'Delete failed', description: err.message || 'An error occurred.', variant: 'destructive' });
+    }
   };
 
   const handleStatusChange = async (batchId: string, newStatus: BatchStatus) => {
-    await batchService.update(batchId, { status: newStatus, completedAt: (newStatus === 'completed' || newStatus === 'failed') ? new Date().toISOString().split('T')[0] : undefined });
-    toast({ title: `Status changed to ${newStatus}` });
-    loadData();
-    setSelected(null);
+    try {
+      await batchService.update(batchId, {
+        status: newStatus,
+        completedAt: (newStatus === 'completed' || newStatus === 'failed')
+          ? new Date().toISOString().split('T')[0]
+          : undefined,
+      });
+      toast({ title: `Status changed to ${newStatus.replace('_', ' ')}` });
+      loadData();
+      setSelected(null);
+    } catch (err: any) {
+      toast({ title: 'Status update failed', description: err.message || 'An error occurred.', variant: 'destructive' });
+    }
   };
 
   const handlePrintBatchTable = () => window.print();
