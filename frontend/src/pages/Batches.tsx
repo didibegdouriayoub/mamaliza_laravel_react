@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/formatDate';
 
 type BatchDraftIngredient = { materialId: string; materialName: string; quantity: number; unit: string; unitPrice: number; };
-type BatchDraft = { outputQty: number; note: string; ingredients: BatchDraftIngredient[]; };
+type BatchDraft = { startedAt: string; outputQty: number; note: string; ingredients: BatchDraftIngredient[]; };
 type PrintData = { recipe: Recipe; batches: Array<{ batchNum: number; lot: string; outputQty: number; ingredients: BatchDraftIngredient[] }>; groupId: string; };
 
 const parsePieceWeight = (str: string): number => {
@@ -139,7 +139,9 @@ export default function Batches() {
 
   const handleNextStep = () => {
     if (!selectedRecipe) return;
+    const today = new Date().toISOString().slice(0, 10);
     const drafts: BatchDraft[] = Array.from({ length: batchCount }, () => ({
+      startedAt: today,
       outputQty: selectedRecipe.targetWeight || 0,
       note: '',
       ingredients: selectedRecipe.ingredients.map(ing => ({ ...ing })),
@@ -187,6 +189,7 @@ export default function Batches() {
         const created = await batchService.create({
           recipeId: String(recipe.id), recipeName: recipe.name,
           status: 'completed' as BatchStatus,
+          startedAt: draft.startedAt,
           inputMaterials: draft.ingredients,
           outputQuantity: draft.outputQty || recipe.targetWeight,
           outputUnit: recipe.pieceWeight,
@@ -458,6 +461,7 @@ export default function Batches() {
                     {isOpen && (
                       <div className="px-4 pb-4 pt-3 space-y-3 border-t">
                         <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1"><Label className="text-xs">Date</Label><Input type="date" className="h-8 text-sm" value={draft.startedAt} onChange={e => updateDraft(bIdx, { startedAt: e.target.value })} /></div>
                           <div className="space-y-1"><Label className="text-xs">Output Qty</Label><Input type="number" className="h-8 text-sm" value={draft.outputQty || ''} onChange={e => updateDraft(bIdx, { outputQty: Number(e.target.value) })} /></div>
                         </div>
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Ingredients</p>

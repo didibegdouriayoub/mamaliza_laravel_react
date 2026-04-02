@@ -137,6 +137,7 @@
 | T13.29 | Quality — show lot number in batch select dropdown alongside recipe name and date | 🟠 | ✅ |
 | T13.30 | Batches — auto-generate unique lot on backend: `{3-letters}-{DDMMYYYY}-{NNN}` incremented per recipe+date; remove frontend lot generation | 🔴 | ✅ |
 | T13.31 | Batches — group view dialog shows full details per batch: ingredients table, notes, QC evaluation (taste/texture/smell/score) | 🟠 | ✅ |
+| T13.32 | Batches — add `startedAt` date field per batch in create form, pre-filled with today; send to API | 🟠 | ✅ |
 
 ---
 
