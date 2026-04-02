@@ -13,6 +13,7 @@ const toPayload = (item: Partial<InventoryItem>) =>
     lot: item.lot || null,
     code: item.code || null,
     minStock: item.minStock,              // → min_stock
+    leadTimeDays: item.leadTimeDays ?? null, // → lead_time_days
     createdAt: item.createdAt || null,    // → created_at
   } as Record<string, unknown>);
 

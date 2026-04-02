@@ -16,6 +16,7 @@ class InventoryItem extends Model
         'lot',
         'code',
         'min_stock',
+        'lead_time_days',
         'status',
     ];
 

@@ -66,6 +66,7 @@ export interface InventoryItem {
   code?: string;
   status: 'ok' | 'low' | 'out';
   minStock: number;
+  leadTimeDays?: number;
   createdAt: string;
   updatedAt: string;
   history?: ChangeRecord[];

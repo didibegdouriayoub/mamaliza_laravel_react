@@ -18,15 +18,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { formatDate } from '@/lib/formatDate';
 
-const emptyForm = { 
-  name: '', 
-  type: 'raw' as MaterialType, 
-  quantity: 0, 
-  unit: 'kg', 
-  price: 0, 
-  supplier: '', 
-  supplierId: '', 
+const emptyForm = {
+  name: '',
+  type: 'raw' as MaterialType,
+  quantity: 0,
+  unit: 'kg',
+  price: 0,
+  supplier: '',
+  supplierId: '',
   minStock: 0,
+  leadTimeDays: 0,
   lot: '',
   code: '',
   createdAt: new Date().toISOString().split('T')[0]
@@ -72,6 +73,7 @@ export default function Inventory() {
         status,
         lot: item.lot || '',
         code: item.code || '',
+        leadTimeDays: Number(item.leadTimeDays ?? item.lead_time_days) || 0,
         createdAt: item.createdAt?.split('T')[0] || item.created_at?.split('T')[0] || '',
         history: (item.history || []).map((h: any) => ({
           id: String(h.id),
@@ -159,6 +161,7 @@ export default function Inventory() {
       minStock: item.minStock,
       lot: item.lot || '',
       code: item.code || '',
+      leadTimeDays: item.leadTimeDays ?? 0,
       createdAt: item.createdAt || ''
     });
     setDialogOpen(true);
@@ -275,7 +278,7 @@ export default function Inventory() {
                     <Input value={form.code} onChange={e => setForm(p => ({ ...p, code: e.target.value }))} placeholder="Auto-generated" />
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-4 gap-3">
                   <div className="space-y-1.5">
                     <Label>Quantity</Label>
                     <Input type="number" value={form.quantity} onChange={e => setForm(p => ({ ...p, quantity: Number(e.target.value) }))} />
@@ -287,6 +290,10 @@ export default function Inventory() {
                   <div className="space-y-1.5">
                     <Label>Min Stock</Label>
                     <Input type="number" value={form.minStock} onChange={e => setForm(p => ({ ...p, minStock: Number(e.target.value) }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Lead Time (days)</Label>
+                    <Input type="number" min={0} value={form.leadTimeDays} onChange={e => setForm(p => ({ ...p, leadTimeDays: Number(e.target.value) }))} placeholder="0" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
