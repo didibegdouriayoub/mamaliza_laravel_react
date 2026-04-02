@@ -5,7 +5,10 @@
  */
 export function printDocument(title: string, bodyHtml: string): void {
   const win = window.open('', '_blank', 'width=900,height=700');
-  if (!win) return;
+  if (!win) {
+    alert('Pop-up blocked. Please allow pop-ups for this site in your browser, then click Print again.');
+    return;
+  }
 
   win.document.write(`<!DOCTYPE html>
 <html lang="en">

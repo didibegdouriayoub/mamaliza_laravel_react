@@ -442,8 +442,13 @@ export default function Batches() {
                         <Eye className="h-3 w-3 mr-1" /> View
                       </Button>
                       <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
-                        const recipe = recipes.find(r => String(r.id) === String(group.recipeId));
-                        if (!recipe) return;
+                        // Fall back to name match for groups created before recipe_id was persisted
+                        const recipe = recipes.find(r => String(r.id) === String(group.recipeId))
+                                    || recipes.find(r => r.name === group.recipeName);
+                        if (!recipe) {
+                          toast({ title: 'Recipe not found', description: `Could not find recipe "${group.recipeName}" to generate the report.`, variant: 'destructive' });
+                          return;
+                        }
                         const batches = (group.batches ?? []).map((b, idx) => ({
                           batchNum: idx + 1,
                           lot: (b as any).lot || '',
