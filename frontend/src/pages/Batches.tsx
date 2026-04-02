@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/formatDate';
 
 type BatchDraftIngredient = { materialId: string; materialName: string; quantity: number; unit: string; unitPrice: number; };
-type BatchDraft = { lot: string; outputQty: number; note: string; ingredients: BatchDraftIngredient[]; };
+type BatchDraft = { outputQty: number; note: string; ingredients: BatchDraftIngredient[]; };
 type PrintData = { recipe: Recipe; batches: Array<{ batchNum: number; lot: string; outputQty: number; ingredients: BatchDraftIngredient[] }>; groupId: string; };
 
 const parsePieceWeight = (str: string): number => {
@@ -104,8 +104,15 @@ export default function Batches() {
           ...b,
           batchGroupId: String(g.id),
           lot: b.lot ?? '',
-          inputMaterials: b.inputMaterials ?? b.input_materials ?? [],
+          inputMaterials: (b.inputMaterials ?? b.input_materials ?? []).map((m: any) => ({
+            materialId: String(m.material_id ?? m.materialId ?? ''),
+            materialName: m.material_name ?? m.materialName ?? '',
+            quantity: Number(m.quantity) || 0,
+            unit: m.unit ?? '',
+            unitPrice: Number(m.unit_price ?? m.unitPrice) || 0,
+          })),
           notes: b.notes ?? [],
+          qualityControl: b.qualityControl ?? b.quality_control ?? null,
           startedAt: b.startedAt ?? b.started_at ?? '',
           completedAt: b.completedAt ?? b.completed_at ?? null,
           outputQuantity: Number(b.outputQuantity ?? b.output_quantity) || 0,
@@ -132,8 +139,7 @@ export default function Batches() {
 
   const handleNextStep = () => {
     if (!selectedRecipe) return;
-    const drafts: BatchDraft[] = Array.from({ length: batchCount }, (_, i) => ({
-      lot: `LOT-${new Date().toISOString().slice(0,10).replace(/-/g,'')}${String(i + 1).padStart(2,'0')}`,
+    const drafts: BatchDraft[] = Array.from({ length: batchCount }, () => ({
       outputQty: selectedRecipe.targetWeight || 0,
       note: '',
       ingredients: selectedRecipe.ingredients.map(ing => ({ ...ing })),
@@ -180,7 +186,6 @@ export default function Batches() {
         const draft = batchDrafts[i];
         const created = await batchService.create({
           recipeId: String(recipe.id), recipeName: recipe.name,
-          lot: draft.lot,
           status: 'completed' as BatchStatus,
           inputMaterials: draft.ingredients,
           outputQuantity: draft.outputQty || recipe.targetWeight,
@@ -191,7 +196,7 @@ export default function Batches() {
         if (draft.note.trim() && created?.id) {
           await batchService.addNote(created.id, { text: draft.note, author: user?.name || 'Unknown' });
         }
-        printBatches.push({ batchNum: i + 1, lot: draft.lot, outputQty: draft.outputQty, ingredients: draft.ingredients });
+        printBatches.push({ batchNum: i + 1, lot: created?.lot || '', outputQty: draft.outputQty, ingredients: draft.ingredients });
       }
 
       toast({ title: `${batchDrafts.length} batch${batchDrafts.length !== 1 ? 'es' : ''} created` });
@@ -447,13 +452,12 @@ export default function Batches() {
                   <div key={bIdx} className="border rounded-lg overflow-hidden">
                     <button type="button" className="w-full flex items-center justify-between px-4 py-3 bg-accent/20 hover:bg-accent/40 transition-colors text-left" onClick={() => setExpandedBatch(isOpen ? null : bIdx)}>
                       <span className="font-medium text-sm">Batch #{bIdx + 1}</span>
-                      <span className="text-xs text-muted-foreground">{draft.lot} · {draft.ingredients.length} materials · €{draftCost.toFixed(2)}</span>
+                      <span className="text-xs text-muted-foreground">{draft.ingredients.length} materials · €{draftCost.toFixed(2)}</span>
                       <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', isOpen && 'rotate-180')} />
                     </button>
                     {isOpen && (
                       <div className="px-4 pb-4 pt-3 space-y-3 border-t">
                         <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1"><Label className="text-xs">Lot Number</Label><Input className="h-8 text-sm" value={draft.lot} onChange={e => updateDraft(bIdx, { lot: e.target.value })} /></div>
                           <div className="space-y-1"><Label className="text-xs">Output Qty</Label><Input type="number" className="h-8 text-sm" value={draft.outputQty || ''} onChange={e => updateDraft(bIdx, { outputQty: Number(e.target.value) })} /></div>
                         </div>
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Ingredients</p>
@@ -532,105 +536,158 @@ export default function Batches() {
         </DialogContent>
       </Dialog>
 
-      {/* View Group dialog */}
+      {/* View Group dialog — full details */}
       <Dialog open={!!viewGroup} onOpenChange={v => { if (!v) setViewGroup(null); }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          {viewGroup && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="font-display flex items-center gap-2">
-                  <Factory className="h-5 w-5" /> {viewGroup.recipeName} — Batch Group
-                </DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-2">
-                {/* Group summary */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-                  <div className="space-y-0.5">
-                    <p className="text-xs text-muted-foreground">Created</p>
-                    <p className="font-medium">{formatDate(viewGroup.createdAt)}</p>
-                  </div>
-                  <div className="space-y-0.5">
-                    <p className="text-xs text-muted-foreground">Batches</p>
-                    <p className="font-medium">{viewGroup.batchCount}</p>
-                  </div>
-                  <div className="space-y-0.5">
-                    <p className="text-xs text-muted-foreground">Target Weight</p>
-                    <p className="font-medium">{viewGroup.targetWeight} kg × {viewGroup.batchCount}</p>
-                  </div>
-                  <div className="space-y-0.5">
-                    <p className="text-xs text-muted-foreground">Pieces Produced</p>
-                    <p className="font-medium">{viewGroup.piecesProduced ?? '—'}</p>
-                  </div>
-                </div>
+        <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
+          {viewGroup && (() => {
+            const expected = viewGroup.targetWeight * viewGroup.batchCount;
+            const produced = (viewGroup.piecesProduced ?? 0) * (viewGroup.pieceWeightValue || 1);
+            const leftover = viewGroup.leftoverQty ?? 0;
+            const loss = expected - produced + leftover;
+            const hasFilled = viewGroup.piecesProduced != null || viewGroup.leftoverQty != null;
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="font-display flex items-center gap-2">
+                    <Factory className="h-5 w-5" /> {viewGroup.recipeName} — Batch Group
+                  </DialogTitle>
+                </DialogHeader>
 
-                {/* Batches table */}
-                <div>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Batches</p>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-8">#</TableHead>
-                        <TableHead>Lot</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Output</TableHead>
-                        <TableHead>Operator</TableHead>
-                        <TableHead>Started</TableHead>
-                        <TableHead className="text-right">QC Score</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(viewGroup.batches ?? []).map((b, idx) => {
-                        const qc = qualityControls.find(q => q.batchId === String(b.id));
-                        return (
-                          <TableRow key={b.id}>
-                            <TableCell className="text-muted-foreground text-sm">{idx + 1}</TableCell>
-                            <TableCell className="font-mono text-xs">{b.lot || '—'}</TableCell>
-                            <TableCell>
-                              <Badge variant={b.status === 'completed' ? 'default' : 'destructive'} className="text-xs capitalize">
-                                {b.status === 'completed' ? <CheckCircle2 className="h-3 w-3 mr-1 inline" /> : <XCircle className="h-3 w-3 mr-1 inline" />}
-                                {b.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-sm">{b.outputQuantity} {b.outputUnit}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground">{b.operatorName || '—'}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground">{formatDate(b.startedAt)}</TableCell>
-                            <TableCell className="text-right">
-                              {qc ? (
-                                <span className={cn('text-sm font-semibold', qc.overallScore > 4 ? 'text-green-600' : qc.overallScore >= 3 ? 'text-amber-600' : 'text-red-600')}>
-                                  ⭐ {qc.overallScore}/5
-                                </span>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">—</span>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                {/* Group summary bar */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm border rounded-lg p-3 bg-accent/20">
+                  <div><p className="text-xs text-muted-foreground">Created</p><p className="font-medium">{formatDate(viewGroup.createdAt)}</p></div>
+                  <div><p className="text-xs text-muted-foreground">Batches</p><p className="font-medium">{viewGroup.batchCount}</p></div>
+                  <div><p className="text-xs text-muted-foreground">Target × batches</p><p className="font-medium">{viewGroup.targetWeight} kg × {viewGroup.batchCount} = {expected} kg</p></div>
+                  <div><p className="text-xs text-muted-foreground">Pieces produced</p><p className="font-medium">{viewGroup.piecesProduced ?? '—'} pcs</p></div>
                 </div>
 
                 {/* Loss summary */}
-                {(viewGroup.piecesProduced != null || viewGroup.leftoverQty != null) && (() => {
-                  const expected = viewGroup.targetWeight * viewGroup.batchCount;
-                  const produced = (viewGroup.piecesProduced ?? 0) * (viewGroup.pieceWeightValue || 1);
-                  const leftover = viewGroup.leftoverQty ?? 0;
-                  const loss = expected - produced + leftover;
-                  return (
-                    <div className="p-3 rounded-lg bg-muted/30 border flex flex-wrap gap-4 text-sm">
-                      <span>Expected: <strong>{expected.toLocaleString()} kg</strong></span>
-                      <span>Produced: <strong>{produced > 0 ? `${produced.toLocaleString()} kg` : '—'}</strong></span>
-                      <span>Leftover: <strong>{leftover > 0 ? `${leftover} ${viewGroup.leftoverUnit}` : '—'}</strong></span>
-                      <span className={cn('font-semibold', loss > 0 ? 'text-red-600' : 'text-green-600')}>Loss: {loss.toFixed(2)} kg</span>
-                    </div>
-                  );
-                })()}
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setViewGroup(null)}>Close</Button>
-              </DialogFooter>
-            </>
-          )}
+                {hasFilled && (
+                  <div className="flex flex-wrap gap-4 text-sm p-3 rounded-lg bg-muted/30 border">
+                    <span>Expected: <strong>{expected.toLocaleString()} kg</strong></span>
+                    <span>Produced: <strong>{produced > 0 ? `${produced.toLocaleString()} kg` : '—'}</strong></span>
+                    <span>Leftover: <strong>{leftover > 0 ? `${leftover} ${viewGroup.leftoverUnit}` : '—'}</strong></span>
+                    <span className={cn('font-semibold', loss > 0 ? 'text-red-600' : 'text-green-600')}>Loss: {loss.toFixed(2)} kg</span>
+                  </div>
+                )}
+
+                {/* Per-batch cards */}
+                <div className="space-y-4">
+                  {(viewGroup.batches ?? []).map((b, idx) => {
+                    const qc: QualityControl | null = (b as any).qualityControl
+                      ?? qualityControls.find(q => q.batchId === String(b.id))
+                      ?? null;
+                    const qcNorm = qc ? {
+                      taste: Number((qc as any).taste) || 0,
+                      texture: Number((qc as any).texture) || 0,
+                      smell: Number((qc as any).smell) || 0,
+                      overallScore: Number((qc as any).overallScore ?? (qc as any).overall_score) || 0,
+                      approved: Boolean((qc as any).approved),
+                      evaluator: (qc as any).evaluator ?? '',
+                      notes: (qc as any).notes ?? '',
+                    } : null;
+
+                    return (
+                      <div key={b.id} className="border rounded-lg overflow-hidden">
+                        {/* Batch header */}
+                        <div className="flex items-center justify-between px-4 py-2.5 bg-accent/20 text-sm">
+                          <div className="flex items-center gap-3">
+                            <span className="font-semibold">Batch #{idx + 1}</span>
+                            <span className="font-mono text-xs bg-background border rounded px-2 py-0.5">{b.lot || '—'}</span>
+                            <Badge variant={b.status === 'completed' ? 'default' : 'destructive'} className="text-xs capitalize">
+                              {b.status === 'completed' ? <CheckCircle2 className="h-3 w-3 mr-1 inline" /> : <XCircle className="h-3 w-3 mr-1 inline" />}
+                              {b.status}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                            <span>Output: <strong className="text-foreground">{b.outputQuantity} {b.outputUnit}</strong></span>
+                            <span>Operator: <strong className="text-foreground">{b.operatorName || '—'}</strong></span>
+                            <span>{formatDate(b.startedAt)}</span>
+                          </div>
+                        </div>
+
+                        <div className="px-4 py-3 space-y-4">
+                          {/* Ingredients */}
+                          {b.inputMaterials && b.inputMaterials.length > 0 && (
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Ingredients</p>
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead>Material</TableHead>
+                                    <TableHead className="text-right">Qty</TableHead>
+                                    <TableHead>Unit</TableHead>
+                                    <TableHead className="text-right">Unit Price</TableHead>
+                                    <TableHead className="text-right">Cost</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {b.inputMaterials.map((m, mi) => (
+                                    <TableRow key={mi}>
+                                      <TableCell className="font-medium py-1.5">{m.materialName}</TableCell>
+                                      <TableCell className="text-right py-1.5">{m.quantity}</TableCell>
+                                      <TableCell className="py-1.5">{m.unit}</TableCell>
+                                      <TableCell className="text-right py-1.5">€{Number(m.unitPrice).toFixed(2)}</TableCell>
+                                      <TableCell className="text-right font-medium py-1.5">€{(m.quantity * m.unitPrice).toFixed(2)}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                  <TableRow>
+                                    <TableCell colSpan={4} className="text-right font-semibold text-xs">Batch cost</TableCell>
+                                    <TableCell className="text-right font-bold text-sm">€{b.inputMaterials.reduce((s, m) => s + m.quantity * m.unitPrice, 0).toFixed(2)}</TableCell>
+                                  </TableRow>
+                                </TableBody>
+                              </Table>
+                            </div>
+                          )}
+
+                          {/* QC Evaluation */}
+                          {qcNorm ? (
+                            <div className="p-3 rounded-lg border bg-accent/10 text-sm">
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Quality Evaluation</p>
+                              <div className="flex flex-wrap items-center gap-4">
+                                <span>Taste: <strong>{qcNorm.taste}/5</strong></span>
+                                <span>Texture: <strong>{qcNorm.texture}/5</strong></span>
+                                <span>Smell: <strong>{qcNorm.smell}/5</strong></span>
+                                <span className={cn('font-bold', qcNorm.overallScore > 4 ? 'text-green-600' : qcNorm.overallScore >= 3 ? 'text-amber-600' : 'text-red-600')}>
+                                  ⭐ {qcNorm.overallScore}/5
+                                </span>
+                                <Badge className={qcNorm.approved ? 'bg-success text-success-foreground' : 'bg-destructive text-destructive-foreground'}>
+                                  {qcNorm.approved ? 'Approved' : 'Rejected'}
+                                </Badge>
+                                {qcNorm.evaluator && <span className="text-muted-foreground">by {qcNorm.evaluator}</span>}
+                              </div>
+                              {qcNorm.notes && <p className="text-xs text-muted-foreground italic mt-1.5">"{qcNorm.notes}"</p>}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground italic">No quality evaluation yet.</p>
+                          )}
+
+                          {/* Notes */}
+                          {b.notes && b.notes.length > 0 && (
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Notes</p>
+                              <div className="space-y-1">
+                                {b.notes.map(n => (
+                                  <div key={n.id} className="text-sm bg-muted/30 rounded px-3 py-2">
+                                    <span className="font-medium">{n.author}:</span> {n.text}
+                                    <span className="text-xs text-muted-foreground ml-2">{formatDate(n.createdAt)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setViewGroup(null)}>Close</Button>
+                </DialogFooter>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 

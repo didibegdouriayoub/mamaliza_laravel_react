@@ -113,6 +113,7 @@ export interface Batch {
   outputQuantity: number;
   outputUnit: string;
   qualityScore?: number;
+  qualityControl?: QualityControl | null;
   notes: BatchNote[];
   startedAt: string;
   completedAt?: string;

@@ -38,6 +38,13 @@ class BatchController extends Controller
             $validated['started_at'] = now()->toDateTimeString();
         }
 
+        // Auto-generate unique lot: {3-LETTERS}-{DDMMYYYY}-{NNN}
+        $prefix = strtoupper(substr(preg_replace('/[^a-zA-Z]/', '', $validated['recipe_name']), 0, 3));
+        $date   = now()->format('dmY');
+        $base   = "{$prefix}-{$date}";
+        $count  = Batch::where('lot', 'like', "{$base}-%")->count();
+        $validated['lot'] = "{$base}-" . str_pad($count + 1, 3, '0', STR_PAD_LEFT);
+
         $batch = Batch::create($validated);
 
         // T9.1: Reduce inventory for each input material

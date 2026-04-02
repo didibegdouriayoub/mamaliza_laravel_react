@@ -11,7 +11,7 @@ class BatchGroupController extends Controller
     public function index()
     {
         return response()->json(
-            BatchGroup::with('batches.notes')->orderBy('created_at', 'desc')->get()
+            BatchGroup::with(['batches.notes', 'batches.qualityControl'])->orderBy('created_at', 'desc')->get()
         );
     }
 
