@@ -68,5 +68,9 @@ if [ "$APP_ENV" = "local" ]; then
   php artisan db:seed --force --no-interaction 2>/dev/null || true
 fi
 
+# Run legacy import once (idempotent — seeder skips if already imported)
+echo "==> Running legacy bakery import (skips if already done)..."
+php artisan db:seed --class=LegacyImportSeeder --force --no-interaction
+
 echo "==> Starting Laravel on port 8000..."
 exec php artisan serve --host=0.0.0.0 --port=8000
