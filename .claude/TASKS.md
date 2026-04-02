@@ -139,6 +139,25 @@
 | T13.31 | Batches — group view dialog shows full details per batch: ingredients table, notes, QC evaluation (taste/texture/smell/score) | 🟠 | ✅ |
 | T13.32 | Batches — add `startedAt` date field per batch in create form, pre-filled with today; send to API | 🟠 | ✅ |
 
+### Sprint 7: Estimation Redesign — Procurement Planning
+
+> Decisions locked:
+> - Lead time stored per inventory item (`lead_time_days`)
+> - Procurement plan covers only the deficit (missing stock), not full reorder qty
+> - No holding/opportunity cost — just purchase cost of missing materials
+> - Deficit is aggregated across all recipes in the estimation
+> - Estimation is read-only (no "Create Batches" button)
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T13.41 | Inventory — add `lead_time_days` (integer, nullable) to inventory items: migration + model + controller + form field | 🔴 | ☐ |
+| T13.42 | Estimation — remove "Create Batches" button; page becomes read-only planning tool | 🟠 | ☐ |
+| T13.43 | Estimation — fix stock check to match ingredients by `materialId` (not by name) | 🔴 | ☐ |
+| T13.44 | Estimation — replace packaging ratio system with `recipe.packages` quantities × batchCount per recipe | 🔴 | ☐ |
+| T13.45 | Estimation — add Procurement Plan table: one row per deficit material showing qty to order, supplier, lead time (days), order cost | 🔴 | ☐ |
+| T13.46 | Estimation — show critical path banner: material with longest lead time → "Earliest production start: X days" | 🟠 | ☐ |
+| T13.47 | Estimation — split total investment into: already in stock cost + materials to order cost + packaging to order cost | 🟠 | ☐ |
+
 ---
 
 ## Rules for this Project
