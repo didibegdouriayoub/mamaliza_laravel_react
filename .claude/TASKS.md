@@ -150,13 +150,13 @@
 
 | # | Task | Priority | Status |
 |---|---|---|---|
-| T13.41 | Inventory — add `lead_time_days` (integer, nullable) to inventory items: migration + model + controller + form field | 🔴 | ☐ |
-| T13.42 | Estimation — remove "Create Batches" button; page becomes read-only planning tool | 🟠 | ☐ |
-| T13.43 | Estimation — fix stock check to match ingredients by `materialId` (not by name) | 🔴 | ☐ |
-| T13.44 | Estimation — replace packaging ratio system with `recipe.packages` quantities × batchCount per recipe | 🔴 | ☐ |
-| T13.45 | Estimation — add Procurement Plan table: one row per deficit material showing qty to order, supplier, lead time (days), order cost | 🔴 | ☐ |
-| T13.46 | Estimation — show critical path banner: material with longest lead time → "Earliest production start: X days" | 🟠 | ☐ |
-| T13.47 | Estimation — split total investment into: already in stock cost + materials to order cost + packaging to order cost | 🟠 | ☐ |
+| T13.41 | Inventory — add `lead_time_days` (integer, nullable) to inventory items: migration + model + controller + form field | 🔴 | ✅ |
+| T13.42 | Estimation — remove "Create Batches" button; page becomes read-only planning tool | 🟠 | ✅ |
+| T13.43 | Estimation — fix stock check to match ingredients by `materialId` (not by name) | 🔴 | ✅ |
+| T13.44 | Estimation — replace packaging ratio system with `recipe.packages` quantities × batchCount per recipe | 🔴 | ✅ |
+| T13.45 | Estimation — add Procurement Plan table: one row per deficit material showing qty to order, supplier, lead time (days), order cost | 🔴 | ✅ |
+| T13.46 | Estimation — show critical path banner: material with longest lead time → "Earliest production start: X days" | 🟠 | ✅ |
+| T13.47 | Estimation — split total investment into: already in stock cost + materials to order cost + packaging to order cost | 🟠 | ✅ |
 
 ---
 
