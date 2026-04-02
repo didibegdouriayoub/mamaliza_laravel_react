@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calculator, Plus, Trash2, Printer, Factory } from 'lucide-react';
+import { Calculator, Plus, Trash2, Printer, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,10 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { recipeService } from '@/services/recipeService';
 import { inventoryService } from '@/services/inventoryService';
-import { batchService } from '@/services/batchService';
-import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
-import { Recipe, InventoryItem, BatchStatus } from '@/models/types';
+import { Recipe, InventoryItem } from '@/models/types';
+import { cn } from '@/lib/utils';
 
 interface EstimationLine {
   recipeId: string;
@@ -24,144 +22,181 @@ export default function Estimation() {
   const [lines, setLines] = useState<EstimationLine[]>([{ recipeId: '', batchCount: 1 }]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
-  const [isCreating, setIsCreating] = useState(false);
-  const [pkgRatios, setPkgRatios] = useState<Record<string, number>>({});
-  const { user } = useAuth();
-  const { toast } = useToast();
 
   useEffect(() => {
     const loadData = async () => {
       try {
         const [recipeData, invData] = await Promise.all([
           recipeService.getAll(),
-          inventoryService.getAll()
+          inventoryService.getAll(),
         ]);
         const rData = (recipeData || []).map((r: any) => ({
           ...r,
           targetWeight: Number(r.target_weight ?? r.targetWeight) || 0,
           pieceWeight: r.piece_weight ?? r.pieceWeight ?? '',
-          ingredients: (r.ingredients || []).map((i: any) => ({ ...i, quantity: Number(i.quantity) || 0, unitPrice: Number(i.unitPrice ?? i.unit_price) || 0 })),
+          recipeStatus: r.recipe_status ?? r.recipeStatus ?? 'semi_final',
+          packages: (r.packages || []).map((p: any) => ({
+            id: String(p.id),
+            name: p.name,
+            quantity: Number(p.quantity) || 0,
+          })),
+          ingredients: (r.ingredients || []).map((i: any) => ({
+            ...i,
+            materialId: String(i.materialId ?? i.material_id ?? ''),
+            materialName: i.materialName ?? i.material_name ?? '',
+            quantity: Number(i.quantity) || 0,
+            unitPrice: Number(i.unitPrice ?? i.unit_price) || 0,
+          })),
         }));
         setRecipes(rData);
-        
-        const initialRatios: Record<string, number> = {};
-        (invData || []).filter(i => i.type === 'packaging').forEach(p => {
-          initialRatios[p.id] = p.name.toLowerCase().includes('label') ? 1 : 0.1;
-        });
-        setPkgRatios(initialRatios);
-        const iData = (invData || []).map((i: any) => ({ ...i, quantity: Number(i.quantity) || 0, price: Number(i.price) || 0 }));
+        const iData = (invData || []).map((i: any) => ({
+          ...i,
+          quantity: Number(i.quantity) || 0,
+          price: Number(i.price) || 0,
+          leadTimeDays: Number(i.leadTimeDays ?? i.lead_time_days) || 0,
+          supplierId: String(i.supplierId ?? i.supplier?.id ?? ''),
+          supplier: i.supplier?.name ?? i.supplier ?? '',
+        }));
         setInventory(iData);
-      } catch(e) { console.error(e); }
+      } catch (e) { console.error(e); }
     };
     loadData();
   }, []);
-
-  const handleCreateBatches = async () => {
-    const validLines = lines.filter(l => l.recipeId && l.batchCount > 0);
-    if (validLines.length === 0) return;
-    
-    setIsCreating(true);
-    let createdCount = 0;
-    
-    try {
-      for (const line of validLines) {
-        const recipe = recipes.find(r => String(r.id) === String(line.recipeId));
-        if (!recipe) continue;
-        
-        for (let i = 0; i < line.batchCount; i++) {
-          await batchService.create({
-            recipeId: recipe.id,
-            recipeName: recipe.name,
-            status: 'draft' as BatchStatus,
-            inputMaterials: recipe.ingredients,
-            outputQuantity: 0,
-            outputUnit: recipe.pieceWeight,
-            operatorId: user.id as string,
-            operatorName: user.name,
-            startedAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
-          });
-          createdCount++;
-        }
-      }
-      toast({ title: 'Success', description: `Created ${createdCount} draft batches successfully.` });
-    } catch (e: any) {
-      console.error(e);
-      toast({ title: 'Error creating batches', description: e.message, variant: 'destructive' });
-    } finally {
-      setIsCreating(false);
-    }
-  };
 
   const addLine = () => setLines(prev => [...prev, { recipeId: '', batchCount: 1 }]);
   const removeLine = (idx: number) => setLines(prev => prev.filter((_, i) => i !== idx));
   const updateLine = (idx: number, updates: Partial<EstimationLine>) =>
     setLines(prev => prev.map((l, i) => i === idx ? { ...l, ...updates } : l));
 
-  // Aggregate ingredients needed
-  const aggregated = new Map<string, { name: string; quantity: number; unit: string; unitPrice: number; type: string }>();
+  const hasEstimation = lines.some(l => l.recipeId);
+
+  // ── Aggregate raw material needs (by materialId) ──────────────────────────
+  const rawNeeds = new Map<string, {
+    materialId: string; name: string; unit: string;
+    unitPrice: number; needed: number;
+  }>();
 
   lines.forEach(line => {
     const recipe = recipes.find(r => String(r.id) === String(line.recipeId));
     if (!recipe) return;
     recipe.ingredients.forEach(ing => {
-      const existing = aggregated.get(ing.materialId);
+      const key = ing.materialId;
+      const existing = rawNeeds.get(key);
       const needed = ing.quantity * line.batchCount;
       if (existing) {
-        existing.quantity += needed;
+        existing.needed += needed;
       } else {
-        const invItem = inventory.find(i => String(i.id) === String(ing.materialId));
-        aggregated.set(ing.materialId, {
+        rawNeeds.set(key, {
+          materialId: key,
           name: ing.materialName,
-          quantity: needed,
           unit: ing.unit,
           unitPrice: ing.unitPrice,
-          type: invItem?.type || 'raw',
+          needed,
         });
       }
     });
   });
 
-  // Also estimate packaging needs based on dynamic ratios per yield unit
-  const totalYield = lines.reduce((sum, line) => {
+  // ── Aggregate packaging needs (from recipe.packages × batchCount) ─────────
+  const pkgNeeds = new Map<string, {
+    invItemId: string; name: string; unit: string;
+    price: number; needed: number;
+  }>();
+
+  lines.forEach(line => {
     const recipe = recipes.find(r => String(r.id) === String(line.recipeId));
-    return sum + (recipe ? recipe.targetWeight * line.batchCount : 0);
-  }, 0);
-
-  const packagingNeeds = inventory.filter(i => i.type === 'packaging').map(pkg => ({
-    ...pkg,
-    estimated: Math.ceil(totalYield * (pkgRatios[pkg.id] || 0)),
-  }));
-
-  const ingredientList = Array.from(aggregated.values());
-  const totalIngredientCost = ingredientList.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
-  const totalPackagingCost = packagingNeeds.reduce((sum, p) => sum + p.estimated * p.price, 0);
-  const totalCost = totalIngredientCost + totalPackagingCost;
-
-  const hasEstimation = lines.some(l => l.recipeId);
-
-  // Stock availability check
-  const stockStatus = ingredientList.map(ing => {
-    const invItem = inventory.find(i => i.name === ing.name);
-    const available = invItem?.quantity || 0;
-    return { ...ing, available, sufficient: available >= ing.quantity };
+    if (!recipe) return;
+    recipe.packages.forEach(pkg => {
+      const invItem = inventory.find(i => String(i.id) === String(pkg.id));
+      const key = String(pkg.id);
+      const needed = pkg.quantity * line.batchCount;
+      const existing = pkgNeeds.get(key);
+      if (existing) {
+        existing.needed += needed;
+      } else {
+        pkgNeeds.set(key, {
+          invItemId: key,
+          name: pkg.name,
+          unit: invItem?.unit ?? 'pcs',
+          price: invItem?.price ?? 0,
+          needed,
+        });
+      }
+    });
   });
 
-  const handlePrint = () => window.print();
+  // ── Stock check ───────────────────────────────────────────────────────────
+  type StockRow = {
+    id: string; name: string; unit: string; unitPrice: number;
+    needed: number; inStock: number; deficit: number; sufficient: boolean;
+    supplier: string; leadTimeDays: number;
+  };
+
+  const rawRows: StockRow[] = Array.from(rawNeeds.values()).map(r => {
+    const inv = inventory.find(i => String(i.id) === String(r.materialId));
+    const inStock = inv?.quantity ?? 0;
+    const deficit = Math.max(0, r.needed - inStock);
+    return {
+      id: r.materialId, name: r.name, unit: r.unit, unitPrice: r.unitPrice,
+      needed: r.needed, inStock, deficit, sufficient: deficit === 0,
+      supplier: inv?.supplier ?? '—',
+      leadTimeDays: inv?.leadTimeDays ?? 0,
+    };
+  });
+
+  const pkgRows: StockRow[] = Array.from(pkgNeeds.values()).map(p => {
+    const inv = inventory.find(i => String(i.id) === p.invItemId);
+    const inStock = inv?.quantity ?? 0;
+    const deficit = Math.max(0, p.needed - inStock);
+    return {
+      id: p.invItemId, name: p.name, unit: p.unit, unitPrice: p.price,
+      needed: p.needed, inStock, deficit, sufficient: deficit === 0,
+      supplier: inv?.supplier ?? '—',
+      leadTimeDays: inv?.leadTimeDays ?? 0,
+    };
+  });
+
+  // ── Procurement plan (deficit rows only) ─────────────────────────────────
+  const procurementRows = [...rawRows, ...pkgRows].filter(r => r.deficit > 0);
+  const criticalLeadTime = procurementRows.reduce((max, r) => Math.max(max, r.leadTimeDays), 0);
+
+  // ── Cost breakdown ────────────────────────────────────────────────────────
+  // Materials already in stock (cost of the portion we consume from existing stock)
+  const rawInStockCost = rawRows.reduce((s, r) => {
+    const consumed = Math.min(r.needed, r.inStock);
+    return s + consumed * r.unitPrice;
+  }, 0);
+  const pkgInStockCost = pkgRows.reduce((s, r) => {
+    const consumed = Math.min(r.needed, r.inStock);
+    return s + consumed * r.unitPrice;
+  }, 0);
+  const inStockCost = rawInStockCost + pkgInStockCost;
+
+  // Materials to order (deficit × unit price)
+  const rawOrderCost = rawRows.reduce((s, r) => s + r.deficit * r.unitPrice, 0);
+  const pkgOrderCost = pkgRows.reduce((s, r) => s + r.deficit * r.unitPrice, 0);
+  const orderCost = rawOrderCost + pkgOrderCost;
+
+  const totalInvestment = inStockCost + orderCost;
+
+  // ── Feasibility ───────────────────────────────────────────────────────────
+  const allSufficient = procurementRows.length === 0;
+  const criticalCount = procurementRows.filter(r => r.deficit > 0).length;
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between print:hidden">
         <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2"><Calculator className="h-6 w-6" /> Production Estimation</h1>
-          <p className="text-sm text-muted-foreground">Estimate ingredients, packaging, and costs for planned batches</p>
+          <h1 className="text-2xl font-display font-bold flex items-center gap-2">
+            <Calculator className="h-6 w-6" /> Production Estimation
+          </h1>
+          <p className="text-sm text-muted-foreground">Plan batches, check stock and procurement needs</p>
         </div>
         {hasEstimation && (
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={handlePrint}><Printer className="h-4 w-4 mr-1" /> Print</Button>
-            <Button onClick={handleCreateBatches} disabled={isCreating}>
-              <Factory className="h-4 w-4 mr-1" /> {isCreating ? 'Creating...' : 'Create Batches'}
-            </Button>
-          </div>
+          <Button variant="outline" onClick={() => window.print()}>
+            <Printer className="h-4 w-4 mr-1" /> Print
+          </Button>
         )}
       </div>
 
@@ -178,13 +213,21 @@ export default function Estimation() {
                 <Select value={line.recipeId} onValueChange={v => updateLine(idx, { recipeId: v })}>
                   <SelectTrigger><SelectValue placeholder="Select recipe" /></SelectTrigger>
                   <SelectContent>
-                    {recipes.map(r => <SelectItem key={r.id} value={String(r.id)}>{r.name} (yields {r.targetWeight} {r.pieceWeight})</SelectItem>)}
+                    {recipes.map(r => (
+                      <SelectItem key={r.id} value={String(r.id)}>
+                        {r.name} — {r.targetWeight} {r.pieceWeight}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="w-full sm:w-32 space-y-1.5">
                 <Label className="text-xs">Batches</Label>
-                <Input type="number" min={1} value={line.batchCount} onChange={e => updateLine(idx, { batchCount: Math.max(1, Number(e.target.value)) })} />
+                <Input
+                  type="number" min={1}
+                  value={line.batchCount}
+                  onChange={e => updateLine(idx, { batchCount: Math.max(1, Number(e.target.value)) })}
+                />
               </div>
               {lines.length > 1 && (
                 <Button variant="ghost" size="icon" className="shrink-0" onClick={() => removeLine(idx)}>
@@ -193,120 +236,215 @@ export default function Estimation() {
               )}
             </div>
           ))}
-          <Button variant="outline" size="sm" onClick={addLine}><Plus className="h-3 w-3 mr-1" /> Add Recipe</Button>
+          <Button variant="outline" size="sm" onClick={addLine}>
+            <Plus className="h-3 w-3 mr-1" /> Add Recipe
+          </Button>
         </CardContent>
       </Card>
 
       {hasEstimation && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-          {/* Summary cards */}
+
+          {/* Feasibility banner */}
+          <div className={cn(
+            'flex items-center gap-3 p-4 rounded-lg border text-sm font-medium',
+            allSufficient
+              ? 'bg-green-50 border-green-200 text-green-800'
+              : 'bg-amber-50 border-amber-200 text-amber-800'
+          )}>
+            {allSufficient ? (
+              <><CheckCircle2 className="h-5 w-5 shrink-0" /> All materials are in stock — ready to produce.</>
+            ) : (
+              <><AlertTriangle className="h-5 w-5 shrink-0" /> {criticalCount} material{criticalCount !== 1 ? 's' : ''} need to be ordered before production can start.</>
+            )}
+          </div>
+
+          {/* Critical path */}
+          {!allSufficient && criticalLeadTime > 0 && (
+            <div className="flex items-center gap-3 p-4 rounded-lg border bg-blue-50 border-blue-200 text-sm text-blue-800">
+              <Clock className="h-5 w-5 shrink-0" />
+              <span>
+                Earliest production start: <strong>{criticalLeadTime} day{criticalLeadTime !== 1 ? 's' : ''}</strong>
+                {' '}— waiting for{' '}
+                <strong>{procurementRows.find(r => r.leadTimeDays === criticalLeadTime)?.name}</strong>
+                {' '}(longest lead time).
+              </span>
+            </div>
+          )}
+
+          {/* Investment summary cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <Card className="shadow-card">
               <CardContent className="p-4 text-center">
-                <p className="text-xs text-muted-foreground mb-1">Ingredient Cost</p>
-                <p className="text-2xl font-display font-bold text-primary">€{totalIngredientCost.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground mb-1">Already in Stock</p>
+                <p className="text-2xl font-display font-bold text-green-600">€{inStockCost.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground mt-1">value consumed from existing stock</p>
               </CardContent>
             </Card>
             <Card className="shadow-card">
               <CardContent className="p-4 text-center">
-                <p className="text-xs text-muted-foreground mb-1">Packaging Cost</p>
-                <p className="text-2xl font-display font-bold text-primary">€{totalPackagingCost.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground mb-1">To Order</p>
+                <p className={cn('text-2xl font-display font-bold', orderCost > 0 ? 'text-amber-600' : 'text-muted-foreground')}>
+                  €{orderCost.toFixed(2)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">purchase cost of missing materials</p>
               </CardContent>
             </Card>
             <Card className="shadow-card">
               <CardContent className="p-4 text-center">
                 <p className="text-xs text-muted-foreground mb-1">Total Investment</p>
-                <p className="text-2xl font-display font-bold text-primary">€{totalCost.toFixed(2)}</p>
+                <p className="text-2xl font-display font-bold text-primary">€{totalInvestment.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground mt-1">stock used + materials to buy</p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Ingredients table */}
-          <Card className="shadow-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-display">Required Ingredients</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Material</TableHead>
-                    <TableHead className="text-right">Needed</TableHead>
-                    <TableHead>Unit</TableHead>
-                    <TableHead className="text-right">In Stock</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Cost</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {stockStatus.map((ing, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="font-medium">{ing.name}</TableCell>
-                      <TableCell className="text-right">{ing.quantity.toFixed(1)}</TableCell>
-                      <TableCell>{ing.unit}</TableCell>
-                      <TableCell className="text-right">{ing.available}</TableCell>
-                      <TableCell>
-                        <Badge className={ing.sufficient ? 'bg-success text-success-foreground' : 'bg-destructive text-destructive-foreground'}>
-                          {ing.sufficient ? 'OK' : `Need ${(ing.quantity - ing.available).toFixed(1)} more`}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-medium">€{(ing.quantity * ing.unitPrice).toFixed(2)}</TableCell>
+          {/* Raw materials table */}
+          {rawRows.length > 0 && (
+            <Card className="shadow-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-display">Raw Materials</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Material</TableHead>
+                      <TableHead className="text-right">Needed</TableHead>
+                      <TableHead>Unit</TableHead>
+                      <TableHead className="text-right">In Stock</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Cost</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {rawRows.map((r, i) => (
+                      <TableRow key={i}>
+                        <TableCell className="font-medium">{r.name}</TableCell>
+                        <TableCell className="text-right">{r.needed.toFixed(2)}</TableCell>
+                        <TableCell>{r.unit}</TableCell>
+                        <TableCell className="text-right">{r.inStock}</TableCell>
+                        <TableCell>
+                          {r.sufficient ? (
+                            <Badge className="bg-success text-success-foreground">OK</Badge>
+                          ) : (
+                            <Badge className="bg-destructive text-destructive-foreground">
+                              Need {r.deficit.toFixed(2)} more
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">€{(r.needed * r.unitPrice).toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Packaging table */}
-          <Card className="shadow-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base font-display">Estimated Packaging</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Material</TableHead>
-                    <TableHead className="w-24">Ratio/Unit</TableHead>
-                    <TableHead className="text-right">Estimated</TableHead>
-                    <TableHead>Unit</TableHead>
-                    <TableHead className="text-right">In Stock</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Cost</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {packagingNeeds.map((pkg, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="font-medium">{pkg.name}</TableCell>
-                      <TableCell>
-                        <Input 
-                          type="number" 
-                          step="0.01" 
-                          min="0"
-                          className="h-8 text-xs py-1"
-                          value={pkgRatios[pkg.id] ?? ''} 
-                          onChange={e => setPkgRatios(p => ({ ...p, [pkg.id]: Number(e.target.value) || 0 }))} 
-                        />
-                      </TableCell>
-                      <TableCell className="text-right">{pkg.estimated}</TableCell>
-                      <TableCell>{pkg.unit}</TableCell>
-                      <TableCell className="text-right">{pkg.quantity}</TableCell>
-                      <TableCell>
-                        <Badge className={pkg.quantity >= pkg.estimated ? 'bg-success text-success-foreground' : 'bg-destructive text-destructive-foreground'}>
-                          {pkg.quantity >= pkg.estimated ? 'OK' : 'Low'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-medium">€{(pkg.estimated * pkg.price).toFixed(2)}</TableCell>
+          {pkgRows.length > 0 && (
+            <Card className="shadow-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-display">Packaging</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Item</TableHead>
+                      <TableHead className="text-right">Needed</TableHead>
+                      <TableHead>Unit</TableHead>
+                      <TableHead className="text-right">In Stock</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Cost</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {pkgRows.map((r, i) => (
+                      <TableRow key={i}>
+                        <TableCell className="font-medium">{r.name}</TableCell>
+                        <TableCell className="text-right">{r.needed}</TableCell>
+                        <TableCell>{r.unit}</TableCell>
+                        <TableCell className="text-right">{r.inStock}</TableCell>
+                        <TableCell>
+                          {r.sufficient ? (
+                            <Badge className="bg-success text-success-foreground">OK</Badge>
+                          ) : (
+                            <Badge className="bg-destructive text-destructive-foreground">
+                              Need {r.deficit} more
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right font-medium">€{(r.needed * r.unitPrice).toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Yield summary */}
+          {/* Procurement plan */}
+          {procurementRows.length > 0 && (
+            <Card className="shadow-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base font-display flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" /> Procurement Plan
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Material</TableHead>
+                      <TableHead className="text-right">To Order</TableHead>
+                      <TableHead>Unit</TableHead>
+                      <TableHead>Supplier</TableHead>
+                      <TableHead className="text-right">Lead Time</TableHead>
+                      <TableHead className="text-right">Order Cost</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {procurementRows
+                      .sort((a, b) => b.leadTimeDays - a.leadTimeDays)
+                      .map((r, i) => (
+                        <TableRow key={i}>
+                          <TableCell className="font-medium">{r.name}</TableCell>
+                          <TableCell className="text-right font-semibold text-destructive">
+                            {r.deficit % 1 === 0 ? r.deficit : r.deficit.toFixed(2)}
+                          </TableCell>
+                          <TableCell>{r.unit}</TableCell>
+                          <TableCell className="text-muted-foreground">{r.supplier}</TableCell>
+                          <TableCell className="text-right">
+                            {r.leadTimeDays > 0 ? (
+                              <span className={cn(
+                                'font-medium',
+                                r.leadTimeDays === criticalLeadTime ? 'text-red-600' : 'text-amber-600'
+                              )}>
+                                {r.leadTimeDays}d
+                                {r.leadTimeDays === criticalLeadTime && ' ⚠️'}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right font-medium">
+                            €{(r.deficit * r.unitPrice).toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-right font-semibold text-sm">Total to order</TableCell>
+                      <TableCell className="text-right font-bold">€{orderCost.toFixed(2)}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Production summary */}
           <Card className="shadow-card">
             <CardHeader className="pb-2">
               <CardTitle className="text-base font-display">Production Summary</CardTitle>
@@ -317,9 +455,10 @@ export default function Estimation() {
                   <TableRow>
                     <TableHead>Recipe</TableHead>
                     <TableHead className="text-right">Batches</TableHead>
-                    <TableHead className="text-right">Yield/Batch</TableHead>
+                    <TableHead className="text-right">Yield / Batch</TableHead>
                     <TableHead className="text-right">Total Yield</TableHead>
-                    <TableHead className="text-right">Cost/Batch</TableHead>
+                    <TableHead className="text-right">Cost / Batch</TableHead>
+                    <TableHead className="text-right">Total Cost</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -331,8 +470,11 @@ export default function Estimation() {
                         <TableCell className="font-medium">{recipe.name}</TableCell>
                         <TableCell className="text-right">{line.batchCount}</TableCell>
                         <TableCell className="text-right">{recipe.targetWeight} {recipe.pieceWeight}</TableCell>
-                        <TableCell className="text-right font-semibold">{recipe.targetWeight * line.batchCount} {recipe.pieceWeight}</TableCell>
+                        <TableCell className="text-right font-semibold">
+                          {(recipe.targetWeight * line.batchCount).toLocaleString()} {recipe.pieceWeight}
+                        </TableCell>
                         <TableCell className="text-right">€{batchCost.toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-semibold">€{(batchCost * line.batchCount).toFixed(2)}</TableCell>
                       </TableRow>
                     );
                   })}
@@ -340,6 +482,7 @@ export default function Estimation() {
               </Table>
             </CardContent>
           </Card>
+
         </motion.div>
       )}
     </div>
