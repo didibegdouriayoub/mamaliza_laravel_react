@@ -131,6 +131,7 @@ export function printDocument(title: string, bodyHtml: string): void {
       border-bottom: 1px solid var(--line);
     }
     th.r, td.r { text-align: right; }
+    th.c, td.c { text-align: center; }
     td {
       padding: 7px 9px;
       border-bottom: 1px solid var(--line);

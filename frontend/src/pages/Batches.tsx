@@ -73,59 +73,99 @@ export default function Batches() {
   const { user, hasPermission } = useAuth();
   const { toast } = useToast();
 
-  // ── Batch Group print ─────────────────────────────────────────────────────
+  // ── Batch Group print  (pivot: ingredients = rows, batches = columns) ───────
   const printBatchGroup = (data: PrintData) => {
-    const now = new Date();
+    const now   = new Date();
     const dateStr = now.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
     const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
-    const grandTotal = data.batches.reduce(
-      (sum, b) => sum + b.ingredients.reduce((s, i) => s + i.quantity * i.unitPrice, 0), 0
-    );
+    // ── 1. Collect unique ingredients (order of first appearance) ────────────
+    const ingMap = new Map<string, { name: string; unit: string; unitPrice: number }>();
+    for (const b of data.batches) {
+      for (const ing of b.ingredients) {
+        if (!ingMap.has(ing.materialName)) {
+          ingMap.set(ing.materialName, { name: ing.materialName, unit: ing.unit, unitPrice: ing.unitPrice });
+        }
+      }
+    }
+    const ingredients = Array.from(ingMap.values());
 
-    const batchBlocks = data.batches.map(b => {
-      const batchTotal = b.ingredients.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
-      const ingRows = b.ingredients.map((ing, idx) => `
-        <tr class="${idx % 2 === 1 ? 'alt' : ''}">
-          <td>${ing.materialName}</td>
-          <td class="r">${ing.quantity}</td>
-          <td>${ing.unit}</td>
-          <td class="r">${fmtEur(ing.unitPrice)}</td>
-          <td class="r">${fmtEur(ing.quantity * ing.unitPrice)}</td>
-        </tr>`).join('');
+    // ── 2. Totals ────────────────────────────────────────────────────────────
+    const batchTotals = data.batches.map(b =>
+      b.ingredients.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
+    );
+    const grandTotal = batchTotals.reduce((s, t) => s + t, 0);
+
+    // ── 3. Pastel palette for batch columns (cycles) ─────────────────────────
+    const palette = [
+      { bg: '#EFF6FF', fg: '#1D4ED8' }, // blue
+      { bg: '#F0FDF4', fg: '#15803D' }, // green
+      { bg: '#FFF7ED', fg: '#C2410C' }, // orange
+      { bg: '#FAF5FF', fg: '#7E22CE' }, // purple
+      { bg: '#FFF1F2', fg: '#BE123C' }, // rose
+      { bg: '#ECFEFF', fg: '#0E7490' }, // cyan
+      { bg: '#FEFCE8', fg: '#A16207' }, // yellow
+      { bg: '#F0F9FF', fg: '#0369A1' }, // sky
+    ];
+
+    // ── 4. Table header row ──────────────────────────────────────────────────
+    const batchHeaderCells = data.batches.map((b, idx) => {
+      const { bg, fg } = palette[idx % palette.length];
       return `
-        <div class="batch-block">
-          <div class="batch-header">
-            <span class="batch-num">Batch #${b.batchNum}</span>
-            <span class="batch-meta">
-              Lot: <span>${b.lot || '—'}</span>
-              &nbsp;·&nbsp; Output: <strong>${b.outputQty}</strong>
-            </span>
-          </div>
-          <table>
-            <thead><tr>
-              <th>Material</th><th class="r">Qty</th><th>Unit</th>
-              <th class="r">Unit Price</th><th class="r">Cost</th>
-            </tr></thead>
-            <tbody>${ingRows}</tbody>
-            <tfoot>
-              <tr class="total">
-                <td colspan="4">Batch Total</td>
-                <td class="r">${fmtEur(batchTotal)}</td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>`;
+        <th class="r" style="background:${bg};color:${fg};min-width:62px;padding:6px 8px">
+          <div style="font-size:8pt;font-weight:700">Batch ${b.batchNum}</div>
+          ${b.lot ? `<div style="font-size:6.5pt;font-weight:400;opacity:.8;margin-top:1px">Lot: ${b.lot}</div>` : ''}
+          <div style="font-size:6.5pt;font-weight:400;opacity:.7;margin-top:1px">${b.outputQty} out</div>
+        </th>`;
     }).join('');
 
-    const stepsList = data.recipe.steps.length > 0
-      ? `<div class="section-title">Process Steps</div>
-         <ol style="padding-left:18px;font-size:8.5pt;line-height:1.8;color:#334155">
+    // ── 5. Ingredient rows ───────────────────────────────────────────────────
+    const ingRows = ingredients.map((ing, rowIdx) => {
+      const totalQty  = data.batches.reduce((sum, b) => {
+        const f = b.ingredients.find(i => i.materialName === ing.name);
+        return sum + (f ? f.quantity : 0);
+      }, 0);
+      const totalCost = totalQty * ing.unitPrice;
+
+      const batchCells = data.batches.map((b, idx) => {
+        const { bg } = palette[idx % palette.length];
+        const f = b.ingredients.find(i => i.materialName === ing.name);
+        return f
+          ? `<td class="r" style="background:${bg}20">${f.quantity}</td>`
+          : `<td class="r" style="color:#cbd5e1">—</td>`;
+      }).join('');
+
+      return `
+        <tr class="${rowIdx % 2 === 1 ? 'alt' : ''}">
+          <td class="c" style="color:#94a3b8;font-size:7.5pt;width:22px">${rowIdx + 1}</td>
+          <td style="font-weight:500">${ing.name}</td>
+          <td class="c" style="color:#64748b;width:36px">${ing.unit}</td>
+          <td class="r" style="color:#64748b;width:60px">${fmtEur(ing.unitPrice)}</td>
+          ${batchCells}
+          <td class="r" style="background:#f8fafc;font-weight:700;border-left:2px solid #e2e8f0;width:70px">
+            ${totalQty} <span style="font-size:7pt;color:#94a3b8;font-weight:400">${ing.unit}</span>
+          </td>
+          <td class="r" style="background:#f8fafc;font-weight:700;color:#D4162E;width:72px">${fmtEur(totalCost)}</td>
+        </tr>`;
+    }).join('');
+
+    // ── 6. Footer: per-batch cost + grand total ──────────────────────────────
+    const batchCostCells = batchTotals.map((t, idx) => {
+      const { bg, fg } = palette[idx % palette.length];
+      return `<td class="r" style="background:${bg};color:${fg};font-weight:700">${fmtEur(t)}</td>`;
+    }).join('');
+
+    // ── 7. Steps ─────────────────────────────────────────────────────────────
+    const stepsList = data.recipe.steps?.length > 0
+      ? `<div class="section-title" style="margin-top:22px">Process Steps</div>
+         <ol style="padding-left:18px;font-size:8.5pt;line-height:1.85;color:#334155;columns:2;column-gap:32px">
            ${data.recipe.steps.map(s => `<li>${s}</li>`).join('')}
          </ol>`
       : '';
 
     const html = `
+      <style>@page { size: A4 landscape; margin: 12mm 14mm; }</style>
+
       <div class="doc-header">
         <div class="brand">
           <div class="brand-icon">FM</div>
@@ -136,7 +176,7 @@ export default function Batches() {
         </div>
         <div class="doc-meta">
           <div class="doc-title">Batch Group #${data.groupId}</div>
-          <div>Generated on ${dateStr} at ${timeStr}</div>
+          <div>Generated ${dateStr} at ${timeStr}</div>
           <div>Operator: ${user?.name ?? '—'}</div>
         </div>
       </div>
@@ -148,27 +188,52 @@ export default function Batches() {
           <div class="card-desc">v${data.recipe.version} · ${data.recipe.recipeStatus}</div>
         </div>
         <div class="card">
+          <div class="card-label">Ingredients</div>
+          <div class="card-value">${ingredients.length}</div>
+          <div class="card-desc">unique materials</div>
+        </div>
+        <div class="card">
           <div class="card-label">Batches</div>
           <div class="card-value">${data.batches.length}</div>
           <div class="card-desc">piece weight: ${data.recipe.pieceWeight}</div>
         </div>
         <div class="card">
-          <div class="card-label">Total Cost</div>
+          <div class="card-label">Grand Total Cost</div>
           <div class="card-value red">${fmtEur(grandTotal)}</div>
-          <div class="card-desc">all input materials</div>
+          <div class="card-desc">all batches combined</div>
         </div>
       </div>
 
-      <div class="section-title">Batches — Ingredients &amp; Costs</div>
-      ${batchBlocks}
+      <div class="section-title">Ingredients × Batches — Material Requirements</div>
 
-      <div style="display:flex;justify-content:flex-end;font-size:9pt;font-weight:700;margin-top:4px;padding:8px 0;border-top:2px solid #e2e8f0">
-        Grand Total: ${fmtEur(grandTotal)}
-      </div>
+      <table style="table-layout:auto">
+        <thead>
+          <tr>
+            <th class="c" style="width:22px">#</th>
+            <th>Ingredient</th>
+            <th class="c" style="width:36px">Unit</th>
+            <th class="r" style="width:60px">Unit Price</th>
+            ${batchHeaderCells}
+            <th class="r" style="border-left:2px solid #e2e8f0;width:70px;background:#f1f5f9">Total Qty</th>
+            <th class="r" style="width:72px;background:#f1f5f9">Total Cost</th>
+          </tr>
+        </thead>
+        <tbody>${ingRows}</tbody>
+        <tfoot>
+          <tr class="total">
+            <td colspan="4" style="text-align:right;font-size:7.5pt;color:#64748b;text-transform:uppercase;letter-spacing:.05em;font-weight:600">
+              Batch Cost
+            </td>
+            ${batchCostCells}
+            <td style="border-left:2px solid #e2e8f0"></td>
+            <td class="r" style="color:#D4162E;font-size:10pt">${fmtEur(grandTotal)}</td>
+          </tr>
+        </tfoot>
+      </table>
 
       ${stepsList}
 
-      <div class="signatures">
+      <div class="signatures" style="margin-top:${data.recipe.steps?.length > 0 ? '20px' : '28px'}">
         <div class="sig-box">
           <div class="sig-label">Operator Signature</div>
           <div class="sig-line"></div>
@@ -179,11 +244,16 @@ export default function Batches() {
           <div class="sig-line"></div>
           <div class="sig-name">&nbsp;</div>
         </div>
+        <div class="sig-box">
+          <div class="sig-label">Quality Manager</div>
+          <div class="sig-line"></div>
+          <div class="sig-name">&nbsp;</div>
+        </div>
       </div>
 
       <div class="doc-footer">
-        <span>Fromagerie Mamaliza — Confidential</span>
-        <span>Batch Group #${data.groupId} · ${dateStr}</span>
+        <span>Fromagerie Mamaliza — Confidential Production Record</span>
+        <span>Group #${data.groupId} · ${data.recipe.name} · ${dateStr}</span>
       </div>`;
 
     printDocument(`Batch Group #${data.groupId} — ${data.recipe.name}`, html);
