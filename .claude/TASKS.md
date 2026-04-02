@@ -131,6 +131,7 @@
 |---|---|---|---|
 | T13.24 | Batches — View button per batch row opens detail dialog (ingredients, QC score, notes) | 🟠 | ✅ |
 | T13.25 | Batches — "Update Recipe" button in batch detail only visible when QC `overallScore > 4`; opens inline recipe edit form | 🔴 | ✅ |
+| T13.26 | **Bug:** `batch_notes.author_id` is NOT NULL but `storeNote` never sets it → INSERT fails with 1364 | 🔴 | ✅ |
 
 ---
 

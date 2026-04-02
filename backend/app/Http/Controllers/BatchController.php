@@ -98,8 +98,9 @@ class BatchController extends Controller
         ]);
 
         $note = $batch->notes()->create([
-            'text'   => $validated['text'],
-            'author' => $validated['author'] ?? (auth()->user()?->name ?? 'Unknown'),
+            'text'      => $validated['text'],
+            'author'    => $validated['author'] ?? (auth()->user()?->name ?? 'Unknown'),
+            'author_id' => auth()->id(),
         ]);
 
         return response()->json($note, 201);
