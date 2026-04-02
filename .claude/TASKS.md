@@ -132,6 +132,9 @@
 | T13.24 | Batches — View button per batch row opens detail dialog (ingredients, QC score, notes) | 🟠 | ✅ |
 | T13.25 | Batches — "Update Recipe" button in batch detail only visible when QC `overallScore > 4`; opens inline recipe edit form | 🔴 | ✅ |
 | T13.26 | **Bug:** `batch_notes.author_id` is NOT NULL but `storeNote` never sets it → INSERT fails with 1364 | 🔴 | ✅ |
+| T13.27 | Batches — group "View" button opens detail dialog with all batches, lot numbers, QC scores, and loss summary | 🟠 | ✅ |
+| T13.28 | Batches — persist `lot` to DB (migration + model + controller); send from frontend on create; display in table | 🔴 | ✅ |
+| T13.29 | Quality — show lot number in batch select dropdown alongside recipe name and date | 🟠 | ✅ |
 
 ---
 

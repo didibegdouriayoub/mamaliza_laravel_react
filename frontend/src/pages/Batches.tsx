@@ -56,6 +56,9 @@ export default function Batches() {
   // Print
   const [printableData, setPrintableData] = useState<PrintData | null>(null);
 
+  // View group dialog
+  const [viewGroup, setViewGroup] = useState<BatchGroup | null>(null);
+
   // View batch + update recipe
   const [qualityControls, setQualityControls] = useState<QualityControl[]>([]);
   const [viewBatch, setViewBatch] = useState<Batch | null>(null);
@@ -100,6 +103,7 @@ export default function Batches() {
         batches: (g.batches || []).map((b: any) => ({
           ...b,
           batchGroupId: String(g.id),
+          lot: b.lot ?? '',
           inputMaterials: b.inputMaterials ?? b.input_materials ?? [],
           notes: b.notes ?? [],
           startedAt: b.startedAt ?? b.started_at ?? '',
@@ -176,6 +180,7 @@ export default function Batches() {
         const draft = batchDrafts[i];
         const created = await batchService.create({
           recipeId: String(recipe.id), recipeName: recipe.name,
+          lot: draft.lot,
           status: 'completed' as BatchStatus,
           inputMaterials: draft.ingredients,
           outputQuantity: draft.outputQty || recipe.targetWeight,
@@ -311,6 +316,9 @@ export default function Batches() {
                       <Badge variant="outline" className="text-xs text-amber-600 border-amber-300 bg-amber-50">Awaiting details</Badge>
                     )}
                     <div className="flex gap-1 print:hidden" onClick={e => e.stopPropagation()}>
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setViewGroup(group)}>
+                        <Eye className="h-3 w-3 mr-1" /> View
+                      </Button>
                       {hasPermission('batches.write') && (
                         <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
                           setFillGroup(group);
@@ -353,7 +361,7 @@ export default function Batches() {
                         {batches.map((b, idx) => (
                           <TableRow key={b.id}>
                             <TableCell className="pl-4 text-muted-foreground text-sm">{idx + 1}</TableCell>
-                            <TableCell className="font-mono text-xs">—</TableCell>
+                            <TableCell className="font-mono text-xs">{b.lot || '—'}</TableCell>
                             <TableCell>
                               <Badge variant={b.status === 'completed' ? 'default' : 'destructive'} className="text-xs capitalize">
                                 {b.status === 'completed' ? <CheckCircle2 className="h-3 w-3 mr-1 inline" /> : <XCircle className="h-3 w-3 mr-1 inline" />}
@@ -521,6 +529,108 @@ export default function Batches() {
             <Button variant="outline" onClick={() => setFillGroup(null)}>Cancel</Button>
             <Button onClick={handleFillDetails} disabled={!fillPieces && !fillLeftover}>Save & Update Inventory</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Group dialog */}
+      <Dialog open={!!viewGroup} onOpenChange={v => { if (!v) setViewGroup(null); }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          {viewGroup && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="font-display flex items-center gap-2">
+                  <Factory className="h-5 w-5" /> {viewGroup.recipeName} — Batch Group
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                {/* Group summary */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                  <div className="space-y-0.5">
+                    <p className="text-xs text-muted-foreground">Created</p>
+                    <p className="font-medium">{formatDate(viewGroup.createdAt)}</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs text-muted-foreground">Batches</p>
+                    <p className="font-medium">{viewGroup.batchCount}</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs text-muted-foreground">Target Weight</p>
+                    <p className="font-medium">{viewGroup.targetWeight} kg × {viewGroup.batchCount}</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs text-muted-foreground">Pieces Produced</p>
+                    <p className="font-medium">{viewGroup.piecesProduced ?? '—'}</p>
+                  </div>
+                </div>
+
+                {/* Batches table */}
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Batches</p>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-8">#</TableHead>
+                        <TableHead>Lot</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Output</TableHead>
+                        <TableHead>Operator</TableHead>
+                        <TableHead>Started</TableHead>
+                        <TableHead className="text-right">QC Score</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(viewGroup.batches ?? []).map((b, idx) => {
+                        const qc = qualityControls.find(q => q.batchId === String(b.id));
+                        return (
+                          <TableRow key={b.id}>
+                            <TableCell className="text-muted-foreground text-sm">{idx + 1}</TableCell>
+                            <TableCell className="font-mono text-xs">{b.lot || '—'}</TableCell>
+                            <TableCell>
+                              <Badge variant={b.status === 'completed' ? 'default' : 'destructive'} className="text-xs capitalize">
+                                {b.status === 'completed' ? <CheckCircle2 className="h-3 w-3 mr-1 inline" /> : <XCircle className="h-3 w-3 mr-1 inline" />}
+                                {b.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm">{b.outputQuantity} {b.outputUnit}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{b.operatorName || '—'}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">{formatDate(b.startedAt)}</TableCell>
+                            <TableCell className="text-right">
+                              {qc ? (
+                                <span className={cn('text-sm font-semibold', qc.overallScore > 4 ? 'text-green-600' : qc.overallScore >= 3 ? 'text-amber-600' : 'text-red-600')}>
+                                  ⭐ {qc.overallScore}/5
+                                </span>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Loss summary */}
+                {(viewGroup.piecesProduced != null || viewGroup.leftoverQty != null) && (() => {
+                  const expected = viewGroup.targetWeight * viewGroup.batchCount;
+                  const produced = (viewGroup.piecesProduced ?? 0) * (viewGroup.pieceWeightValue || 1);
+                  const leftover = viewGroup.leftoverQty ?? 0;
+                  const loss = expected - produced + leftover;
+                  return (
+                    <div className="p-3 rounded-lg bg-muted/30 border flex flex-wrap gap-4 text-sm">
+                      <span>Expected: <strong>{expected.toLocaleString()} kg</strong></span>
+                      <span>Produced: <strong>{produced > 0 ? `${produced.toLocaleString()} kg` : '—'}</strong></span>
+                      <span>Leftover: <strong>{leftover > 0 ? `${leftover} ${viewGroup.leftoverUnit}` : '—'}</strong></span>
+                      <span className={cn('font-semibold', loss > 0 ? 'text-red-600' : 'text-green-600')}>Loss: {loss.toFixed(2)} kg</span>
+                    </div>
+                  );
+                })()}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setViewGroup(null)}>Close</Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
 

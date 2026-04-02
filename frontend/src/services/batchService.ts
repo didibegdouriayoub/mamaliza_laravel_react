@@ -4,6 +4,7 @@ import { Batch, BatchGroup } from '../models/types';
 const toPayload = (b: Partial<Batch>) => ({
   recipe_id: b.recipeId,
   recipe_name: b.recipeName,
+  lot: b.lot,
   status: b.status,
   batch_group_id: (b as any).batchGroupId,
   // Serialize ingredients with snake_case keys so the backend can find material_id

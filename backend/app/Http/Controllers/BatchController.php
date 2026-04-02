@@ -17,6 +17,7 @@ class BatchController extends Controller
         $validated = $request->validate([
             'recipe_id' => 'required|exists:recipes,id',
             'recipe_name' => 'required|string|max:255',
+            'lot' => 'nullable|string|max:100',
             'status' => 'nullable|string|in:completed,failed',
             'batch_group_id' => 'nullable|exists:batch_groups,id',
             'input_materials' => 'nullable|array',
@@ -76,6 +77,7 @@ class BatchController extends Controller
     {
         $validated = $request->validate([
             'status' => 'sometimes|string|in:completed,failed',
+            'lot' => 'nullable|string|max:100',
             'input_materials' => 'nullable|array',
             'output_quantity' => 'nullable|numeric|min:0',
             'output_unit' => 'nullable|string|max:50',

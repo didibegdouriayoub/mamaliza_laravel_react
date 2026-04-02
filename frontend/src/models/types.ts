@@ -107,6 +107,7 @@ export interface Batch {
   batchGroupId?: string;
   recipeId: string;
   recipeName: string;
+  lot?: string;
   status: BatchStatus;
   inputMaterials: RecipeIngredient[];
   outputQuantity: number;

@@ -12,6 +12,7 @@ class Batch extends Model
         'recipe_id',
         'batch_group_id',
         'recipe_name',
+        'lot',
         'status',
         'input_materials',
         'output_quantity',

@@ -138,7 +138,7 @@ export default function Quality() {
               <Select value={batchId} onValueChange={setBatchId}>
                 <SelectTrigger><SelectValue placeholder="Select batch" /></SelectTrigger>
                 <SelectContent>
-                  {availableBatches.map(b => <SelectItem key={b.id} value={b.id}>{b.recipeName} ({formatDate(b.startedAt)})</SelectItem>)}
+                  {availableBatches.map(b => <SelectItem key={b.id} value={b.id}>{b.recipeName}{b.lot ? ` — ${b.lot}` : ''} ({formatDate(b.startedAt)})</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
