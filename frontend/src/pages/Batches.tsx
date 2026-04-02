@@ -23,7 +23,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/formatDate';
 
-type BatchDraftIngredient = { materialId: string; materialName: string; quantity: number; unit: string; unitPrice: number; };
+type BatchDraftIngredient = { materialId: string; materialName: string; quantity: number; unit: string; unitPrice: number; lot?: string; };
 type BatchDraft = { startedAt: string; outputQty: number; note: string; ingredients: BatchDraftIngredient[]; };
 type PrintData = { recipe: Recipe; batches: Array<{ batchNum: number; lot: string; outputQty: number; ingredients: BatchDraftIngredient[] }>; groupId: string; };
 
@@ -75,90 +75,70 @@ export default function Batches() {
 
   // ── Batch Group print  (pivot: ingredients = rows, batches = columns) ───────
   const printBatchGroup = (data: PrintData) => {
-    const now   = new Date();
+    const now     = new Date();
     const dateStr = now.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
     const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
-    // ── 1. Collect unique ingredients (order of first appearance) ────────────
-    const ingMap = new Map<string, { name: string; unit: string; unitPrice: number }>();
+    // ── 1. Unique ingredients, preserving order of first appearance ──────────
+    const ingMap = new Map<string, { name: string; unit: string; lot: string }>();
     for (const b of data.batches) {
       for (const ing of b.ingredients) {
         if (!ingMap.has(ing.materialName)) {
-          ingMap.set(ing.materialName, { name: ing.materialName, unit: ing.unit, unitPrice: ing.unitPrice });
+          ingMap.set(ing.materialName, { name: ing.materialName, unit: ing.unit, lot: ing.lot || '' });
         }
       }
     }
     const ingredients = Array.from(ingMap.values());
 
-    // ── 2. Totals ────────────────────────────────────────────────────────────
-    const batchTotals = data.batches.map(b =>
-      b.ingredients.reduce((s, i) => s + i.quantity * i.unitPrice, 0)
-    );
-    const grandTotal = batchTotals.reduce((s, t) => s + t, 0);
-
-    // ── 3. Pastel palette for batch columns (cycles) ─────────────────────────
+    // ── 2. Pastel palette for batch columns ──────────────────────────────────
     const palette = [
-      { bg: '#EFF6FF', fg: '#1D4ED8' }, // blue
-      { bg: '#F0FDF4', fg: '#15803D' }, // green
-      { bg: '#FFF7ED', fg: '#C2410C' }, // orange
-      { bg: '#FAF5FF', fg: '#7E22CE' }, // purple
-      { bg: '#FFF1F2', fg: '#BE123C' }, // rose
-      { bg: '#ECFEFF', fg: '#0E7490' }, // cyan
-      { bg: '#FEFCE8', fg: '#A16207' }, // yellow
-      { bg: '#F0F9FF', fg: '#0369A1' }, // sky
+      { bg: '#EFF6FF', fg: '#1D4ED8' },
+      { bg: '#F0FDF4', fg: '#15803D' },
+      { bg: '#FFF7ED', fg: '#C2410C' },
+      { bg: '#FAF5FF', fg: '#7E22CE' },
+      { bg: '#FFF1F2', fg: '#BE123C' },
+      { bg: '#ECFEFF', fg: '#0E7490' },
+      { bg: '#FEFCE8', fg: '#A16207' },
+      { bg: '#F0F9FF', fg: '#0369A1' },
     ];
 
-    // ── 4. Table header row ──────────────────────────────────────────────────
+    // ── 3. Batch column headers ──────────────────────────────────────────────
     const batchHeaderCells = data.batches.map((b, idx) => {
       const { bg, fg } = palette[idx % palette.length];
       return `
-        <th class="r" style="background:${bg};color:${fg};min-width:62px;padding:6px 8px">
-          <div style="font-size:8pt;font-weight:700">Batch ${b.batchNum}</div>
-          ${b.lot ? `<div style="font-size:6.5pt;font-weight:400;opacity:.8;margin-top:1px">Lot: ${b.lot}</div>` : ''}
-          <div style="font-size:6.5pt;font-weight:400;opacity:.7;margin-top:1px">${b.outputQty} out</div>
+        <th class="c" style="background:${bg};color:${fg};min-width:58px;padding:7px 6px;border-bottom:2px solid ${fg}40">
+          <div style="font-size:8.5pt;font-weight:700;letter-spacing:.01em">Batch ${b.batchNum}</div>
+          ${b.lot ? `<div style="font-size:6.5pt;font-weight:500;margin-top:2px;opacity:.75">Lot ${b.lot}</div>` : ''}
         </th>`;
     }).join('');
 
-    // ── 5. Ingredient rows ───────────────────────────────────────────────────
+    // ── 4. Ingredient rows ───────────────────────────────────────────────────
     const ingRows = ingredients.map((ing, rowIdx) => {
-      const totalQty  = data.batches.reduce((sum, b) => {
-        const f = b.ingredients.find(i => i.materialName === ing.name);
-        return sum + (f ? f.quantity : 0);
-      }, 0);
-      const totalCost = totalQty * ing.unitPrice;
-
       const batchCells = data.batches.map((b, idx) => {
-        const { bg } = palette[idx % palette.length];
+        const { bg, fg } = palette[idx % palette.length];
         const f = b.ingredients.find(i => i.materialName === ing.name);
         return f
-          ? `<td class="r" style="background:${bg}20">${f.quantity}</td>`
-          : `<td class="r" style="color:#cbd5e1">—</td>`;
+          ? `<td class="c" style="background:${bg}30;color:${fg};font-weight:600;font-size:8.5pt">${f.quantity}</td>`
+          : `<td class="c" style="color:#cbd5e1;font-size:8pt">—</td>`;
       }).join('');
+
+      const lotBadge = ing.lot
+        ? `<span style="margin-left:6px;background:#f1f5f9;color:#64748b;border-radius:4px;padding:1px 5px;font-size:6.5pt;font-weight:500">${ing.lot}</span>`
+        : '';
 
       return `
         <tr class="${rowIdx % 2 === 1 ? 'alt' : ''}">
-          <td class="c" style="color:#94a3b8;font-size:7.5pt;width:22px">${rowIdx + 1}</td>
-          <td style="font-weight:500">${ing.name}</td>
-          <td class="c" style="color:#64748b;width:36px">${ing.unit}</td>
-          <td class="r" style="color:#64748b;width:60px">${fmtEur(ing.unitPrice)}</td>
+          <td class="c" style="color:#94a3b8;font-size:7.5pt">${rowIdx + 1}</td>
+          <td style="font-weight:500">${ing.name}${lotBadge}</td>
+          <td class="c" style="color:#64748b">${ing.unit}</td>
           ${batchCells}
-          <td class="r" style="background:#f8fafc;font-weight:700;border-left:2px solid #e2e8f0;width:70px">
-            ${totalQty} <span style="font-size:7pt;color:#94a3b8;font-weight:400">${ing.unit}</span>
-          </td>
-          <td class="r" style="background:#f8fafc;font-weight:700;color:#D4162E;width:72px">${fmtEur(totalCost)}</td>
         </tr>`;
     }).join('');
 
-    // ── 6. Footer: per-batch cost + grand total ──────────────────────────────
-    const batchCostCells = batchTotals.map((t, idx) => {
-      const { bg, fg } = palette[idx % palette.length];
-      return `<td class="r" style="background:${bg};color:${fg};font-weight:700">${fmtEur(t)}</td>`;
-    }).join('');
-
-    // ── 7. Steps ─────────────────────────────────────────────────────────────
-    const stepsList = data.recipe.steps?.length > 0
+    // ── 5. Steps ─────────────────────────────────────────────────────────────
+    const stepsList = (data.recipe.steps?.length ?? 0) > 0
       ? `<div class="section-title" style="margin-top:22px">Process Steps</div>
-         <ol style="padding-left:18px;font-size:8.5pt;line-height:1.85;color:#334155;columns:2;column-gap:32px">
+         <ol style="padding-left:18px;font-size:8.5pt;line-height:1.9;color:#334155;columns:2;column-gap:32px">
            ${data.recipe.steps.map(s => `<li>${s}</li>`).join('')}
          </ol>`
       : '';
@@ -197,58 +177,31 @@ export default function Batches() {
           <div class="card-value">${data.batches.length}</div>
           <div class="card-desc">piece weight: ${data.recipe.pieceWeight}</div>
         </div>
-        <div class="card">
-          <div class="card-label">Grand Total Cost</div>
-          <div class="card-value red">${fmtEur(grandTotal)}</div>
-          <div class="card-desc">all batches combined</div>
-        </div>
       </div>
 
-      <div class="section-title">Ingredients × Batches — Material Requirements</div>
+      <div class="section-title">Ingredients × Batches — Quantities per Batch</div>
 
       <table style="table-layout:auto">
         <thead>
           <tr>
-            <th class="c" style="width:22px">#</th>
+            <th class="c" style="width:24px">#</th>
             <th>Ingredient</th>
-            <th class="c" style="width:36px">Unit</th>
-            <th class="r" style="width:60px">Unit Price</th>
+            <th class="c" style="width:40px">Unit</th>
             ${batchHeaderCells}
-            <th class="r" style="border-left:2px solid #e2e8f0;width:70px;background:#f1f5f9">Total Qty</th>
-            <th class="r" style="width:72px;background:#f1f5f9">Total Cost</th>
           </tr>
         </thead>
         <tbody>${ingRows}</tbody>
-        <tfoot>
-          <tr class="total">
-            <td colspan="4" style="text-align:right;font-size:7.5pt;color:#64748b;text-transform:uppercase;letter-spacing:.05em;font-weight:600">
-              Batch Cost
-            </td>
-            ${batchCostCells}
-            <td style="border-left:2px solid #e2e8f0"></td>
-            <td class="r" style="color:#D4162E;font-size:10pt">${fmtEur(grandTotal)}</td>
-          </tr>
-        </tfoot>
       </table>
 
       ${stepsList}
 
-      <div class="signatures" style="margin-top:${data.recipe.steps?.length > 0 ? '20px' : '28px'}">
-        <div class="sig-box">
-          <div class="sig-label">Operator Signature</div>
-          <div class="sig-line"></div>
-          <div class="sig-name">${user?.name ?? ''}</div>
+      <div style="margin-top:32px;padding-top:14px;border-top:1px solid #e2e8f0;display:flex;align-items:flex-end;gap:48px">
+        <div style="flex:0 0 220px">
+          <div style="font-size:8pt;color:#64748b;margin-bottom:28px">Signature</div>
+          <div style="border-bottom:1px solid #1a1a1a"></div>
+          <div style="font-size:7.5pt;color:#94a3b8;margin-top:4px">${user?.name ?? ''} · ${dateStr}</div>
         </div>
-        <div class="sig-box">
-          <div class="sig-label">Supervisor Signature</div>
-          <div class="sig-line"></div>
-          <div class="sig-name">&nbsp;</div>
-        </div>
-        <div class="sig-box">
-          <div class="sig-label">Quality Manager</div>
-          <div class="sig-line"></div>
-          <div class="sig-name">&nbsp;</div>
-        </div>
+        <div style="flex:1"></div>
       </div>
 
       <div class="doc-footer">
@@ -383,7 +336,13 @@ export default function Batches() {
         if (draft.note.trim() && created?.id) {
           await batchService.addNote(created.id, { text: draft.note, author: user?.name || 'Unknown' });
         }
-        printBatches.push({ batchNum: i + 1, lot: created?.lot || '', outputQty: draft.outputQty, ingredients: draft.ingredients });
+        printBatches.push({
+          batchNum: i + 1, lot: created?.lot || '', outputQty: draft.outputQty,
+          ingredients: draft.ingredients.map(ing => ({
+            ...ing,
+            lot: inventory.find(inv => String(inv.id) === String(ing.materialId))?.lot || '',
+          })),
+        });
       }
 
       toast({ title: `${batchDrafts.length} batch${batchDrafts.length !== 1 ? 'es' : ''} created` });
@@ -529,6 +488,7 @@ export default function Batches() {
                             quantity: m.quantity,
                             unit: m.unit,
                             unitPrice: m.unitPrice,
+                            lot: inventory.find(inv => String(inv.id) === String(m.materialId))?.lot || '',
                           })),
                         }));
                         printBatchGroup({ recipe, batches, groupId: String(group.id) });
