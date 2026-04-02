@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Search, Trash2, Edit, Package, History, Printer, CalendarDays, Download } from 'lucide-react';
+import { printDocument, fmtDate, fmtEur } from '@/lib/printDocument';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -199,7 +200,108 @@ export default function Inventory() {
     setForm(prev => ({ ...prev, supplierId, supplier: s?.name || '' }));
   };
 
-  const handlePrint = () => window.print();
+  const handlePrint = () => {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+    const typeLabel = (t: string) => ({ raw: 'Raw', packaging: 'Packaging', leftover: 'Leftover', product: 'Product' }[t] ?? t);
+    const stockBadge = (s: string) => {
+      if (s === 'ok')  return '<span class="badge badge-ok">OK</span>';
+      if (s === 'low') return '<span class="badge badge-low">LOW</span>';
+      return '<span class="badge badge-out">OUT</span>';
+    };
+
+    const totalValue = items.reduce((s, i) => s + i.quantity * i.price, 0);
+    const byType = items.reduce((m, i) => { m[i.type] = (m[i.type] || 0) + 1; return m; }, {} as Record<string, number>);
+    const lowCount = items.filter(i => i.status === 'low' || i.status === 'out').length;
+
+    const rows = filtered.map((i, idx) => {
+      const sub = [i.code && `[${i.code}]`, i.lot && `Lot: ${i.lot}`].filter(Boolean).join(' ');
+      return `<tr class="${idx % 2 === 1 ? 'alt' : ''}">
+        <td>
+          <div style="font-weight:600">${i.name}</div>
+          ${sub ? `<div style="font-size:7.5pt;color:#64748b;margin-top:1px">${sub}</div>` : ''}
+        </td>
+        <td>${typeLabel(i.type)}</td>
+        <td class="r">${i.quantity.toLocaleString('fr-FR')}</td>
+        <td>${i.unit}</td>
+        <td class="r">${fmtEur(i.price)}</td>
+        <td class="r">${fmtEur(i.quantity * i.price)}</td>
+        <td>${i.supplier || '—'}</td>
+        <td>${fmtDate(i.createdAt)}</td>
+        <td>${stockBadge(i.status)}</td>
+      </tr>`;
+    }).join('');
+
+    const html = `
+      <div class="doc-header">
+        <div class="brand">
+          <div class="brand-icon">FM</div>
+          <div>
+            <div class="brand-name">Fromagerie Mamaliza</div>
+            <div class="brand-sub">Inventory Management System</div>
+          </div>
+        </div>
+        <div class="doc-meta">
+          <div class="doc-title">Inventory Report</div>
+          <div>Generated on ${dateStr} at ${timeStr}</div>
+          <div>By ${user?.name ?? '—'} · ${user?.role ?? ''}</div>
+        </div>
+      </div>
+
+      <div class="cards">
+        <div class="card">
+          <div class="card-label">Total Items</div>
+          <div class="card-value">${items.length}</div>
+          <div class="card-desc">${Object.entries(byType).map(([k,v]) => `${v} ${typeLabel(k)}`).join(' · ')}</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Total Stock Value</div>
+          <div class="card-value green">${fmtEur(totalValue)}</div>
+          <div class="card-desc">at current unit prices</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Stock Alerts</div>
+          <div class="card-value ${lowCount > 0 ? 'red' : 'green'}">${lowCount}</div>
+          <div class="card-desc">${lowCount > 0 ? 'items low or out of stock' : 'all items at safe levels'}</div>
+        </div>
+      </div>
+
+      <div class="section-title">Stock Lines · ${filtered.length} item${filtered.length !== 1 ? 's' : ''}</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Name / Code / Lot</th>
+            <th>Type</th>
+            <th class="r">Qty</th>
+            <th>Unit</th>
+            <th class="r">Unit Price</th>
+            <th class="r">Value</th>
+            <th>Supplier</th>
+            <th>Added</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+        <tfoot>
+          <tr class="total">
+            <td colspan="5">Total Stock Value</td>
+            <td class="r">${fmtEur(totalValue)}</td>
+            <td colspan="3"></td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div class="doc-footer">
+        <span>Fromagerie Mamaliza — Confidential</span>
+        <span>Inventory Report · ${dateStr}</span>
+      </div>`;
+
+    printDocument('Inventory Report — Fromagerie Mamaliza', html);
+  };
 
   const handleExportCsv = () => {
     const headers = ['Name', 'Type', 'Lot', 'Code', 'Quantity', 'Unit', 'Price (€)', 'Supplier', 'Min Stock', 'Status', 'Added'];

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Factory, Plus, Trash2, Printer, Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, ClipboardList, Eye, Pencil } from 'lucide-react';
+import { printDocument, fmtDate, fmtEur } from '@/lib/printDocument';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -53,9 +54,6 @@ export default function Batches() {
   const [fillLeftover, setFillLeftover] = useState('');
   const [fillLeftoverUnit, setFillLeftoverUnit] = useState('kg');
 
-  // Print
-  const [printableData, setPrintableData] = useState<PrintData | null>(null);
-
   // View group dialog
   const [viewGroup, setViewGroup] = useState<BatchGroup | null>(null);
 
@@ -74,6 +72,122 @@ export default function Batches() {
 
   const { user, hasPermission } = useAuth();
   const { toast } = useToast();
+
+  // ── Batch Group print ─────────────────────────────────────────────────────
+  const printBatchGroup = (data: PrintData) => {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+    const grandTotal = data.batches.reduce(
+      (sum, b) => sum + b.ingredients.reduce((s, i) => s + i.quantity * i.unitPrice, 0), 0
+    );
+
+    const batchBlocks = data.batches.map(b => {
+      const batchTotal = b.ingredients.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+      const ingRows = b.ingredients.map((ing, idx) => `
+        <tr class="${idx % 2 === 1 ? 'alt' : ''}">
+          <td>${ing.materialName}</td>
+          <td class="r">${ing.quantity}</td>
+          <td>${ing.unit}</td>
+          <td class="r">${fmtEur(ing.unitPrice)}</td>
+          <td class="r">${fmtEur(ing.quantity * ing.unitPrice)}</td>
+        </tr>`).join('');
+      return `
+        <div class="batch-block">
+          <div class="batch-header">
+            <span class="batch-num">Batch #${b.batchNum}</span>
+            <span class="batch-meta">
+              Lot: <span>${b.lot || '—'}</span>
+              &nbsp;·&nbsp; Output: <strong>${b.outputQty}</strong>
+            </span>
+          </div>
+          <table>
+            <thead><tr>
+              <th>Material</th><th class="r">Qty</th><th>Unit</th>
+              <th class="r">Unit Price</th><th class="r">Cost</th>
+            </tr></thead>
+            <tbody>${ingRows}</tbody>
+            <tfoot>
+              <tr class="total">
+                <td colspan="4">Batch Total</td>
+                <td class="r">${fmtEur(batchTotal)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>`;
+    }).join('');
+
+    const stepsList = data.recipe.steps.length > 0
+      ? `<div class="section-title">Process Steps</div>
+         <ol style="padding-left:18px;font-size:8.5pt;line-height:1.8;color:#334155">
+           ${data.recipe.steps.map(s => `<li>${s}</li>`).join('')}
+         </ol>`
+      : '';
+
+    const html = `
+      <div class="doc-header">
+        <div class="brand">
+          <div class="brand-icon">FM</div>
+          <div>
+            <div class="brand-name">Fromagerie Mamaliza</div>
+            <div class="brand-sub">Production Report</div>
+          </div>
+        </div>
+        <div class="doc-meta">
+          <div class="doc-title">Batch Group #${data.groupId}</div>
+          <div>Generated on ${dateStr} at ${timeStr}</div>
+          <div>Operator: ${user?.name ?? '—'}</div>
+        </div>
+      </div>
+
+      <div class="cards">
+        <div class="card">
+          <div class="card-label">Recipe</div>
+          <div class="card-value" style="font-size:11pt">${data.recipe.name}</div>
+          <div class="card-desc">v${data.recipe.version} · ${data.recipe.recipeStatus}</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Batches</div>
+          <div class="card-value">${data.batches.length}</div>
+          <div class="card-desc">piece weight: ${data.recipe.pieceWeight}</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Total Cost</div>
+          <div class="card-value red">${fmtEur(grandTotal)}</div>
+          <div class="card-desc">all input materials</div>
+        </div>
+      </div>
+
+      <div class="section-title">Batches — Ingredients &amp; Costs</div>
+      ${batchBlocks}
+
+      <div style="display:flex;justify-content:flex-end;font-size:9pt;font-weight:700;margin-top:4px;padding:8px 0;border-top:2px solid #e2e8f0">
+        Grand Total: ${fmtEur(grandTotal)}
+      </div>
+
+      ${stepsList}
+
+      <div class="signatures">
+        <div class="sig-box">
+          <div class="sig-label">Operator Signature</div>
+          <div class="sig-line"></div>
+          <div class="sig-name">${user?.name ?? ''}</div>
+        </div>
+        <div class="sig-box">
+          <div class="sig-label">Supervisor Signature</div>
+          <div class="sig-line"></div>
+          <div class="sig-name">&nbsp;</div>
+        </div>
+      </div>
+
+      <div class="doc-footer">
+        <span>Fromagerie Mamaliza — Confidential</span>
+        <span>Batch Group #${data.groupId} · ${dateStr}</span>
+      </div>`;
+
+    printDocument(`Batch Group #${data.groupId} — ${data.recipe.name}`, html);
+  };
 
   const loadData = async () => {
     setLoading(true);
@@ -203,9 +317,9 @@ export default function Batches() {
       }
 
       toast({ title: `${batchDrafts.length} batch${batchDrafts.length !== 1 ? 'es' : ''} created` });
-      setPrintableData({ recipe, batches: printBatches, groupId: String(group.id) });
       setFormOpen(false);
       loadData();
+      printBatchGroup({ recipe, batches: printBatches, groupId: String(group.id) });
     } catch (err: any) {
       toast({ title: 'Create failed', description: err.message || 'An error occurred.', variant: 'destructive' });
     }
@@ -326,6 +440,25 @@ export default function Batches() {
                     <div className="flex gap-1 print:hidden" onClick={e => e.stopPropagation()}>
                       <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setViewGroup(group)}>
                         <Eye className="h-3 w-3 mr-1" /> View
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
+                        const recipe = recipes.find(r => String(r.id) === String(group.recipeId));
+                        if (!recipe) return;
+                        const batches = (group.batches ?? []).map((b, idx) => ({
+                          batchNum: idx + 1,
+                          lot: (b as any).lot || '',
+                          outputQty: b.outputQuantity,
+                          ingredients: (b.inputMaterials ?? []).map(m => ({
+                            materialId: m.materialId,
+                            materialName: m.materialName,
+                            quantity: m.quantity,
+                            unit: m.unit,
+                            unitPrice: m.unitPrice,
+                          })),
+                        }));
+                        printBatchGroup({ recipe, batches, groupId: String(group.id) });
+                      }}>
+                        <Printer className="h-3 w-3 mr-1" /> Print
                       </Button>
                       {hasPermission('batches.write') && (
                         <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
@@ -937,43 +1070,6 @@ export default function Batches() {
         </DialogContent>
       </Dialog>
 
-      {/* Print report dialog */}
-      <Dialog open={!!printableData} onOpenChange={() => setPrintableData(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          {printableData && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="font-display text-xl">Batch Report — {printableData.recipe.name}</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-5" id="printable-batch">
-                <div className="flex justify-between text-sm border-b pb-3">
-                  <div><p className="font-semibold">{printableData.recipe.name}</p><p className="text-muted-foreground">Piece: {printableData.recipe.pieceWeight}</p></div>
-                  <div className="text-right text-muted-foreground"><p>Date: {new Date().toISOString().split('T')[0]}</p><p>Operator: {user?.name}</p><p>{printableData.batches.length} batches</p></div>
-                </div>
-                {printableData.batches.map((b, idx) => (
-                  <div key={idx} className="space-y-2">
-                    <div className="flex justify-between"><h4 className="font-semibold">Batch #{b.batchNum}</h4><span className="text-sm text-muted-foreground">Lot: <span className="font-mono font-medium text-foreground">{b.lot}</span> · Output: {b.outputQty}</span></div>
-                    <Table>
-                      <TableHeader><TableRow><TableHead>Material</TableHead><TableHead className="text-right">Qty</TableHead><TableHead>Unit</TableHead><TableHead className="text-right">Price</TableHead><TableHead className="text-right">Cost</TableHead></TableRow></TableHeader>
-                      <TableBody>
-                        {b.ingredients.map((ing, i) => <TableRow key={i}><TableCell className="font-medium">{ing.materialName}</TableCell><TableCell className="text-right">{ing.quantity}</TableCell><TableCell>{ing.unit}</TableCell><TableCell className="text-right">€{ing.unitPrice.toFixed(2)}</TableCell><TableCell className="text-right font-medium">€{(ing.quantity * ing.unitPrice).toFixed(2)}</TableCell></TableRow>)}
-                        <TableRow><TableCell colSpan={4} className="font-semibold text-right">Batch Total</TableCell><TableCell className="text-right font-bold">€{b.ingredients.reduce((s, i) => s + i.quantity * i.unitPrice, 0).toFixed(2)}</TableCell></TableRow>
-                      </TableBody>
-                    </Table>
-                  </div>
-                ))}
-                <div className="border-t pt-3 flex justify-between font-semibold"><span>Grand Total</span><span>€{printableData.batches.reduce((sum, b) => sum + b.ingredients.reduce((s, i) => s + i.quantity * i.unitPrice, 0), 0).toFixed(2)}</span></div>
-                {printableData.recipe.steps.length > 0 && <div className="border-t pt-3"><h4 className="font-semibold text-sm mb-2">Steps</h4><ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">{printableData.recipe.steps.map((s, i) => <li key={i}>{s}</li>)}</ol></div>}
-                <div className="grid grid-cols-2 gap-8 text-sm border-t pt-4"><div><p className="text-muted-foreground mb-8">Operator Signature:</p><div className="border-b border-foreground"></div></div><div><p className="text-muted-foreground mb-8">Supervisor Signature:</p><div className="border-b border-foreground"></div></div></div>
-              </div>
-              <DialogFooter className="print:hidden">
-                <Button variant="outline" onClick={() => setPrintableData(null)}>Close</Button>
-                <Button onClick={() => window.print()}><Printer className="h-4 w-4 mr-1" /> Print</Button>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

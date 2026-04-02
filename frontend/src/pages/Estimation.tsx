@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Calculator, Plus, Trash2, Printer, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
+import { printDocument, fmtEur } from '@/lib/printDocument';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,7 @@ import { recipeService } from '@/services/recipeService';
 import { inventoryService } from '@/services/inventoryService';
 import { Recipe, InventoryItem } from '@/models/types';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface EstimationLine {
   recipeId: string;
@@ -19,6 +21,7 @@ interface EstimationLine {
 }
 
 export default function Estimation() {
+  const { user } = useAuth();
   const [lines, setLines] = useState<EstimationLine[]>([{ recipeId: '', batchCount: 1 }]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -183,6 +186,161 @@ export default function Estimation() {
   const allSufficient = procurementRows.length === 0;
   const criticalCount = procurementRows.filter(r => r.deficit > 0).length;
 
+  // ── Print ─────────────────────────────────────────────────────────────────
+  const handlePrint = () => {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+    const planRows = lines.filter(l => l.recipeId).map(l => {
+      const r = recipes.find(rr => String(rr.id) === String(l.recipeId));
+      return r ? `${r.name} × ${l.batchCount} batch${l.batchCount !== 1 ? 'es' : ''}` : '';
+    }).filter(Boolean).join(', ');
+
+    const mkStockRow = (r: typeof rawRows[0], idx: number) => `
+      <tr class="${idx % 2 === 1 ? 'alt' : ''}">
+        <td>${r.name}</td>
+        <td class="r">${r.needed.toLocaleString('fr-FR')}</td>
+        <td>${r.unit}</td>
+        <td class="r">${r.inStock.toLocaleString('fr-FR')}</td>
+        <td>${r.sufficient
+          ? '<span class="badge badge-ok">In Stock</span>'
+          : `<span class="badge-need">Need ${r.deficit.toLocaleString('fr-FR')} more</span>`}</td>
+        <td class="r">${fmtEur(r.needed * r.unitPrice)}</td>
+      </tr>`;
+
+    const mkProcRow = (r: typeof rawRows[0], idx: number) => `
+      <tr class="${idx % 2 === 1 ? 'alt' : ''}">
+        <td>${r.name}</td>
+        <td class="r" style="color:#D4162E;font-weight:700">${r.deficit.toLocaleString('fr-FR')}</td>
+        <td>${r.unit}</td>
+        <td>${r.supplier}</td>
+        <td class="r">${r.leadTimeDays > 0
+          ? `<span style="color:#d97706;font-weight:600">${r.leadTimeDays}d</span>`
+          : '—'}</td>
+        <td class="r">${fmtEur(r.deficit * r.unitPrice)}</td>
+      </tr>`;
+
+    const prodSummaryRows = lines.filter(l => l.recipeId).map((l, idx) => {
+      const r = recipes.find(rr => String(rr.id) === String(l.recipeId));
+      if (!r) return '';
+      const batchCost = r.ingredients.reduce((s, ing) => s + ing.quantity * ing.unitPrice, 0);
+      const totalYield = (r.targetWeight ?? 0) * l.batchCount;
+      return `<tr class="${idx % 2 === 1 ? 'alt' : ''}">
+        <td>${r.name}</td>
+        <td class="r">${l.batchCount}</td>
+        <td class="r">${r.targetWeight ?? '—'} kg</td>
+        <td class="r">${totalYield} kg</td>
+        <td class="r">${fmtEur(batchCost)}</td>
+        <td class="r">${fmtEur(batchCost * l.batchCount)}</td>
+      </tr>`;
+    }).join('');
+
+    const feasibilityBanner = allSufficient
+      ? `<div class="alert ok">✓ All materials are in stock. Production can start immediately.</div>`
+      : `<div class="alert warn">⚠ ${criticalCount} material${criticalCount !== 1 ? 's' : ''} need to be ordered before production can start.
+          ${criticalLeadTime > 0 ? `Earliest start: <strong>${criticalLeadTime} days</strong>.` : ''}</div>`;
+
+    const html = `
+      <div class="doc-header">
+        <div class="brand">
+          <div class="brand-icon">FM</div>
+          <div>
+            <div class="brand-name">Fromagerie Mamaliza</div>
+            <div class="brand-sub">Production Estimation</div>
+          </div>
+        </div>
+        <div class="doc-meta">
+          <div class="doc-title">Estimation Report</div>
+          <div>Generated on ${dateStr} at ${timeStr}</div>
+          <div>By ${user?.name ?? '—'} · ${user?.role ?? ''}</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:12px;font-size:8.5pt;color:#64748b">
+        <strong style="color:#1a1a1a">Plan:</strong> ${planRows || '—'}
+      </div>
+
+      ${feasibilityBanner}
+
+      <div class="cards">
+        <div class="card">
+          <div class="card-label">Already in Stock</div>
+          <div class="card-value green">${fmtEur(inStockCost)}</div>
+          <div class="card-desc">value consumed from existing stock</div>
+        </div>
+        <div class="card">
+          <div class="card-label">To Order</div>
+          <div class="card-value ${orderCost > 0 ? 'orange' : 'green'}">${fmtEur(orderCost)}</div>
+          <div class="card-desc">purchase cost of missing materials</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Total Investment</div>
+          <div class="card-value red">${fmtEur(totalInvestment)}</div>
+          <div class="card-desc">stock used + materials to buy</div>
+        </div>
+      </div>
+
+      ${rawRows.length > 0 ? `
+      <div class="section-title">Raw Materials</div>
+      <table>
+        <thead><tr>
+          <th>Material</th><th class="r">Needed</th><th>Unit</th>
+          <th class="r">In Stock</th><th>Status</th><th class="r">Cost</th>
+        </tr></thead>
+        <tbody>${rawRows.map(mkStockRow).join('')}</tbody>
+      </table>` : ''}
+
+      ${pkgRows.length > 0 ? `
+      <div class="section-title">Packaging</div>
+      <table>
+        <thead><tr>
+          <th>Item</th><th class="r">Needed</th><th>Unit</th>
+          <th class="r">In Stock</th><th>Status</th><th class="r">Cost</th>
+        </tr></thead>
+        <tbody>${pkgRows.map(mkStockRow).join('')}</tbody>
+      </table>` : ''}
+
+      ${procurementRows.length > 0 ? `
+      <div class="section-title" style="color:#D4162E">Procurement Plan</div>
+      <table>
+        <thead><tr>
+          <th>Material</th><th class="r">To Order</th><th>Unit</th>
+          <th>Supplier</th><th class="r">Lead Time</th><th class="r">Order Cost</th>
+        </tr></thead>
+        <tbody>${procurementRows.map(mkProcRow).join('')}</tbody>
+        <tfoot>
+          <tr class="total">
+            <td colspan="5">Total to order</td>
+            <td class="r">${fmtEur(orderCost)}</td>
+          </tr>
+        </tfoot>
+      </table>` : ''}
+
+      ${prodSummaryRows ? `
+      <div class="section-title">Production Summary</div>
+      <table>
+        <thead><tr>
+          <th>Recipe</th><th class="r">Batches</th><th class="r">Yield / Batch</th>
+          <th class="r">Total Yield</th><th class="r">Cost / Batch</th><th class="r">Total Cost</th>
+        </tr></thead>
+        <tbody>${prodSummaryRows}</tbody>
+        <tfoot>
+          <tr class="total">
+            <td colspan="5">Total Investment</td>
+            <td class="r">${fmtEur(totalInvestment)}</td>
+          </tr>
+        </tfoot>
+      </table>` : ''}
+
+      <div class="doc-footer">
+        <span>Fromagerie Mamaliza — Confidential</span>
+        <span>Estimation Report · ${dateStr}</span>
+      </div>`;
+
+    printDocument('Estimation Report — Fromagerie Mamaliza', html);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -194,7 +352,7 @@ export default function Estimation() {
           <p className="text-sm text-muted-foreground">Plan batches, check stock and procurement needs</p>
         </div>
         {hasEstimation && (
-          <Button variant="outline" onClick={() => window.print()}>
+          <Button variant="outline" onClick={handlePrint}>
             <Printer className="h-4 w-4 mr-1" /> Print
           </Button>
         )}
