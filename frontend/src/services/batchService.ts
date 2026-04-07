@@ -53,4 +53,5 @@ export const batchGroupService = {
     leftover_qty: stats.leftoverQty,
     leftover_unit: stats.leftoverUnit,
   }),
+  delete: (id: string | number) => apiClient.delete(`/batch-groups/${id}`),
 };

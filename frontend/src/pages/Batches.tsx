@@ -382,10 +382,7 @@ export default function Batches() {
 
   const handleDeleteGroup = async (groupId: string) => {
     try {
-      const group = groups.find(g => g.id === groupId);
-      if (group?.batches) {
-        for (const b of group.batches) { await batchService.delete(b.id); }
-      }
+      await batchGroupService.delete(groupId);
       toast({ title: 'Group deleted', variant: 'destructive' });
       loadData();
     } catch (err: any) {
@@ -634,7 +631,7 @@ export default function Batches() {
                         </div>
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Ingredients</p>
                         {draft.ingredients.map((ing, iIdx) => (
-                          <div key={iIdx} className="grid grid-cols-[1fr_90px_32px] gap-1.5 items-center">
+                          <div key={iIdx} className="grid grid-cols-[1fr_140px_32px] gap-1.5 items-center">
                             {ing.materialId
                               ? <span className="text-sm truncate">{ing.materialName}</span>
                               : <Select value={ing.materialId} onValueChange={v => setDraftIngredientMaterial(bIdx, iIdx, v)}>
@@ -1064,7 +1061,7 @@ export default function Batches() {
                     <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Ingredients</p>
                     <div className="space-y-2">
                       {rIngredients.map((ing, i) => (
-                        <div key={i} className="grid grid-cols-[1fr_80px_70px_30px] gap-1.5 items-center">
+                        <div key={i} className="grid grid-cols-[1fr_130px_70px_30px] gap-1.5 items-center">
                           <span className="text-sm truncate">{ing.materialName}</span>
                           <Input type="number" className="h-8 text-xs" value={ing.quantity || ''} onChange={e => setRIngredients(prev => prev.map((x, j) => j === i ? { ...x, quantity: Number(e.target.value) } : x))} />
                           <span className="text-xs text-muted-foreground">{ing.unit}</span>

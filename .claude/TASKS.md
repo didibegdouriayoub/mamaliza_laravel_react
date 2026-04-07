@@ -160,6 +160,17 @@
 
 ---
 
+### Sprint 8: Bug Fixes
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T13.48 | **Bug:** `DELETE /api/recipes/{id}` 500 — FK constraint `batches_recipe_id_foreign ON DELETE RESTRICT` blocks hard delete when batches exist → add `SoftDeletes` to `Recipe` model + migration for `deleted_at` | 🔴 | ✅ |
+| T13.49 | **Bug:** Page not loading after soft-delete change — `GET /api/recipes` returns 500 in certain contexts; investigate root cause and fix | 🔴 | 🔄 |
+| T13.50 | UX: Widen quantity inputs in recipe create/edit and batch create forms by ~50px (too narrow for numbers) | 🟠 | ✅ |
+| T13.51 | **Bug:** Deleting a batch group removes the individual batches but leaves the `batch_groups` record — `BatchGroupController` has no `destroy` method and no DELETE route registered | 🔴 | ✅ |
+
+---
+
 ## Rules for this Project
 1. Take tasks ONE at a time.
 2. After completing a task, make a descriptive git commit immediately.

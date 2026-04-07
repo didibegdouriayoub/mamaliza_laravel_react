@@ -75,4 +75,11 @@ class BatchGroupController extends Controller
 
         return response()->json($batchGroup->load('batches'));
     }
+
+    public function destroy(BatchGroup $batchGroup)
+    {
+        $batchGroup->batches()->delete();
+        $batchGroup->delete();
+        return response()->json(null, 204);
+    }
 }

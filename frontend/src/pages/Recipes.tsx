@@ -345,7 +345,7 @@ export default function Recipes() {
                 <Button type="button" variant="ghost" size="sm" onClick={() => setIngredients(p => [...p, { ...emptyIng }])}><Plus className="h-3 w-3 mr-1" /> Add</Button>
               </div>
               {ingredients.map((ing, idx) => (
-                <div key={idx} className="grid grid-cols-1 sm:grid-cols-[1fr_80px_80px_40px] gap-2 items-end">
+                <div key={idx} className="grid grid-cols-1 sm:grid-cols-[1fr_130px_80px_40px] gap-2 items-end">
                   <Select value={ing.materialId} onValueChange={v => handleMaterialSelect(idx, v)}>
                     <SelectTrigger><SelectValue placeholder="Material" /></SelectTrigger>
                     <SelectContent>
@@ -371,7 +371,7 @@ export default function Recipes() {
                 const pkgItem = inventory.find(m => String(m.id) === String(pkg.id));
                 const rowCost = pkg.quantity * (pkgItem?.price || 0);
                 return (
-                  <div key={idx} className="grid grid-cols-1 sm:grid-cols-[1fr_100px_80px_40px] gap-2 items-end">
+                  <div key={idx} className="grid grid-cols-1 sm:grid-cols-[1fr_150px_80px_40px] gap-2 items-end">
                     <Select value={pkg.id} onValueChange={v => {
                       const item = inventory.find(m => String(m.id) === String(v));
                       if (item) setRecipePackages(p => p.map((x, i) => i === idx ? { id: String(item.id), name: item.name, quantity: x.quantity } : x));

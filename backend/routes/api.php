@@ -56,6 +56,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/batch-groups', [\App\Http\Controllers\BatchGroupController::class, 'index'])->middleware('permission:batches.read');
     Route::post('/batch-groups', [\App\Http\Controllers\BatchGroupController::class, 'store'])->middleware('permission:batches.write');
     Route::match(['put', 'patch'], '/batch-groups/{batchGroup}', [\App\Http\Controllers\BatchGroupController::class, 'update'])->middleware('permission:batches.write');
+    Route::delete('/batch-groups/{batchGroup}', [\App\Http\Controllers\BatchGroupController::class, 'destroy'])->middleware('permission:batches.write');
 
     // Quality Controls
     Route::get('/quality-controls', [\App\Http\Controllers\QualityControlController::class, 'index'])->middleware('permission:quality.read');
