@@ -185,7 +185,10 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Restaurant Le Petit Bistro', 'phone' => '04 56 78 90 12', 'address' => '5 Place de la République, Grenoble']
         );
 
-        // 7. Demo Orders (only if none exist yet)
+        // 7. Packaging Materials
+        $this->call(PackagingMaterialsSeeder::class);
+
+        // 8. Demo Orders (only if none exist yet)
         if (\App\Models\Order::count() === 0) {
             $order1 = \App\Models\Order::create([
                 'customer_id'   => $customer1->id,
