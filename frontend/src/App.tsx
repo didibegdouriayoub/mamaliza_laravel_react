@@ -22,6 +22,9 @@ import NotFound from "./pages/NotFound";
 import Permissions from "./pages/Permissions";
 import Customers from "./pages/Customers";
 import Suppliers from "./pages/Suppliers";
+import PackagingMaterials from "./pages/PackagingMaterials";
+import PackagingCartons from "./pages/PackagingCartons";
+import PackagingLog from "./pages/PackagingLog";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +46,9 @@ function AppRoutes() {
         <Route path="/leftover" element={<ProtectedRoute permissions={['batches.read']}><Leftover /></ProtectedRoute>} />
         <Route path="/quality" element={<ProtectedRoute permissions={['quality.read']}><Quality /></ProtectedRoute>} />
         <Route path="/estimation" element={<ProtectedRoute permissions={['inventory.read']}><Estimation /></ProtectedRoute>} />
+        <Route path="/packaging/materials" element={<ProtectedRoute permissions={['inventory.read']}><PackagingMaterials /></ProtectedRoute>} />
+        <Route path="/packaging/cartons" element={<ProtectedRoute permissions={['inventory.read']}><PackagingCartons /></ProtectedRoute>} />
+        <Route path="/packaging/log" element={<ProtectedRoute permissions={['inventory.read']}><PackagingLog /></ProtectedRoute>} />
         <Route path="/customers" element={<ProtectedRoute permissions={['customers.read']}><Customers /></ProtectedRoute>} />
         <Route path="/suppliers" element={<ProtectedRoute permissions={['suppliers.read']}><Suppliers /></ProtectedRoute>} />
         <Route path="/sales" element={<ProtectedRoute permissions={['sales.read']}><Sales /></ProtectedRoute>} />

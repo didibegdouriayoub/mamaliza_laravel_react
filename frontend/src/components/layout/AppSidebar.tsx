@@ -1,6 +1,7 @@
 import {
   LayoutDashboard, Package, BookOpen, Factory, ShieldCheck,
   ShoppingCart, BarChart3, Users, Calculator, PackageCheck, Recycle, Truck,
+  Box, ClipboardList,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { Permission, UserRole } from '@/models/types';
 import cheeseLogo from '@/assets/cheese-logo.png';
 
-const navItems: { title: string; url: string; icon: typeof LayoutDashboard; permission?: Permission }[] = [
+const navItems: { title: string; url: string; icon: typeof LayoutDashboard; permission?: Permission; group?: string }[] = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard, permission: 'analytics.read' },
   { title: 'Inventory', url: '/inventory', icon: Package, permission: 'inventory.read' },
   { title: 'Recipes', url: '/recipes', icon: BookOpen, permission: 'recipes.read' },
@@ -22,6 +23,11 @@ const navItems: { title: string; url: string; icon: typeof LayoutDashboard; perm
   { title: 'Leftover', url: '/leftover', icon: Recycle, permission: 'batches.read' },
   { title: 'Quality', url: '/quality', icon: ShieldCheck, permission: 'quality.read' },
   { title: 'Estimation', url: '/estimation', icon: Calculator, permission: 'inventory.read' },
+  // Packaging
+  { title: 'Pkg Materials', url: '/packaging/materials', icon: Box, permission: 'inventory.read', group: 'Packaging' },
+  { title: 'Pkg Cartons', url: '/packaging/cartons', icon: Package, permission: 'inventory.read', group: 'Packaging' },
+  { title: 'Pkg Log', url: '/packaging/log', icon: ClipboardList, permission: 'inventory.read', group: 'Packaging' },
+  // Sales & admin
   { title: 'Customers', url: '/customers', icon: Users, permission: 'customers.read' },
   { title: 'Suppliers', url: '/suppliers', icon: Truck, permission: 'suppliers.read' },
   { title: 'Sales', url: '/sales', icon: ShoppingCart, permission: 'sales.read' },
@@ -52,11 +58,12 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
+        {/* Main navigation (no group) */}
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {visibleItems.map((item) => (
+              {visibleItems.filter(i => !i.group).map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
@@ -74,6 +81,32 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Packaging section */}
+        {visibleItems.some(i => i.group === 'Packaging') && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Packaging</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {visibleItems.filter(i => i.group === 'Packaging').map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        end={false}
+                        className="hover:bg-accent/60"
+                        activeClassName="bg-accent text-accent-foreground font-medium"
+                      >
+                        <item.icon className="mr-2 h-4 w-4 shrink-0" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="p-4">

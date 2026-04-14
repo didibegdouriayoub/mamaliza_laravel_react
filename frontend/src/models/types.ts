@@ -205,3 +205,53 @@ export interface Notification {
   readBy?: (string | number)[];
   createdAt: string;
 }
+
+// ============ PACKAGING ============
+
+export type PackagingMaterialType = 'Box' | 'Case' | 'Vacbag' | 'Label' | 'Ticket' | 'Wrap' | 'Wax';
+export type PackagingStockUnit = 'pcs' | 'kg' | 'rolls';
+
+export interface PackagingMaterial {
+  id: string | number;
+  name: string;
+  code: string;
+  type: PackagingMaterialType;
+  stockQty: number;
+  stockUnit: PackagingStockUnit;
+  lowStockAlert?: number | null;
+  accountCode?: number | null;
+  dimLength?: number | null;
+  dimWidth?: number | null;
+  dimHeight?: number | null;
+  notes?: string | null;
+  lastUpdated: string;
+  createdAt: string;
+}
+
+export interface CartonMaterial {
+  id: string | number;
+  materialId: string | number;
+  amountPerCarton: number;
+  material?: PackagingMaterial;
+}
+
+export interface PackagingCarton {
+  id: string | number;
+  name: string;
+  productName: string;
+  piecesPerCarton: number;
+  cartonMaterials: CartonMaterial[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PackagingLog {
+  id: string | number;
+  cartonId: string | number;
+  date: string;
+  cartonsCount: number;
+  loosePieces: number;
+  notes?: string | null;
+  carton?: PackagingCarton;
+  createdAt: string;
+}
