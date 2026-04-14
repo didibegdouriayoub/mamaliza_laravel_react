@@ -176,6 +176,43 @@
 
 ---
 
+## Phase 14 — Packaging Materials Module
+
+### Sprint 1: Database & Seed
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T14.1 | Migration: create `packaging_materials` table (id, name, code, type enum, stock_qty, stock_unit, low_stock_alert, account_code, dim_length/width/height, notes, timestamps) | 🔴 | ✅ |
+| T14.2 | Migration: create `packaging_cartons` table (id, name, product_name, pieces_per_carton, timestamps) | 🔴 | ✅ |
+| T14.3 | Migration: create `carton_materials` pivot table (carton_id FK, material_id FK, amount_per_carton) | 🔴 | ✅ |
+| T14.4 | Migration: create `packaging_logs` table (id, carton_id FK, date, cartons_count, loose_pieces, notes, created_at) | 🔴 | ✅ |
+| T14.5 | Seeder: insert all 37 packaging_materials records (boxes, cases, vacbags, labels) | 🟠 | ✅ |
+
+### Sprint 2: Backend — Models & Controllers
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T14.6 | Models: `PackagingMaterial`, `PackagingCarton`, `CartonMaterial`, `PackagingLog` with relationships | 🔴 | ✅ |
+| T14.7 | `PackagingMaterialController`: index (filter by type), store, update, destroy | 🔴 | ✅ |
+| T14.8 | `PackagingCartonController`: index (eager-load materials), store (sync carton_materials), update, destroy | 🔴 | ✅ |
+| T14.9 | `PackagingLogController`: index (last 30 days), store (save log + deduct stock), destroy (restore stock) | 🔴 | ✅ |
+| T14.10 | Routes: register all packaging routes under auth:sanctum middleware | 🔴 | ✅ |
+
+### Sprint 3: Frontend — Services & Pages
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T14.11 | `packagingMaterialService.ts`: getAll (with type filter), create, update, delete | 🔴 | ✅ |
+| T14.12 | `packagingCartonService.ts`: getAll, create, update, delete | 🔴 | ✅ |
+| T14.13 | `packagingLogService.ts`: getAll, create (auto-deducts stock), delete (restores stock) | 🔴 | ✅ |
+| T14.14 | Page: `PackagingMaterials.tsx` — table with Name/Code/Type/Stock/Unit/LowAlert; red row highlight when stock ≤ alert; type filter; Add/Edit/Delete with modal form | 🔴 | ✅ |
+| T14.15 | Page: `PackagingCartons.tsx` — table with Name/Product/Pieces per carton/materials list; Add/Edit with dynamic material rows; Delete | 🔴 | ✅ |
+| T14.16 | Page: `PackagingLog.tsx` — form (carton select, date, cartons_count, loose_pieces, notes); submit deducts stock; log table last 30 days; delete restores stock | 🔴 | ✅ |
+| T14.17 | Navigation: add Packaging section to sidebar with 3 links (Materials, Cartons, Log) | 🔴 | ✅ |
+| T14.18 | Router: register `/packaging/materials`, `/packaging/cartons`, `/packaging/log` routes in App.tsx | 🔴 | ✅ |
+
+---
+
 ## Rules for this Project
 1. Take tasks ONE at a time.
 2. After completing a task, make a descriptive git commit immediately.
