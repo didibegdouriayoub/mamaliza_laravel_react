@@ -20,6 +20,7 @@ const toPayload = (item: Partial<InventoryItem>) =>
 export const inventoryService = {
   getAll: () => apiClient.get('/inventory'),
   getById: (id: string | number) => apiClient.get(`/inventory/${id}`),
+  getAllHistory: () => apiClient.get('/inventory/history/all'),
   create: (item: Partial<InventoryItem>) => apiClient.post('/inventory', toPayload(item)),
   update: (id: string | number, item: Partial<InventoryItem>) => apiClient.put(`/inventory/${id}`, toPayload(item)),
   delete: (id: string | number) => apiClient.delete(`/inventory/${id}`),

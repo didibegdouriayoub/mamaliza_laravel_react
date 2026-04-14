@@ -27,10 +27,10 @@ export function OrderStatusBadge({ status }: { status: OrderStatus }) {
 }
 
 export function StockBadge({ quantity, minStock }: { quantity: number; minStock: number }) {
-  const isLow = quantity <= minStock;
-  return (
-    <Badge className={isLow ? 'bg-warning text-warning-foreground' : 'bg-success/10 text-success'}>
-      {isLow ? '⚠ Low' : 'OK'}
-    </Badge>
-  );
+  const isOut = quantity <= 0;
+  const isLow = !isOut && minStock > 0 && quantity <= minStock;
+
+  if (isOut) return <Badge className="bg-destructive/10 text-destructive">Out of Stock</Badge>;
+  if (isLow) return <Badge className="bg-warning text-warning-foreground">⚠ Low</Badge>;
+  return <Badge className="bg-success/10 text-success">OK</Badge>;
 }

@@ -168,6 +168,11 @@
 | T13.49 | **Bug:** Page not loading after soft-delete change — `GET /api/recipes` returns 500 in certain contexts; investigate root cause and fix | 🔴 | 🔄 |
 | T13.50 | UX: Widen quantity inputs in recipe create/edit and batch create forms by ~50px (too narrow for numbers) | 🟠 | ✅ |
 | T13.51 | **Bug:** Deleting a batch group removes the individual batches but leaves the `batch_groups` record — `BatchGroupController` has no `destroy` method and no DELETE route registered | 🔴 | ✅ |
+| T13.52 | **Bug:** `StockBadge` — `quantity=0` shows "Low" instead of "Out of Stock" because `0 <= minStock` is always true; add explicit `isOut` check first | 🔴 | ✅ |
+| T13.53 | **Bug:** Inventory history recorded on batch create/delete (auto inventory deduction/restore) — should only be recorded on manual item edits via `InventoryItemController::update()` | 🟠 | ✅ |
+| T13.54 | **Bug:** Login "failed to fetch" + long hang — no request timeout in `apiClient` and no loading state on Sign In button | 🔴 | ✅ |
+| T13.55 | Inventory — add "History" button in toolbar to view all manual edit changes across all items in one dialog, sorted newest first | 🟠 | ✅ |
+| T13.56 | **Bug:** `GET /api/inventory` eager-loads `history.user` for all items — causes timeout/slow load after legacy import; fix by stripping history from index, adding `GET /inventory/history/all` endpoint, lazy-loading in both history dialogs | 🔴 | ✅ |
 
 ---
 

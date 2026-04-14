@@ -11,7 +11,7 @@ class InventoryItemController extends Controller
 {
     public function index(Request $request)
     {
-        $query = InventoryItem::with(['supplier', 'history.user']);
+        $query = InventoryItem::with('supplier');
 
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
@@ -24,6 +24,25 @@ class InventoryItemController extends Controller
         }
 
         return response()->json($query->latest()->get());
+    }
+
+    public function allHistory()
+    {
+        $records = InventoryHistory::with(['item:id,name', 'user:id,name'])
+            ->orderByDesc('changed_at')
+            ->get()
+            ->map(fn($h) => [
+                'id'         => $h->id,
+                'item_id'    => $h->item_id,
+                'item_name'  => $h->item?->name,
+                'field'      => $h->field,
+                'old_value'  => $h->old_value,
+                'new_value'  => $h->new_value,
+                'changed_by' => $h->user?->name ?? 'System',
+                'changed_at' => $h->changed_at,
+            ]);
+
+        return response()->json($records);
     }
 
     public function store(Request $request)

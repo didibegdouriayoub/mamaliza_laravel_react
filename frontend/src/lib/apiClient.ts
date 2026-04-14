@@ -48,11 +48,16 @@ export const apiClient = {
 
     const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30_000);
+
     try {
       const response = await fetch(`${baseUrl}${endpoint}`, {
         ...options,
         headers,
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       if (response.status === 401) {
         if (getAuthToken()) {
@@ -80,7 +85,11 @@ export const apiClient = {
 
       const json = await response.json();
       return toCamelCase(json);
-    } catch (error) {
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error?.name === 'AbortError') {
+        throw new Error('Request timed out. Please check that the server is running.');
+      }
       throw error;
     }
   },

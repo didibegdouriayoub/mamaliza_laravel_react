@@ -56,17 +56,7 @@ class BatchController extends Controller
                 if ($materialId && $quantity > 0) {
                     $item = \App\Models\InventoryItem::find($materialId);
                     if ($item) {
-                        $oldQty = $item->quantity;
                         $item->decrement('quantity', $quantity);
-                        
-                        // Record Inventory History
-                        \App\Models\InventoryHistory::create([
-                            'item_id' => $item->id,
-                            'field' => 'quantity',
-                            'old_value' => (string)$oldQty,
-                            'new_value' => (string)$item->quantity,
-                            'changed_by' => auth()->id() ?: 1, // Fallback to admin if not auth
-                        ]);
                     }
                 }
             }
@@ -126,17 +116,7 @@ class BatchController extends Controller
                 if ($materialId && $quantity > 0) {
                     $item = \App\Models\InventoryItem::find($materialId);
                     if ($item) {
-                        $oldQty = $item->quantity;
                         $item->increment('quantity', $quantity);
-
-                        // Record Inventory History
-                        \App\Models\InventoryHistory::create([
-                            'item_id' => $item->id,
-                            'field' => 'quantity',
-                            'old_value' => (string)$oldQty,
-                            'new_value' => (string)$item->quantity,
-                            'changed_by' => auth()->id() ?: 1,
-                        ]);
                     }
                 }
             }

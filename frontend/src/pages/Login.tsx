@@ -12,12 +12,20 @@ export default function Login() {
   const [email, setEmail] = useState('marie@fromagerie.com');
   const [password, setPassword] = useState('password');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const success = await login(email, password);
-    if (!success) setError('Invalid credentials. Try: marie@fromagerie.com, jean@fromagerie.com, or sophie@fromagerie.com');
+    setIsSubmitting(true);
+    try {
+      const success = await login(email, password);
+      if (!success) setError('Invalid credentials. Try: marie@fromagerie.com, jean@fromagerie.com, or sophie@fromagerie.com');
+    } catch (err: any) {
+      setError(err.message || 'Failed to connect. Please check that the server is running.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -53,7 +61,9 @@ export default function Login() {
                 <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
               </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
-              <Button type="submit" className="w-full">Sign In</Button>
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? 'Signing in…' : 'Sign In'}
+              </Button>
               <div className="text-xs text-muted-foreground text-center space-y-1 pt-2">
                 <p className="font-medium">Demo accounts:</p>
                 <p>marie@fromagerie.com (Admin)</p>

@@ -33,6 +33,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Inventory
     Route::get('/inventory', [\App\Http\Controllers\InventoryItemController::class, 'index'])->middleware('permission:inventory.read');
     Route::post('/inventory', [\App\Http\Controllers\InventoryItemController::class, 'store'])->middleware('permission:inventory.write');
+    Route::get('/inventory/history/all', [\App\Http\Controllers\InventoryItemController::class, 'allHistory'])->middleware('permission:inventory.read');
     Route::get('/inventory/{inventory}', [\App\Http\Controllers\InventoryItemController::class, 'show'])->middleware('permission:inventory.read');
     Route::match(['put', 'patch'], '/inventory/{inventory}', [\App\Http\Controllers\InventoryItemController::class, 'update'])->middleware('permission:inventory.write');
     Route::delete('/inventory/{inventory}', [\App\Http\Controllers\InventoryItemController::class, 'destroy'])->middleware('permission:inventory.write');

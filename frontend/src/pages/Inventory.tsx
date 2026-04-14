@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Search, Trash2, Edit, Package, History, Printer, CalendarDays, Download } from 'lucide-react';
+import { Plus, Search, Trash2, Edit, Package, History, Printer, CalendarDays, Download, Clock } from 'lucide-react';
 import { printDocument, fmtDate, fmtEur } from '@/lib/printDocument';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,6 +47,10 @@ export default function Inventory() {
   const PAGE_SIZE = 20;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [historyItem, setHistoryItem] = useState<InventoryItem | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [allHistoryOpen, setAllHistoryOpen] = useState(false);
+  const [allHistoryRecords, setAllHistoryRecords] = useState<any[]>([]);
+  const [allHistoryLoading, setAllHistoryLoading] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [form, setForm] = useState(emptyForm);
   const { toast } = useToast();
@@ -65,26 +69,20 @@ export default function Inventory() {
         const minStock = Number(item.minStock) || 0;
         const status: 'ok' | 'low' | 'out' = qty <= 0 ? 'out' : (minStock > 0 && qty <= minStock ? 'low' : 'ok');
         return {
-        ...item,
-        supplier: item.supplier?.name ?? item.supplier ?? '',
-        supplierId: String(item.supplierId ?? item.supplier?.id ?? ''),
-        price: Number(item.price) || 0,
-        quantity: qty,
-        minStock,
-        status,
-        lot: item.lot || '',
-        code: item.code || '',
-        leadTimeDays: Number(item.leadTimeDays ?? item.lead_time_days) || 0,
-        createdAt: item.createdAt?.split('T')[0] || item.created_at?.split('T')[0] || '',
-        history: (item.history || []).map((h: any) => ({
-          id: String(h.id),
-          field: h.field,
-          oldValue: String(h.oldValue ?? h.old_value ?? ''),
-          newValue: String(h.newValue ?? h.new_value ?? ''),
-          changedBy: h.user?.name || 'System',
-          changedAt: h.changedAt || h.changed_at || '',
-        }))
-      };});
+          ...item,
+          supplier: item.supplier?.name ?? item.supplier ?? '',
+          supplierId: String(item.supplierId ?? item.supplier?.id ?? ''),
+          price: Number(item.price) || 0,
+          quantity: qty,
+          minStock,
+          status,
+          lot: item.lot || '',
+          code: item.code || '',
+          leadTimeDays: Number(item.leadTimeDays ?? item.lead_time_days) || 0,
+          createdAt: item.createdAt?.split('T')[0] || item.created_at?.split('T')[0] || '',
+          history: [],
+        };
+      });
       setItems(invData);
       setSuppliers(supData || []);
     } catch(e) { console.error(e); }
@@ -193,6 +191,45 @@ export default function Inventory() {
     await inventoryService.delete(id);
     toast({ title: 'Item deleted', variant: 'destructive' });
     loadData();
+  };
+
+  const mapHistoryRecord = (h: any) => ({
+    id: String(h.id),
+    field: h.field,
+    oldValue: String(h.oldValue ?? h.old_value ?? ''),
+    newValue: String(h.newValue ?? h.new_value ?? ''),
+    changedBy: h.changedBy ?? h.changed_by ?? 'System',
+    changedAt: h.changedAt ?? h.changed_at ?? '',
+  });
+
+  const openItemHistory = async (item: InventoryItem) => {
+    setHistoryItem({ ...item, history: [] });
+    setHistoryLoading(true);
+    try {
+      const full = await inventoryService.getById(item.id);
+      const history = (full?.history || []).map(mapHistoryRecord);
+      setHistoryItem({ ...item, history });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const openAllHistory = async () => {
+    setAllHistoryOpen(true);
+    setAllHistoryLoading(true);
+    try {
+      const data = await inventoryService.getAllHistory();
+      setAllHistoryRecords((data || []).map((h: any) => ({
+        ...mapHistoryRecord(h),
+        itemName: h.itemName ?? h.item_name ?? '',
+      })));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setAllHistoryLoading(false);
+    }
   };
 
   const handleSupplierChange = (supplierId: string) => {
@@ -327,6 +364,7 @@ export default function Inventory() {
         <div className="flex gap-2 print:hidden">
           <Button variant="outline" onClick={handlePrint}><Printer className="h-4 w-4 mr-1" /> Print</Button>
           <Button variant="outline" onClick={handleExportCsv}><Download className="h-4 w-4 mr-1" /> CSV</Button>
+          <Button variant="outline" onClick={openAllHistory}><Clock className="h-4 w-4 mr-1" /> History</Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             {hasPermission('inventory.write') && (
               <DialogTrigger asChild>
@@ -518,7 +556,7 @@ export default function Inventory() {
                         <TableCell><StockBadge quantity={displayQty ?? item.quantity} minStock={item.minStock} /></TableCell>
                         <TableCell className="text-right print:hidden">
                           <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => setHistoryItem(item)} title="View history">
+                            <Button variant="ghost" size="icon" onClick={() => openItemHistory(item)} title="View history">
                               <History className="h-4 w-4 text-muted-foreground" />
                             </Button>
                             {hasPermission('inventory.write') && (
@@ -564,6 +602,33 @@ export default function Inventory() {
         </CardContent>
       </Card>
 
+      {/* All History Dialog */}
+      <Dialog open={allHistoryOpen} onOpenChange={setAllHistoryOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="font-display flex items-center gap-2"><Clock className="h-5 w-5" /> All Inventory Changes</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+            {allHistoryLoading ? (
+              <p className="text-sm text-muted-foreground">Loading history…</p>
+            ) : allHistoryRecords.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No changes recorded yet.</p>
+            ) : allHistoryRecords.map(h => (
+              <div key={h.id} className="text-sm py-2 border-b last:border-0">
+                <div className="flex items-center justify-between">
+                  <span className="font-medium">{h.itemName} — <span className="capitalize">{h.field}</span></span>
+                  <span className="text-xs text-muted-foreground">{formatDate(h.changedAt)}</span>
+                </div>
+                <p className="text-muted-foreground">
+                  <span className="line-through">{h.oldValue}</span> → <span className="text-foreground font-medium">{h.newValue}</span>
+                </p>
+                <p className="text-xs text-muted-foreground">by {h.changedBy}</p>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* History Dialog */}
       <Dialog open={!!historyItem} onOpenChange={() => setHistoryItem(null)}>
         <DialogContent>
@@ -573,7 +638,9 @@ export default function Inventory() {
                 <DialogTitle className="font-display flex items-center gap-2"><History className="h-5 w-5" /> Change History — {historyItem.name}</DialogTitle>
               </DialogHeader>
               <div className="space-y-2 max-h-64 overflow-y-auto">
-                {(historyItem.history || []).length === 0 ? (
+                {historyLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading history…</p>
+                ) : (historyItem.history || []).length === 0 ? (
                   <p className="text-sm text-muted-foreground">No changes recorded yet.</p>
                 ) : (
                   [...(historyItem.history || [])].sort((a, b) => b.changedAt.localeCompare(a.changedAt)).map(h => (
