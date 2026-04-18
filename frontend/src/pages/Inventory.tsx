@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StockBadge } from '@/components/StatusBadge';
 import { TableSkeleton, EmptyState } from '@/components/DataStates';
 import { inventoryService } from '@/services/inventoryService';
@@ -494,6 +494,9 @@ export default function Inventory() {
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="raw">Raw Materials</SelectItem>
+                  <SelectItem value="leftover">Leftover</SelectItem>
+                  <SelectItem value="product">Products</SelectItem>
+                  <SelectSeparator />
                   <SelectItem value="packaging">— All Packaging</SelectItem>
                   <SelectItem value="Box">  Box</SelectItem>
                   <SelectItem value="Case">  Case</SelectItem>
@@ -502,8 +505,7 @@ export default function Inventory() {
                   <SelectItem value="Ticket">  Ticket</SelectItem>
                   <SelectItem value="Wrap">  Wrap</SelectItem>
                   <SelectItem value="Wax">  Wax</SelectItem>
-                  <SelectItem value="leftover">Leftover</SelectItem>
-                  <SelectItem value="product">Products</SelectItem>
+
                 </SelectContent>
               </Select>
 
