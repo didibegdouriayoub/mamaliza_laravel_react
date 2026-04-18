@@ -33,7 +33,7 @@ class BatchObserver
                 'quantity'    => $batch->output_quantity ?? 0,
                 'unit'        => $batch->output_unit ?? 'kg',
                 'price'       => 0,
-                'min_stock'   => 0,
+                'min_stock'   => 1,
                 'supplier_id' => null,
             ]);
 

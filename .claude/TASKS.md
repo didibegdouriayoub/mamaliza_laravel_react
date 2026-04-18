@@ -177,6 +177,8 @@
 | T13.58 | `SyncInventoryFromLegacySeeder`: reset all `inventory_items.quantity` + `min_stock` + `status` to exact `stock_kg` values from `bakery.sql` using a staging table + direct SQL UPDATE JOIN; also clears `inventory_history` for synced items | 🔴 | ✅ |
 | T13.59 | **Bug:** Low/out stock notifications created on every batch — deduplicate in `InventoryItemObserver`: skip if an unread notification for the same item+status already exists | 🔴 | ✅ |
 | T13.60 | Notifications — add delete single (×) and "Clear all" buttons in Topbar popover; add `DELETE /notifications` and `DELETE /notifications/{id}` routes + `destroyAll` controller method | 🟠 | ✅ |
+| T13.61 | **Bug:** Low-stock notifications fire for `out` status too — restrict observer to only notify when `status = 'low'` (quantity > 0 but below min_stock) | 🔴 | ✅ |
+| T13.62 | Leftover inventory items default `min_stock = 0` — set to `1` in `BatchGroupController`, `BatchObserver`, and via migration for existing rows so the low-stock observer can fire when they are consumed | 🟠 | ✅ |
 
 ---
 

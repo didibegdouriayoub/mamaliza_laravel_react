@@ -49,7 +49,7 @@ class BatchGroupController extends Controller
                 'quantity'    => $validated['leftover_qty'],
                 'unit'        => $validated['leftover_unit'] ?? 'kg',
                 'price'       => 0,
-                'min_stock'   => 0,
+                'min_stock'   => 1,
                 'supplier_id' => null,
             ]);
         }

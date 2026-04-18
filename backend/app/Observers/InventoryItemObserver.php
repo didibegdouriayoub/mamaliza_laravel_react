@@ -28,24 +28,20 @@ class InventoryItemObserver
             // Update without triggering observer again
             \DB::table('inventory_items')->where('id', $item->id)->update(['status' => $status]);
 
-            // Send one notification per item per status — skip if an unread one already exists
-            if ($status === 'out' || $status === 'low') {
-                $title = $status === 'out' ? 'Out of Stock Alert' : 'Low Stock Alert';
-                $alreadyNotified = \App\Models\Notification::where('title', $title)
+            // Notify only when LOW — out-of-stock items need no restock alert
+            if ($status === 'low') {
+                $alreadyNotified = \App\Models\Notification::where('title', 'Low Stock Alert')
                     ->where('message', 'like', "%'{$item->name}'%")
-                    ->whereJsonLength('read_by', 0)
-                    ->orWhere(function ($q) use ($title, $item) {
-                        $q->where('title', $title)
-                          ->where('message', 'like', "%'{$item->name}'%")
-                          ->whereNull('read_by');
+                    ->where(function ($q) {
+                        $q->whereJsonLength('read_by', 0)->orWhereNull('read_by');
                     })
                     ->exists();
 
                 if (!$alreadyNotified) {
                     $this->notificationService->sendToRole(
                         'admin',
-                        $title,
-                        "Inventory item '{$item->name}' is " . ($status === 'out' ? 'out of stock' : 'running low') . " (" . $item->quantity . " {$item->unit}). Please restock.",
+                        'Low Stock Alert',
+                        "Inventory item '{$item->name}' is running low (" . $item->quantity . " {$item->unit}). Please restock.",
                         'warning'
                     );
                 }
