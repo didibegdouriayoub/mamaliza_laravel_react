@@ -180,6 +180,7 @@
 | T13.61 | **Bug:** Low-stock notifications fire for `out` status too — restrict observer to only notify when `status = 'low'` (quantity > 0 but below min_stock) | 🔴 | ✅ |
 | T13.62 | Leftover inventory items default `min_stock = 0` — set to `1` in `BatchGroupController`, `BatchObserver`, and via migration for existing rows so the low-stock observer can fire when they are consumed | 🟠 | ✅ |
 | T13.63 | **Bug:** Items with name starting "Leftovers" were imported from bakery.sql as `type='raw'` with `min_stock=200` — migration corrects them to `type='leftover'` and `min_stock=1` | 🔴 | ✅ |
+| T13.64 | `LowStockNotificationsSeeder`: generate one "Low Stock Alert" notification for every item currently at `status='low'`, skipping items that already have an unread notification | 🟠 | ✅ |
 
 ---
 
