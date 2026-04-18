@@ -181,6 +181,7 @@
 | T13.62 | Leftover inventory items default `min_stock = 0` — set to `1` in `BatchGroupController`, `BatchObserver`, and via migration for existing rows so the low-stock observer can fire when they are consumed | 🟠 | ✅ |
 | T13.63 | **Bug:** Items with name starting "Leftovers" were imported from bakery.sql as `type='raw'` with `min_stock=200` — migration corrects them to `type='leftover'` and `min_stock=1` | 🔴 | ✅ |
 | T13.64 | `LowStockNotificationsSeeder`: generate one "Low Stock Alert" notification for every item currently at `status='low'`, skipping items that already have an unread notification | 🟠 | ✅ |
+| T13.65 | **Bug:** Deleting an inventory item used in a recipe throws a raw FK constraint crash — backend now checks `recipe_ingredients` first and returns 409 with recipe names; frontend shows a warning toast instead of crashing | 🔴 | ✅ |
 
 ---
 

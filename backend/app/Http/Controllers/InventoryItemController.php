@@ -116,6 +116,19 @@ class InventoryItemController extends Controller
 
     public function destroy(InventoryItem $inventory)
     {
+        $usedInRecipes = \DB::table('recipe_ingredients')
+            ->where('material_id', $inventory->id)
+            ->join('recipes', 'recipes.id', '=', 'recipe_ingredients.recipe_id')
+            ->pluck('recipes.name')
+            ->unique()
+            ->values();
+
+        if ($usedInRecipes->isNotEmpty()) {
+            return response()->json([
+                'message' => "Cannot delete \"{$inventory->name}\" — it is used in " . $usedInRecipes->count() . " recipe(s): " . $usedInRecipes->implode(', ') . '.',
+            ], 409);
+        }
+
         $inventory->delete();
         return response()->json(null, 204);
     }

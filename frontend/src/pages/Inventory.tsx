@@ -188,9 +188,17 @@ export default function Inventory() {
   };
 
   const handleDelete = async (id: string) => {
-    await inventoryService.delete(id);
-    toast({ title: 'Item deleted', variant: 'destructive' });
-    loadData();
+    try {
+      await inventoryService.delete(id);
+      toast({ title: 'Item deleted', variant: 'destructive' });
+      loadData();
+    } catch (err: any) {
+      toast({
+        title: 'Cannot delete item',
+        description: err.message || 'This item is used in one or more recipes.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const mapHistoryRecord = (h: any) => ({
