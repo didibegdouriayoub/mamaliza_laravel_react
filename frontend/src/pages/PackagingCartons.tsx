@@ -21,10 +21,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import { TableSkeleton, EmptyState } from '@/components/DataStates';
 import { packagingCartonService } from '@/services/packagingCartonService';
-import { packagingMaterialService } from '@/services/packagingMaterialService';
+import { inventoryService } from '@/services/inventoryService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import type { PackagingCarton, PackagingMaterial } from '@/models/types';
+import type { PackagingCarton, InventoryItem } from '@/models/types';
 
 interface MaterialRow {
   materialId: string | number;
@@ -40,7 +40,7 @@ const emptyForm = () => ({
 
 export default function PackagingCartons() {
   const [cartons, setCartons] = useState<PackagingCarton[]>([]);
-  const [allMaterials, setAllMaterials] = useState<PackagingMaterial[]>([]);
+  const [allMaterials, setAllMaterials] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<PackagingCarton | null>(null);
@@ -54,12 +54,12 @@ export default function PackagingCartons() {
   const load = async () => {
     setLoading(true);
     try {
-      const [cartonsData, matsData] = await Promise.all([
+      const [cartonsData, allItems] = await Promise.all([
         packagingCartonService.getAll(),
-        packagingMaterialService.getAll(),
+        inventoryService.getAll(),
       ]);
       setCartons(cartonsData || []);
-      setAllMaterials(matsData || []);
+      setAllMaterials((allItems || []).filter((i: InventoryItem) => i.type === 'packaging'));
     } catch {
       toast({ title: 'Failed to load carton definitions', variant: 'destructive' });
     }

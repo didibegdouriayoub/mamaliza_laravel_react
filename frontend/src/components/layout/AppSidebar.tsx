@@ -24,7 +24,6 @@ const navItems: { title: string; url: string; icon: typeof LayoutDashboard; perm
   { title: 'Quality', url: '/quality', icon: ShieldCheck, permission: 'quality.read' },
   { title: 'Estimation', url: '/estimation', icon: Calculator, permission: 'inventory.read' },
   // Packaging
-  { title: 'Pkg Materials', url: '/packaging/materials', icon: Box, permission: 'inventory.read', group: 'Packaging' },
   { title: 'Pkg Cartons', url: '/packaging/cartons', icon: Package, permission: 'inventory.read', group: 'Packaging' },
   { title: 'Pkg Log', url: '/packaging/log', icon: ClipboardList, permission: 'inventory.read', group: 'Packaging' },
   // Sales & admin

@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\PackagingLog;
 use App\Models\PackagingCarton;
-use App\Models\PackagingMaterial;
+use App\Models\InventoryItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -38,8 +38,8 @@ class PackagingLogController extends Controller
             $carton = PackagingCarton::with('cartonMaterials')->find($validated['carton_id']);
             foreach ($carton->cartonMaterials as $cm) {
                 $deduction = $cm->amount_per_carton * $validated['cartons_count'];
-                PackagingMaterial::where('id', $cm->material_id)
-                    ->decrement('stock_qty', $deduction);
+                InventoryItem::where('id', $cm->material_id)
+                    ->decrement('quantity', $deduction);
             }
         });
 
@@ -53,8 +53,8 @@ class PackagingLogController extends Controller
             $carton = PackagingCarton::with('cartonMaterials')->find($packagingLog->carton_id);
             foreach ($carton->cartonMaterials as $cm) {
                 $restoration = $cm->amount_per_carton * $packagingLog->cartons_count;
-                PackagingMaterial::where('id', $cm->material_id)
-                    ->increment('stock_qty', $restoration);
+                InventoryItem::where('id', $cm->material_id)
+                    ->increment('quantity', $restoration);
             }
 
             $packagingLog->delete();

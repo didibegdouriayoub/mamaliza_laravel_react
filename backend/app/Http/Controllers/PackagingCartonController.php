@@ -22,7 +22,7 @@ class PackagingCartonController extends Controller
             'product_name'      => 'required|string|max:255',
             'pieces_per_carton' => 'required|integer|min:1',
             'materials'         => 'nullable|array',
-            'materials.*.material_id'      => 'required|exists:packaging_materials,id',
+            'materials.*.material_id'      => 'required|exists:inventory_items,id',
             'materials.*.amount_per_carton' => 'required|numeric|min:0',
         ]);
 
@@ -57,7 +57,7 @@ class PackagingCartonController extends Controller
             'product_name'      => 'sometimes|string|max:255',
             'pieces_per_carton' => 'sometimes|integer|min:1',
             'materials'         => 'nullable|array',
-            'materials.*.material_id'      => 'required|exists:packaging_materials,id',
+            'materials.*.material_id'      => 'required|exists:inventory_items,id',
             'materials.*.amount_per_carton' => 'required|numeric|min:0',
         ]);
 

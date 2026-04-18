@@ -183,6 +183,7 @@
 | T13.64 | `LowStockNotificationsSeeder`: generate one "Low Stock Alert" notification for every item currently at `status='low'`, skipping items that already have an unread notification | 🟠 | ✅ |
 | T13.65 | **Bug:** Deleting an inventory item used in a recipe throws a raw FK constraint crash — backend now checks `recipe_ingredients` first and returns 409 with recipe names; frontend shows a warning toast instead of crashing | 🔴 | ✅ |
 | T13.66 | "All Inventory Changes" history — filter to only show items with `type IN ('raw','packaging')`; excludes auto-created leftovers and products | 🟠 | ✅ |
+| T13.67 | Merge Packaging Materials into Inventory: migrate 37 `packaging_materials` rows into `inventory_items` (type='packaging'), remap `carton_materials` FK, update `PackagingCartonController` + `PackagingLogController` to use `inventory_items`, remove PackagingMaterials page/route/sidebar link — inventory type filter already supports 'packaging' | 🔴 | ✅ |
 
 ---
 
