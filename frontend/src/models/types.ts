@@ -14,7 +14,7 @@ export type Permission =
   | 'permissions.read' | 'permissions.write'
   | 'packaging.read' | 'packaging.write';
 
-export type MaterialType = 'raw' | 'packaging' | 'leftover' | 'product';
+export type MaterialType = 'raw' | 'packaging' | 'Box' | 'Case' | 'Vacbag' | 'Label' | 'Ticket' | 'Wrap' | 'Wax' | 'leftover' | 'product';
 export type BatchStatus = 'completed' | 'failed';
 export type OrderStatus = 'pending' | 'partial' | 'paid' | 'shipped' | 'cancelled';
 

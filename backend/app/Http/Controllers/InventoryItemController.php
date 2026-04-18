@@ -29,7 +29,7 @@ class InventoryItemController extends Controller
     public function allHistory()
     {
         $records = InventoryHistory::with(['item:id,name,type', 'user:id,name'])
-            ->whereHas('item', fn($q) => $q->whereIn('type', ['raw', 'packaging']))
+            ->whereHas('item', fn($q) => $q->whereIn('type', ['raw', 'packaging', 'Box', 'Case', 'Vacbag', 'Label', 'Ticket', 'Wrap', 'Wax']))
             ->orderByDesc('changed_at')
             ->get()
             ->map(fn($h) => [
@@ -50,7 +50,7 @@ class InventoryItemController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|in:raw,packaging',
+            'type' => 'required|in:raw,packaging,Box,Case,Vacbag,Label,Ticket,Wrap,Wax',
             'quantity' => 'required|numeric|min:0',
             'unit' => 'required|string|max:50',
             'price' => 'required|numeric|min:0',
@@ -84,7 +84,7 @@ class InventoryItemController extends Controller
     {
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
-            'type' => 'sometimes|in:raw,packaging',
+            'type' => 'sometimes|in:raw,packaging,Box,Case,Vacbag,Label,Ticket,Wrap,Wax',
             'quantity' => 'sometimes|numeric|min:0',
             'unit' => 'sometimes|string|max:50',
             'price' => 'sometimes|numeric|min:0',

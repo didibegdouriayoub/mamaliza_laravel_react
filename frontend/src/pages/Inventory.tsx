@@ -250,7 +250,7 @@ export default function Inventory() {
     const dateStr = now.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
     const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
-    const typeLabel = (t: string) => ({ raw: 'Raw', packaging: 'Packaging', leftover: 'Leftover', product: 'Product' }[t] ?? t);
+    const typeLabel = (t: string) => ({ raw: 'Raw', packaging: 'Packaging', Box: 'Box', Case: 'Case', Vacbag: 'Vacbag', Label: 'Label', Ticket: 'Ticket', Wrap: 'Wrap', Wax: 'Wax', leftover: 'Leftover', product: 'Product' }[t] ?? t);
     const stockBadge = (s: string) => {
       if (s === 'ok')  return '<span class="badge badge-ok">OK</span>';
       if (s === 'low') return '<span class="badge badge-low">LOW</span>';
@@ -405,7 +405,13 @@ export default function Inventory() {
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="raw">Raw Material</SelectItem>
-                        <SelectItem value="packaging">Packaging</SelectItem>
+                        <SelectItem value="Box">Box</SelectItem>
+                        <SelectItem value="Case">Case</SelectItem>
+                        <SelectItem value="Vacbag">Vacbag</SelectItem>
+                        <SelectItem value="Label">Label</SelectItem>
+                        <SelectItem value="Ticket">Ticket</SelectItem>
+                        <SelectItem value="Wrap">Wrap</SelectItem>
+                        <SelectItem value="Wax">Wax</SelectItem>
                         <SelectItem value="leftover">Leftover</SelectItem>
                         <SelectItem value="product">Product</SelectItem>
                       </SelectContent>
@@ -485,7 +491,13 @@ export default function Inventory() {
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="raw">Raw Materials</SelectItem>
-                  <SelectItem value="packaging">Packaging</SelectItem>
+                  <SelectItem value="Box">Box</SelectItem>
+                  <SelectItem value="Case">Case</SelectItem>
+                  <SelectItem value="Vacbag">Vacbag</SelectItem>
+                  <SelectItem value="Label">Label</SelectItem>
+                  <SelectItem value="Ticket">Ticket</SelectItem>
+                  <SelectItem value="Wrap">Wrap</SelectItem>
+                  <SelectItem value="Wax">Wax</SelectItem>
                   <SelectItem value="leftover">Leftover</SelectItem>
                   <SelectItem value="product">Products</SelectItem>
                 </SelectContent>
