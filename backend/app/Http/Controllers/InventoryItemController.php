@@ -28,7 +28,8 @@ class InventoryItemController extends Controller
 
     public function allHistory()
     {
-        $records = InventoryHistory::with(['item:id,name', 'user:id,name'])
+        $records = InventoryHistory::with(['item:id,name,type', 'user:id,name'])
+            ->whereHas('item', fn($q) => $q->whereIn('type', ['raw', 'packaging']))
             ->orderByDesc('changed_at')
             ->get()
             ->map(fn($h) => [
