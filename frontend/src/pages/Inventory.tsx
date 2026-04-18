@@ -113,7 +113,10 @@ export default function Inventory() {
 
   const filtered = items.filter(i => {
     const matchesSearch = i.name.toLowerCase().includes(search.toLowerCase()) || i.supplier.toLowerCase().includes(search.toLowerCase());
-    const matchesType = typeFilter === 'all' || i.type === typeFilter;
+    const packagingTypes = ['Box','Case','Vacbag','Label','Ticket','Wrap','Wax'];
+    const matchesType = typeFilter === 'all'
+      || (typeFilter === 'packaging' && packagingTypes.includes(i.type))
+      || i.type === typeFilter;
     
     // Status Logic (Manual check to match StockBadge logic)
     const isLow = i.quantity > 0 && i.minStock > 0 && i.quantity <= i.minStock;
@@ -491,13 +494,14 @@ export default function Inventory() {
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="raw">Raw Materials</SelectItem>
-                  <SelectItem value="Box">Box</SelectItem>
-                  <SelectItem value="Case">Case</SelectItem>
-                  <SelectItem value="Vacbag">Vacbag</SelectItem>
-                  <SelectItem value="Label">Label</SelectItem>
-                  <SelectItem value="Ticket">Ticket</SelectItem>
-                  <SelectItem value="Wrap">Wrap</SelectItem>
-                  <SelectItem value="Wax">Wax</SelectItem>
+                  <SelectItem value="packaging">— All Packaging</SelectItem>
+                  <SelectItem value="Box">  Box</SelectItem>
+                  <SelectItem value="Case">  Case</SelectItem>
+                  <SelectItem value="Vacbag">  Vacbag</SelectItem>
+                  <SelectItem value="Label">  Label</SelectItem>
+                  <SelectItem value="Ticket">  Ticket</SelectItem>
+                  <SelectItem value="Wrap">  Wrap</SelectItem>
+                  <SelectItem value="Wax">  Wax</SelectItem>
                   <SelectItem value="leftover">Leftover</SelectItem>
                   <SelectItem value="product">Products</SelectItem>
                 </SelectContent>
