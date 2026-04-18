@@ -288,6 +288,10 @@ class LegacyImportSeeder extends Seeder
             }
 
             // ── Create one Batch row per batch_number ────────────────────────
+            // NOTE: inventory quantities (stock_kg) are already recorded AFTER
+            // all batches ran in the legacy system, so we must NOT deduct them
+            // here. We use withoutEvents() to prevent any observer from touching
+            // inventory_items during this historical import.
             for ($batchNum = 1; $batchNum <= (int) $lb->batch_count; $batchNum++) {
                 $key  = $lb->id . '_' . $batchNum;
                 $ings = $allBatchIngs->get($key, collect());
@@ -309,21 +313,25 @@ class LegacyImportSeeder extends Seeder
                     ? (int) round($lb->pieces_produced / max($lb->batch_count, 1))
                     : 0;
 
-                \App\Models\Batch::create([
-                    'recipe_id'      => $newRecipeId,
-                    'recipe_name'    => trim($lb->formula),
-                    'batch_group_id' => $group->id,
-                    'status'         => 'completed',
-                    'input_materials'=> $inputMaterials,
-                    'output_quantity'=> $perBatchOutput,
-                    'output_unit'    => 'pcs',
-                    'operator_id'    => null,
-                    'operator_name'  => 'Legacy Import',
-                    'started_at'     => $lb->date,
-                    'completed_at'   => $lb->date,
-                    'created_at'     => $lb->created_at,
-                    'updated_at'     => $lb->created_at,
-                ]);
+                \App\Models\Batch::withoutEvents(function () use (
+                    $newRecipeId, $lb, $group, $inputMaterials, $perBatchOutput
+                ) {
+                    \App\Models\Batch::create([
+                        'recipe_id'       => $newRecipeId,
+                        'recipe_name'     => trim($lb->formula),
+                        'batch_group_id'  => $group->id,
+                        'status'          => 'completed',
+                        'input_materials' => $inputMaterials,
+                        'output_quantity' => $perBatchOutput,
+                        'output_unit'     => 'pcs',
+                        'operator_id'     => null,
+                        'operator_name'   => 'Legacy Import',
+                        'started_at'      => $lb->date,
+                        'completed_at'    => $lb->date,
+                        'created_at'      => $lb->created_at,
+                        'updated_at'      => $lb->created_at,
+                    ]);
+                });
             }
         }
     }

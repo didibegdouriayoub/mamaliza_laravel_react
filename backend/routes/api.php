@@ -91,6 +91,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Notifications
     Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->middleware('permission:inventory.read');
     Route::patch('/notifications/{notification}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->middleware('permission:inventory.read');
+    Route::delete('/notifications', [\App\Http\Controllers\NotificationController::class, 'destroyAll'])->middleware('permission:inventory.write');
+    Route::delete('/notifications/{notification}', [\App\Http\Controllers\NotificationController::class, 'destroy'])->middleware('permission:inventory.write');
 
     // Analytics
     Route::get('/analytics/dashboard', [\App\Http\Controllers\AnalyticsController::class, 'dashboard'])->middleware('permission:analytics.read');

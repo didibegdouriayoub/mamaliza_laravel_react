@@ -69,4 +69,10 @@ class NotificationController extends Controller
         $notification->delete();
         return response()->json(null, 204);
     }
+
+    public function destroyAll()
+    {
+        Notification::truncate();
+        return response()->json(null, 204);
+    }
 }

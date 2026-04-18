@@ -173,6 +173,10 @@
 | T13.54 | **Bug:** Login "failed to fetch" + long hang — no request timeout in `apiClient` and no loading state on Sign In button | 🔴 | ✅ |
 | T13.55 | Inventory — add "History" button in toolbar to view all manual edit changes across all items in one dialog, sorted newest first | 🟠 | ✅ |
 | T13.56 | **Bug:** `GET /api/inventory` eager-loads `history.user` for all items — causes timeout/slow load after legacy import; fix by stripping history from index, adding `GET /inventory/history/all` endpoint, lazy-loading in both history dialogs | 🔴 | ✅ |
+| T13.57 | Legacy import: wrap `Batch::create()` in `withoutEvents()` so no observer can touch `inventory_items.quantity` during historical migration | 🔴 | ✅ |
+| T13.58 | `SyncInventoryFromLegacySeeder`: reset all `inventory_items.quantity` + `min_stock` + `status` to exact `stock_kg` values from `bakery.sql` using a staging table + direct SQL UPDATE JOIN; also clears `inventory_history` for synced items | 🔴 | ✅ |
+| T13.59 | **Bug:** Low/out stock notifications created on every batch — deduplicate in `InventoryItemObserver`: skip if an unread notification for the same item+status already exists | 🔴 | ✅ |
+| T13.60 | Notifications — add delete single (×) and "Clear all" buttons in Topbar popover; add `DELETE /notifications` and `DELETE /notifications/{id}` routes + `destroyAll` controller method | 🟠 | ✅ |
 
 ---
 

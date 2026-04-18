@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell, Moon, Sun, LogOut } from 'lucide-react';
+import { Bell, Moon, Sun, LogOut, Trash2, X } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useAuth } from '@/contexts/AuthContext';
 import { notificationService } from '@/services/notificationService';
@@ -38,6 +38,25 @@ export function Topbar() {
     }
   };
 
+  const handleDeleteOne = async (e: React.MouseEvent, id: string | number) => {
+    e.stopPropagation();
+    try {
+      await notificationService.deleteOne(id);
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    } catch (e) {
+      console.error('Failed to delete notification', e);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    try {
+      await notificationService.deleteAll();
+      setNotifications([]);
+    } catch (e) {
+      console.error('Failed to delete all notifications', e);
+    }
+  };
+
   const toggleDark = () => {
     document.documentElement.classList.toggle('dark');
     setDark(!dark);
@@ -73,15 +92,29 @@ export function Topbar() {
             </Button>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-80 p-0">
-            <div className="p-3 border-b">
+            <div className="p-3 border-b flex items-center justify-between">
               <h4 className="font-display font-semibold text-sm">Notifications</h4>
+              {notifications.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs text-muted-foreground hover:text-destructive gap-1 px-2"
+                  onClick={handleDeleteAll}
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Clear all
+                </Button>
+              )}
             </div>
             <div className="max-h-64 overflow-y-auto">
+              {notifications.length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-6">No notifications</p>
+              )}
               {notifications.map(n => {
                 const isUnread = !n.readBy?.includes(user.id as string);
                 return (
-                  <div 
-                    key={n.id} 
+                  <div
+                    key={n.id}
                     className={`p-3 border-b last:border-0 cursor-pointer hover:bg-accent/50 transition-colors ${isUnread ? 'bg-accent/30' : ''}`}
                     onClick={() => handleMarkAsRead(n)}
                   >
@@ -89,10 +122,17 @@ export function Topbar() {
                       <Badge className={`${typeColor[n.type]} text-[10px] px-1.5 py-0 shrink-0 mt-0.5`}>
                         {n.type}
                       </Badge>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className={`text-sm ${isUnread ? 'font-semibold' : 'font-medium'} truncate`}>{n.title}</p>
                         <p className="text-xs text-muted-foreground line-clamp-2">{n.message}</p>
                       </div>
+                      <button
+                        className="shrink-0 text-muted-foreground hover:text-destructive transition-colors mt-0.5"
+                        onClick={(e) => handleDeleteOne(e, n.id)}
+                        title="Delete"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   </div>
                 );
