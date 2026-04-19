@@ -2,13 +2,27 @@
  * Opens a styled print window with the given HTML body content.
  * The caller builds the inner HTML; this function wraps it in a
  * fully-styled document shell and triggers the browser print dialog.
+ *
+ * opts.fitOnePage — scale content down so it always fits on exactly 1 page
+ * opts.pageSizeMm — [width, height] of the target page in mm (default A4 portrait [210, 297])
  */
-export function printDocument(title: string, bodyHtml: string): void {
+export function printDocument(
+  title: string,
+  bodyHtml: string,
+  opts?: { fitOnePage?: boolean; pageSizeMm?: [number, number] }
+): void {
   const win = window.open('', '_blank', 'width=900,height=700');
   if (!win) {
     alert('Pop-up blocked. Please allow pop-ups for this site in your browser, then click Print again.');
     return;
   }
+
+  const [pageW, pageH] = opts?.pageSizeMm ?? [210, 297];
+  const fitScript = opts?.fitOnePage
+    ? `var mmToPx=96/25.4,pw=${pageW}*mmToPx,ph=${pageH}*mmToPx,page=document.querySelector('.page');
+       if(page){var s=Math.min(ph/page.scrollHeight,pw/page.scrollWidth,1);
+       if(s<1){page.style.transform='scale('+s+')';page.style.transformOrigin='top left';page.style.width=Math.ceil(100/s)+'%';}}`
+    : '';
 
   win.document.write(`<!DOCTYPE html>
 <html lang="en">
@@ -231,6 +245,7 @@ export function printDocument(title: string, bodyHtml: string): void {
   </div>
   <script>
     window.onload = function() {
+      ${fitScript}
       window.print();
       window.onafterprint = function() { window.close(); };
     };

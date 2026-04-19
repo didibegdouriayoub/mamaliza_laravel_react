@@ -233,6 +233,7 @@
 |---|---|---|---|
 | T15.1 | Create `LegacyBatchImportSeeder`: load batches + batch_ingredients from `bakery.sql` into staging tables, map legacy recipe_id/ingredient_id → current IDs, create `batch_groups` + `batch` rows using `withoutEvents()` (no inventory deduction) | 🔴 | ✅ |
 | T15.2 | Run seeder in Docker and verify 83 legacy batch groups and their individual batches appear in the Batches page | 🔴 | ✅ |
+| T15.3 | Fix batch group print: suppress browser-native headers/footers (about:blank, date, title) via `@page { margin: 0 }` and body padding; auto-scale content to always fit 1 page via JS; update `printDocument` to accept `fitOnePage` + `pageSizeMm` options | 🔴 | ☐ |
 
 ---
 

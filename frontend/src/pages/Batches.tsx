@@ -144,7 +144,10 @@ export default function Batches() {
       : '';
 
     const html = `
-      <style>@page { size: A4 landscape; margin: 12mm 14mm; }</style>
+      <style>
+        @page { size: A4 landscape; margin: 0; }
+        .page { padding: 10mm 12mm !important; }
+      </style>
 
       <div class="doc-header">
         <div class="brand">
@@ -209,7 +212,7 @@ export default function Batches() {
         <span>Group #${data.groupId} · ${data.recipe.name} · ${dateStr}</span>
       </div>`;
 
-    printDocument(`Batch Group #${data.groupId} — ${data.recipe.name}`, html);
+    printDocument(`Batch Group #${data.groupId} — ${data.recipe.name}`, html, { fitOnePage: true, pageSizeMm: [297, 210] });
   };
 
   const loadData = async () => {
