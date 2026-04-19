@@ -115,4 +115,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/packaging/logs', [\App\Http\Controllers\PackagingLogController::class, 'index'])->middleware('permission:inventory.read');
     Route::post('/packaging/logs', [\App\Http\Controllers\PackagingLogController::class, 'store'])->middleware('permission:inventory.write');
     Route::delete('/packaging/logs/{packagingLog}', [\App\Http\Controllers\PackagingLogController::class, 'destroy'])->middleware('permission:inventory.write');
+
+    // Storage
+    Route::get('/storage/locations', [\App\Http\Controllers\StorageLocationController::class, 'index'])->middleware('permission:storage.read');
+    Route::post('/storage/locations', [\App\Http\Controllers\StorageLocationController::class, 'store'])->middleware('permission:storage.write');
+    Route::match(['put', 'patch'], '/storage/locations/{storageLocation}', [\App\Http\Controllers\StorageLocationController::class, 'update'])->middleware('permission:storage.write');
+    Route::delete('/storage/locations/{storageLocation}', [\App\Http\Controllers\StorageLocationController::class, 'destroy'])->middleware('permission:storage.write');
+
+    Route::get('/storage/logs', [\App\Http\Controllers\ProductStorageLogController::class, 'index'])->middleware('permission:storage.read');
+    Route::post('/storage/logs', [\App\Http\Controllers\ProductStorageLogController::class, 'store'])->middleware('permission:storage.write');
+    Route::match(['put', 'patch'], '/storage/logs/{productStorageLog}', [\App\Http\Controllers\ProductStorageLogController::class, 'update'])->middleware('permission:storage.write');
+    Route::delete('/storage/logs/{productStorageLog}', [\App\Http\Controllers\ProductStorageLogController::class, 'destroy'])->middleware('permission:storage.write');
+
+    Route::get('/storage/movements', [\App\Http\Controllers\StorageMovementController::class, 'index'])->middleware('permission:storage.read');
+    Route::post('/storage/movements', [\App\Http\Controllers\StorageMovementController::class, 'store'])->middleware('permission:storage.write');
 });
