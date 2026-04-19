@@ -59,7 +59,8 @@ export default function PackagingCartons() {
         inventoryService.getAll(),
       ]);
       setCartons(cartonsData || []);
-      setAllMaterials((allItems || []).filter((i: InventoryItem) => i.type === 'packaging'));
+      const packagingTypes = ['packaging', 'Box', 'Case', 'Vacbag', 'Label', 'Ticket', 'Wrap', 'Wax', 'raw'];
+      setAllMaterials((allItems || []).filter((i: InventoryItem) => packagingTypes.includes(i.type)));
     } catch {
       toast({ title: 'Failed to load carton definitions', variant: 'destructive' });
     }
