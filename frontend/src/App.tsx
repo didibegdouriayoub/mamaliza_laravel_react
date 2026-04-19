@@ -24,6 +24,9 @@ import Customers from "./pages/Customers";
 import Suppliers from "./pages/Suppliers";
 import PackagingCartons from "./pages/PackagingCartons";
 import PackagingLog from "./pages/PackagingLog";
+import StorageLocations from "./pages/StorageLocations";
+import ProductStorageLog from "./pages/ProductStorageLog";
+import StorageMovements from "./pages/StorageMovements";
 
 const queryClient = new QueryClient();
 
@@ -41,12 +44,15 @@ function AppRoutes() {
         <Route path="/inventory" element={<ProtectedRoute permissions={['inventory.read']}><Inventory /></ProtectedRoute>} />
         <Route path="/recipes" element={<ProtectedRoute permissions={['recipes.read']}><Recipes /></ProtectedRoute>} />
         <Route path="/batches" element={<ProtectedRoute permissions={['batches.read']}><Batches /></ProtectedRoute>} />
-        <Route path="/pieces-produced" element={<ProtectedRoute permissions={['batches.read']}><PiecesProduced /></ProtectedRoute>} />
-        <Route path="/leftover" element={<ProtectedRoute permissions={['batches.read']}><Leftover /></ProtectedRoute>} />
+        <Route path="/pieces-produced" element={<ProtectedRoute permissions={['pieces.read']}><PiecesProduced /></ProtectedRoute>} />
+        <Route path="/leftover" element={<ProtectedRoute permissions={['leftover.read']}><Leftover /></ProtectedRoute>} />
         <Route path="/quality" element={<ProtectedRoute permissions={['quality.read']}><Quality /></ProtectedRoute>} />
-        <Route path="/estimation" element={<ProtectedRoute permissions={['inventory.read']}><Estimation /></ProtectedRoute>} />
-        <Route path="/packaging/cartons" element={<ProtectedRoute permissions={['inventory.read']}><PackagingCartons /></ProtectedRoute>} />
-        <Route path="/packaging/log" element={<ProtectedRoute permissions={['inventory.read']}><PackagingLog /></ProtectedRoute>} />
+        <Route path="/estimation" element={<ProtectedRoute permissions={['estimation.read']}><Estimation /></ProtectedRoute>} />
+        <Route path="/packaging/cartons" element={<ProtectedRoute permissions={['packaging.read']}><PackagingCartons /></ProtectedRoute>} />
+        <Route path="/packaging/log" element={<ProtectedRoute permissions={['packaging.read']}><PackagingLog /></ProtectedRoute>} />
+        <Route path="/storage/locations" element={<ProtectedRoute permissions={['storage.read']}><StorageLocations /></ProtectedRoute>} />
+        <Route path="/storage/log" element={<ProtectedRoute permissions={['storage.read']}><ProductStorageLog /></ProtectedRoute>} />
+        <Route path="/storage/movements" element={<ProtectedRoute permissions={['storage.read']}><StorageMovements /></ProtectedRoute>} />
         <Route path="/customers" element={<ProtectedRoute permissions={['customers.read']}><Customers /></ProtectedRoute>} />
         <Route path="/suppliers" element={<ProtectedRoute permissions={['suppliers.read']}><Suppliers /></ProtectedRoute>} />
         <Route path="/sales" element={<ProtectedRoute permissions={['sales.read']}><Sales /></ProtectedRoute>} />

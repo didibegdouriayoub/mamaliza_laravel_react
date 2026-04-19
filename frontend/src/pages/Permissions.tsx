@@ -22,6 +22,7 @@ const PAGE_PERMISSIONS: { page: string; read: Permission; write: Permission | nu
   { page: 'Suppliers',             read: 'suppliers.read',    write: 'suppliers.write' },
   { page: 'Customers',             read: 'customers.read',    write: 'customers.write' },
   { page: 'Packaging',             read: 'packaging.read',    write: 'packaging.write' },
+  { page: 'Storage',               read: 'storage.read',      write: 'storage.write' },
   { page: 'Users',                 read: 'users.read',        write: 'users.write' },
   { page: 'Permissions',           read: 'permissions.read',  write: 'permissions.write' },
 ];
