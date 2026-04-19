@@ -72,5 +72,12 @@ fi
 echo "==> Running legacy bakery import (skips if already done)..."
 php artisan db:seed --class=LegacyImportSeeder --force --no-interaction
 
-echo "==> Starting Laravel on port 8000..."
-exec php artisan serve --host=0.0.0.0 --port=8000
+echo "==> Caching Laravel config and routes..."
+php artisan config:cache
+php artisan route:cache
+
+echo "==> Starting PHP-FPM..."
+php-fpm -D -R
+
+echo "==> Starting Nginx on port 8000..."
+exec nginx -g 'daemon off;'
