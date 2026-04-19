@@ -19,10 +19,10 @@ const navItems: { title: string; url: string; icon: typeof LayoutDashboard; perm
   { title: 'Inventory', url: '/inventory', icon: Package, permission: 'inventory.read' },
   { title: 'Recipes', url: '/recipes', icon: BookOpen, permission: 'recipes.read' },
   { title: 'Batches', url: '/batches', icon: Factory, permission: 'batches.read' },
-  { title: 'Pieces Produced', url: '/pieces-produced', icon: PackageCheck, permission: 'batches.read' },
-  { title: 'Leftover', url: '/leftover', icon: Recycle, permission: 'batches.read' },
+  { title: 'Pieces Produced', url: '/pieces-produced', icon: PackageCheck, permission: 'pieces.read' },
+  { title: 'Leftover', url: '/leftover', icon: Recycle, permission: 'leftover.read' },
   { title: 'Quality', url: '/quality', icon: ShieldCheck, permission: 'quality.read' },
-  { title: 'Estimation', url: '/estimation', icon: Calculator, permission: 'inventory.read' },
+  { title: 'Estimation', url: '/estimation', icon: Calculator, permission: 'estimation.read' },
   // Packaging
   { title: 'Pkg Cartons', url: '/packaging/cartons', icon: Package, permission: 'packaging.read', group: 'Packaging' },
   { title: 'Pkg Log', url: '/packaging/log', icon: ClipboardList, permission: 'packaging.read', group: 'Packaging' },

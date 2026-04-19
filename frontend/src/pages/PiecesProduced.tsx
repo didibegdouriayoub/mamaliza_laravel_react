@@ -93,7 +93,7 @@ export default function PiecesProduced() {
                   <TableHead className="hidden sm:table-cell">Batches</TableHead>
                   <TableHead className="hidden md:table-cell">Target (kg)</TableHead>
                   <TableHead>Pieces Produced</TableHead>
-                  {hasPermission('batches.write') && <TableHead className="text-right pr-4">Action</TableHead>}
+                  {hasPermission('pieces.write') && <TableHead className="text-right pr-4">Action</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -134,7 +134,7 @@ export default function PiecesProduced() {
                         <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50">Not filled</Badge>
                       )}
                     </TableCell>
-                    {hasPermission('batches.write') && (
+                    {hasPermission('pieces.write') && (
                       <TableCell className="text-right pr-4">
                         {editingId === group.id ? (
                           <div className="flex justify-end gap-1">

@@ -101,7 +101,7 @@ export default function Leftover() {
                   <TableHead className="hidden sm:table-cell">Batches</TableHead>
                   <TableHead className="hidden md:table-cell">Target (kg)</TableHead>
                   <TableHead>Leftover</TableHead>
-                  {hasPermission('batches.write') && <TableHead className="text-right pr-4">Action</TableHead>}
+                  {hasPermission('leftover.write') && <TableHead className="text-right pr-4">Action</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -148,7 +148,7 @@ export default function Leftover() {
                         <Badge variant="outline" className="text-muted-foreground">Not filled</Badge>
                       )}
                     </TableCell>
-                    {hasPermission('batches.write') && (
+                    {hasPermission('leftover.write') && (
                       <TableCell className="text-right pr-4">
                         {editingId === group.id ? (
                           <div className="flex justify-end gap-1">
