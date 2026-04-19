@@ -19,9 +19,16 @@ export function printDocument(
 
   const [pageW, pageH] = opts?.pageSizeMm ?? [210, 297];
   const fitScript = opts?.fitOnePage
-    ? `var mmToPx=96/25.4,pw=${pageW}*mmToPx,ph=${pageH}*mmToPx,page=document.querySelector('.page');
-       if(page){var s=Math.min(ph/page.scrollHeight,pw/page.scrollWidth,1);
-       if(s<1){page.style.transform='scale('+s+')';page.style.transformOrigin='top left';page.style.width=Math.ceil(100/s)+'%';}}`
+    ? `(function(){
+         var mmToPx=96/25.4,ph=${pageH}*mmToPx,pw=${pageW}*mmToPx;
+         var page=document.querySelector('.page');
+         if(!page) return;
+         document.documentElement.style.zoom='1';
+         var scaleH=page.scrollHeight>ph?ph/page.scrollHeight:1;
+         var scaleW=page.scrollWidth>pw?pw/page.scrollWidth:1;
+         var s=Math.min(scaleH,scaleW);
+         if(s<1) document.documentElement.style.zoom=String(s);
+       })()`
     : '';
 
   win.document.write(`<!DOCTYPE html>

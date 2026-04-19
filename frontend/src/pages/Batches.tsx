@@ -106,7 +106,7 @@ export default function Batches() {
     const batchHeaderCells = data.batches.map((b, idx) => {
       const { bg, fg } = palette[idx % palette.length];
       return `
-        <th class="c" style="background:${bg};color:${fg};min-width:58px;padding:7px 6px;border-bottom:2px solid ${fg}40">
+        <th class="c" style="background:${bg};color:${fg};min-width:52px;padding:4px 5px;border-bottom:2px solid ${fg}40">
           <div style="font-size:8.5pt;font-weight:700;letter-spacing:.01em">Batch ${b.batchNum}</div>
           ${b.lot ? `<div style="font-size:6.5pt;font-weight:500;margin-top:2px;opacity:.75">Lot ${b.lot}</div>` : ''}
         </th>`;
@@ -146,7 +146,14 @@ export default function Batches() {
     const html = `
       <style>
         @page { size: A4 landscape; margin: 0; }
-        .page { padding: 10mm 12mm !important; }
+        .page { padding: 7mm 10mm !important; }
+        .doc-header { padding-bottom: 10px !important; margin-bottom: 12px !important; }
+        .cards { margin-bottom: 10px !important; gap: 8px !important; }
+        .card { padding: 8px 10px !important; }
+        .card-value { font-size: 12pt !important; }
+        .section-title { margin: 10px 0 6px !important; }
+        table { font-size: 7.5pt !important; }
+        td, th { padding: 3px 7px !important; }
       </style>
 
       <div class="doc-header">
@@ -198,9 +205,9 @@ export default function Batches() {
 
       ${stepsList}
 
-      <div style="margin-top:32px;padding-top:14px;border-top:1px solid #e2e8f0;display:flex;align-items:flex-end;gap:48px">
-        <div style="flex:0 0 220px">
-          <div style="font-size:8pt;color:#64748b;margin-bottom:28px">Signature</div>
+      <div style="margin-top:12px;padding-top:10px;border-top:1px solid #e2e8f0;display:flex;align-items:flex-end;gap:48px">
+        <div style="flex:0 0 200px">
+          <div style="font-size:8pt;color:#64748b;margin-bottom:20px">Signature</div>
           <div style="border-bottom:1px solid #1a1a1a"></div>
           <div style="font-size:7.5pt;color:#94a3b8;margin-top:4px">${user?.name ?? ''} · ${dateStr}</div>
         </div>
