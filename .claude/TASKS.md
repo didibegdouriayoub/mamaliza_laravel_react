@@ -249,8 +249,8 @@
 
 | # | Task | Priority | Status |
 |---|---|---|---|
-| T16.2 | Add `BatchObserver::created()`: when a new batch is created with `status='completed'`, look up the recipe's `packages` (emballage per piece), multiply each by `output_quantity` (pieces), deduct totals from `inventory_items.quantity` via `InventoryItem::update()` (triggers low-stock observer automatically) | 🔴 | ☐ |
-| T16.3 | Also deduct emballage in `BatchObserver::updated()` when `status` changes to `'completed'` (handles future status-change flows) | 🟠 | ☐ |
+| T16.2 | Add `BatchObserver::created()`: when a new batch is created with `status='completed'`, look up the recipe's `packages` (emballage per piece), multiply each by `output_quantity` (pieces), deduct totals from `inventory_items.quantity` via `InventoryItem::update()` (triggers low-stock observer automatically) | 🔴 | ✅ |
+| T16.3 | Also deduct emballage in `BatchObserver::updated()` when `status` changes to `'completed'` (handles future status-change flows) | 🟠 | ✅ |
 
 ---
 
