@@ -24,8 +24,8 @@ const navItems: { title: string; url: string; icon: typeof LayoutDashboard; perm
   { title: 'Quality', url: '/quality', icon: ShieldCheck, permission: 'quality.read' },
   { title: 'Estimation', url: '/estimation', icon: Calculator, permission: 'inventory.read' },
   // Packaging
-  { title: 'Pkg Cartons', url: '/packaging/cartons', icon: Package, permission: 'inventory.read', group: 'Packaging' },
-  { title: 'Pkg Log', url: '/packaging/log', icon: ClipboardList, permission: 'inventory.read', group: 'Packaging' },
+  { title: 'Pkg Cartons', url: '/packaging/cartons', icon: Package, permission: 'packaging.read', group: 'Packaging' },
+  { title: 'Pkg Log', url: '/packaging/log', icon: ClipboardList, permission: 'packaging.read', group: 'Packaging' },
   // Sales & admin
   { title: 'Customers', url: '/customers', icon: Users, permission: 'customers.read' },
   { title: 'Suppliers', url: '/suppliers', icon: Truck, permission: 'suppliers.read' },

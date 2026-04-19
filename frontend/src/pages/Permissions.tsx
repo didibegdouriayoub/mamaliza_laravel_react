@@ -1,176 +1,206 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { ShieldCheck, Plus, Trash2, Edit } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { TableSkeleton, EmptyState } from '@/components/DataStates';
-import { permissionService, PermissionEntity } from '@/services/permissionService';
 import { useAuth } from '@/contexts/AuthContext';
+import { userService } from '@/services/userService';
 import { useToast } from '@/hooks/use-toast';
+import type { User, UserRole, Permission } from '@/models/types';
+
+const PAGE_PERMISSIONS: { page: string; read: Permission; write: Permission | null }[] = [
+  { page: 'Dashboard / Analytics', read: 'analytics.read',    write: null },
+  { page: 'Inventory',             read: 'inventory.read',    write: 'inventory.write' },
+  { page: 'Recipes',               read: 'recipes.read',      write: 'recipes.write' },
+  { page: 'Batches / Production',  read: 'batches.read',      write: 'batches.write' },
+  { page: 'Quality',               read: 'quality.read',      write: 'quality.write' },
+  { page: 'Sales',                 read: 'sales.read',        write: 'sales.write' },
+  { page: 'Suppliers',             read: 'suppliers.read',    write: 'suppliers.write' },
+  { page: 'Customers',             read: 'customers.read',    write: 'customers.write' },
+  { page: 'Packaging',             read: 'packaging.read',    write: 'packaging.write' },
+  { page: 'Users',                 read: 'users.read',        write: 'users.write' },
+  { page: 'Permissions',           read: 'permissions.read',  write: 'permissions.write' },
+];
+
+type Level = 'none' | 'read' | 'write';
+
+function getLevel(perms: Permission[], row: typeof PAGE_PERMISSIONS[0]): Level {
+  if (row.write && perms.includes(row.write)) return 'write';
+  if (perms.includes(row.read)) return 'read';
+  return 'none';
+}
+
+function applyLevel(perms: Permission[], row: typeof PAGE_PERMISSIONS[0], level: Level): Permission[] {
+  const base = perms.filter(p => p !== row.read && p !== row.write);
+  if (level === 'read')  return [...base, row.read];
+  if (level === 'write') return row.write ? [...base, row.write] : [...base, row.read];
+  return base;
+}
 
 export default function Permissions() {
-  const [permissions, setPermissions] = useState<PermissionEntity[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingPermission, setEditingPermission] = useState<PermissionEntity | null>(null);
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
   const { hasPermission } = useAuth();
   const { toast } = useToast();
+  const [users, setUsers] = useState<User[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [perms, setPerms] = useState<Permission[]>([]);
+  const [role, setRole] = useState<UserRole>('operator');
+  const [saving, setSaving] = useState(false);
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadUsers = async () => {
     try {
-      const data = await permissionService.getAll();
-      setPermissions(data || []);
-    } catch (e) {
-      console.error(e);
-      toast({ title: 'Failed to load permissions', variant: 'destructive' });
+      const data = await userService.getAll();
+      const parsed = (data || []).map((u: any) => {
+        let p = u.permissions;
+        if (typeof p === 'string') { try { p = JSON.parse(p); } catch { p = []; } }
+        return { ...u, permissions: Array.isArray(p) ? p : [] };
+      });
+      setUsers(parsed);
+    } catch {
+      toast({ title: 'Failed to load users', variant: 'destructive' });
     }
-    setLoading(false);
   };
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadUsers(); }, []);
 
   if (!hasPermission('permissions.read')) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">You don't have permission to view permissions.</p>
+        <p className="text-muted-foreground">You don't have permission to manage access control.</p>
       </div>
     );
   }
 
-  const openCreate = () => {
-    setEditingPermission(null);
-    setName('');
-    setDescription('');
-    setDialogOpen(true);
-  };
-
-  const openEdit = (permission: PermissionEntity) => {
-    setEditingPermission(permission);
-    setName(permission.name);
-    setDescription(permission.description || '');
-    setDialogOpen(true);
+  const selectUser = (id: string) => {
+    setSelectedUserId(id);
+    const u = users.find(x => String(x.id) === id);
+    if (u) {
+      setPerms([...(u.permissions || [])]);
+      setRole(u.role);
+    }
   };
 
   const handleSave = async () => {
-    if (!name.trim()) return;
-    
+    if (!selectedUserId) return;
+    setSaving(true);
     try {
-      if (editingPermission) {
-        await permissionService.update(String(editingPermission.id), { name, description });
-        toast({ title: 'Permission updated', description: `${name} has been updated.` });
-      } else {
-        await permissionService.create({ name, description });
-        toast({ title: 'Permission created', description: `${name} has been added.` });
-      }
-      setDialogOpen(false);
-      loadData();
+      await userService.update(selectedUserId, { role, permissions: perms });
+      toast({ title: 'Access updated successfully' });
+      loadUsers();
     } catch (e: any) {
-      toast({ title: 'Error saving permission', description: e.message, variant: 'destructive' });
+      toast({ title: 'Save failed', description: e.message, variant: 'destructive' });
     }
+    setSaving(false);
   };
 
-  const handleDelete = async (id: string | number) => {
-    try {
-      await permissionService.delete(id);
-      toast({ title: 'Permission deleted', variant: 'destructive' });
-      loadData();
-    } catch (e: any) {
-      toast({ title: 'Error deleting permission', description: e.message, variant: 'destructive' });
-    }
-  };
+  const selectedUser = users.find(u => String(u.id) === selectedUserId);
+  const isAdmin = role === 'admin';
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2"><ShieldCheck className="h-6 w-6" /> Permissions</h1>
-          <p className="text-sm text-muted-foreground">Manage system permissions that can be assigned to users</p>
-        </div>
-        {hasPermission('permissions.write') && (
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> Add Permission</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle className="font-display">{editingPermission ? 'Edit Permission' : 'Add New Permission'}</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-2">
-                <div className="space-y-1.5">
-                  <Label>Name</Label>
-                  <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. manage_reports" />
-                  <p className="text-xs text-muted-foreground mt-1">Use lowercase and underscores (e.g. manage_inventory)</p>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Description</Label>
-                  <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Grants access to run reports" />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-                <Button onClick={handleSave}>{editingPermission ? 'Update' : 'Create'}</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        )}
+      <div>
+        <h1 className="text-2xl font-display font-bold flex items-center gap-2">
+          <ShieldCheck className="h-6 w-6" /> Access Control
+        </h1>
+        <p className="text-sm text-muted-foreground">Select a user and configure which pages they can access</p>
       </div>
 
       <Card className="shadow-card">
-        <CardContent className="p-0">
-          {loading ? <div className="p-4"><TableSkeleton /></div> : permissions.length === 0 ? (
-            <div className="p-4"><EmptyState title="No permissions found" description="Add a permission to get started." icon="🔐" /></div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Permission Name</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {permissions.map((permission, idx) => (
-                    <motion.tr key={permission.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: idx * 0.05 }} className="border-b">
-                      <TableCell className="font-medium font-mono text-sm">{permission.name}</TableCell>
-                      <TableCell className="text-muted-foreground">{permission.description || '—'}</TableCell>
-                      <TableCell className="text-right">
-                        {hasPermission('permissions.write') && (
-                          <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => openEdit(permission)}>
-                              <Edit className="h-4 w-4 text-foreground" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon"><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete {permission.name}?</AlertDialogTitle>
-                                  <AlertDialogDescription>If this permission is removed, users who have it may lose access to certain features. Are you sure?</AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDelete(permission.id)}>Delete</AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        )}
-                      </TableCell>
-                    </motion.tr>
+        <CardContent className="pt-6 space-y-6">
+          {/* User selector */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label>User</Label>
+              <Select value={selectedUserId} onValueChange={selectUser}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a user…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map(u => (
+                    <SelectItem key={u.id} value={String(u.id)}>
+                      {u.name} — {u.email}
+                    </SelectItem>
                   ))}
-                </TableBody>
-              </Table>
+                </SelectContent>
+              </Select>
             </div>
+
+            {selectedUser && (
+              <div className="space-y-1.5">
+                <Label>Role</Label>
+                <Select value={role} onValueChange={v => setRole(v as UserRole)} disabled={!hasPermission('permissions.write')}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Admin (full access)</SelectItem>
+                    <SelectItem value="supervisor">Supervisor</SelectItem>
+                    <SelectItem value="operator">Operator</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          {/* Permission grid */}
+          {selectedUser && (
+            <>
+              {isAdmin ? (
+                <div className="rounded-md bg-muted/40 border px-4 py-3 text-sm text-muted-foreground">
+                  <strong>{selectedUser.name}</strong> is an Admin and has full access to all pages.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label>Page Access</Label>
+                  <div className="border rounded-md overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-muted/50 text-xs text-muted-foreground">
+                          <th className="text-left px-4 py-2.5 font-medium">Page</th>
+                          <th className="text-center px-3 py-2.5 font-medium w-20">No Access</th>
+                          <th className="text-center px-3 py-2.5 font-medium w-20">Read only</th>
+                          <th className="text-center px-3 py-2.5 font-medium w-20">Read & Write</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {PAGE_PERMISSIONS.map((row, i) => {
+                          const level = getLevel(perms, row);
+                          const canEdit = hasPermission('permissions.write');
+                          return (
+                            <tr key={row.page} className={i % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
+                              <td className="px-4 py-2.5 font-medium">{row.page}</td>
+                              {(['none', 'read', 'write'] as Level[]).map(lvl => (
+                                <td key={lvl} className="text-center px-3 py-2.5">
+                                  {(lvl !== 'write' || row.write) && (
+                                    <input
+                                      type="radio"
+                                      name={`perm-${row.page}`}
+                                      checked={level === lvl}
+                                      disabled={!canEdit}
+                                      onChange={() => canEdit && setPerms(applyLevel(perms, row, lvl))}
+                                      className="accent-primary cursor-pointer w-4 h-4"
+                                    />
+                                  )}
+                                </td>
+                              ))}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    <strong>Read</strong> — view only. <strong>Read & Write</strong> — view, create, edit, and delete.
+                  </p>
+                </div>
+              )}
+
+              {hasPermission('permissions.write') && (
+                <div className="flex justify-end">
+                  <Button onClick={handleSave} disabled={saving}>
+                    {saving ? 'Saving…' : `Save Access for ${selectedUser.name}`}
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
