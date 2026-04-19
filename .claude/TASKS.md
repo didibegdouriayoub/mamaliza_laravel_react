@@ -237,6 +237,23 @@
 
 ---
 
+## Phase 16 — Emballage (Packaging) per Unit on Recipes & Auto-Deduction
+
+### Sprint 1: Recipe Emballage Definition
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T16.1 | Update Recipes.tsx "Standard Packaging" section: rename to "Emballage per Unit", fix material filter to include all packaging subtypes (Box/Case/Vacbag/Label/Ticket/Wrap/Wax) not just old `type='packaging'`, add "per piece" label to qty input | 🔴 | ☐ |
+
+### Sprint 2: Auto-Deduct on Batch Completion
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T16.2 | Add `BatchObserver::created()`: when a new batch is created with `status='completed'`, look up the recipe's `packages` (emballage per piece), multiply each by `output_quantity` (pieces), deduct totals from `inventory_items.quantity` via `InventoryItem::update()` (triggers low-stock observer automatically) | 🔴 | ☐ |
+| T16.3 | Also deduct emballage in `BatchObserver::updated()` when `status` changes to `'completed'` (handles future status-change flows) | 🟠 | ☐ |
+
+---
+
 ## Rules for this Project
 1. Take tasks ONE at a time.
 2. After completing a task, make a descriptive git commit immediately.

@@ -364,7 +364,7 @@ export default function Recipes() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>Standard Packaging</Label>
+                <Label>Emballage per Unit <span className="text-xs text-muted-foreground font-normal">(qty consumed per piece produced)</span></Label>
                 <Button type="button" variant="ghost" size="sm" onClick={() => setRecipePackages(p => [...p, { id: '', name: '', quantity: 1 }])}><Plus className="h-3 w-3 mr-1" /> Add</Button>
               </div>
               {recipePackages.map((pkg, idx) => {
@@ -378,19 +378,19 @@ export default function Recipes() {
                     }}>
                       <SelectTrigger><SelectValue placeholder="Packaging Item" /></SelectTrigger>
                       <SelectContent>
-                        {inventory.filter(m => m.type === 'packaging').map(m => (
+                        {inventory.filter(m => ['packaging','Box','Case','Vacbag','Label','Ticket','Wrap','Wax'].includes(m.type)).map(m => (
                           <SelectItem key={m.id} value={String(m.id)}>{m.name} (€{m.price}/{m.unit})</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <Input type="number" placeholder="Qty" value={pkg.quantity || ''} onChange={e => setRecipePackages(p => p.map((x, i) => i === idx ? { ...x, quantity: Number(e.target.value) } : x))} />
+                    <Input type="number" placeholder="Qty/piece" value={pkg.quantity || ''} onChange={e => setRecipePackages(p => p.map((x, i) => i === idx ? { ...x, quantity: Number(e.target.value) } : x))} />
                     <span className="text-xs text-muted-foreground py-2">€{rowCost.toFixed(2)}</span>
                     <Button type="button" variant="ghost" size="icon" onClick={() => setRecipePackages(p => p.filter((_, i) => i !== idx))}><Trash2 className="h-3 w-3" /></Button>
                   </div>
                 );
               })}
               {recipePackages.length > 0 && (
-                <p className="text-sm font-medium text-right">Packaging: €{packagingCost.toFixed(2)}</p>
+                <p className="text-sm font-medium text-right">Emballage cost: €{packagingCost.toFixed(2)}</p>
               )}
             </div>
 
