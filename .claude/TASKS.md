@@ -254,6 +254,30 @@
 
 ---
 
+## Phase 17 — Storage Management
+
+### Sprint 1: Database & Backend
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T17.1 | Migration: create `storage_locations` table (id, name, type enum: Fridge/Room Temp/Workbench/Other, temperature_required nullable string, capacity nullable string, timestamps) | 🔴 | ✅ |
+| T17.2 | Migration: create `product_storage_logs` table (id, product_id, batch_id nullable, location_id FK, quantity decimal, entry_date date, status enum: In Storage/In Use/Out, timestamps) | 🔴 | ✅ |
+| T17.3 | Migration: create `storage_movements` table (id, product_id, from_location_id FK nullable, to_location_id FK nullable, quantity decimal, reason enum: Packaging/Production/QC/Return, operator_id FK, timestamps) | 🔴 | ✅ |
+| T17.4 | Models: `StorageLocation`, `ProductStorageLog`, `StorageMovement` with relationships; add `storage.read` / `storage.write` to Permission type and sidebar | 🔴 | ✅ |
+| T17.5 | Controllers: `StorageLocationController` (index, store, update, destroy), `ProductStorageLogController` (index, store, update, destroy), `StorageMovementController` (index, store) + routes under auth:sanctum | 🔴 | ✅ |
+
+### Sprint 2: Frontend — Services & Pages
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T17.6 | Services: `storageLocationService.ts`, `productStorageLogService.ts`, `storageMovementService.ts` | 🔴 | ✅ |
+| T17.7 | Page: `StorageLocations.tsx` — table: Location Name / Type / Temperature Required / Capacity; Add/Edit/Delete modal | 🔴 | ✅ |
+| T17.8 | Page: `ProductStorageLog.tsx` — table: Product ID / Batch ID / Location / Quantity / Entry Date / Status; Add/Edit/Delete with location dropdown and status selector | 🔴 | ✅ |
+| T17.9 | Page: `StorageMovements.tsx` — form: Product ID / From Location / To Location / Quantity / Reason / Operator; submit creates movement + updates ProductStorageLog statuses; table of recent movements | 🔴 | ✅ |
+| T17.10 | Navigation: add Storage section to sidebar (Locations, Stock Log, Movements); register routes in App.tsx; add `storage.read/write` to PAGE_PERMISSIONS in UserManagement and Permissions pages | 🔴 | ✅ |
+
+---
+
 ## Rules for this Project
 1. Take tasks ONE at a time.
 2. After completing a task, make a descriptive git commit immediately.
