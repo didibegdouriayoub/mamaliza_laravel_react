@@ -225,6 +225,17 @@
 
 ---
 
+## Phase 15 — Legacy Batch Import
+
+### Sprint 1: Import bakery.sql Batches into Batches Page
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T15.1 | Create `LegacyBatchImportSeeder`: load batches + batch_ingredients from `bakery.sql` into staging tables, map legacy recipe_id/ingredient_id → current IDs, create `batch_groups` + `batch` rows using `withoutEvents()` (no inventory deduction) | 🔴 | ✅ |
+| T15.2 | Run seeder in Docker and verify 83 legacy batch groups and their individual batches appear in the Batches page | 🔴 | ✅ |
+
+---
+
 ## Rules for this Project
 1. Take tasks ONE at a time.
 2. After completing a task, make a descriptive git commit immediately.
