@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Package, BookOpen, Factory, ShieldCheck,
   ShoppingCart, BarChart3, Users, Calculator, PackageCheck, Recycle, Truck,
-  Box, ClipboardList,
+  ClipboardList, Warehouse, MapPin, ArrowLeftRight,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,8 +10,7 @@ import {
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
   SidebarHeader, SidebarFooter, useSidebar,
 } from '@/components/ui/sidebar';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import type { Permission, UserRole } from '@/models/types';
+import type { Permission } from '@/models/types';
 import cheeseLogo from '@/assets/cheese-logo.png';
 
 const navItems: { title: string; url: string; icon: typeof LayoutDashboard; permission?: Permission; group?: string }[] = [
@@ -26,6 +25,10 @@ const navItems: { title: string; url: string; icon: typeof LayoutDashboard; perm
   // Packaging
   { title: 'Pkg Cartons', url: '/packaging/cartons', icon: Package, permission: 'packaging.read', group: 'Packaging' },
   { title: 'Pkg Log', url: '/packaging/log', icon: ClipboardList, permission: 'packaging.read', group: 'Packaging' },
+  // Storage
+  { title: 'Locations', url: '/storage/locations', icon: MapPin, permission: 'storage.read', group: 'Storage' },
+  { title: 'Stock Log', url: '/storage/log', icon: Warehouse, permission: 'storage.read', group: 'Storage' },
+  { title: 'Movements', url: '/storage/movements', icon: ArrowLeftRight, permission: 'storage.read', group: 'Storage' },
   // Sales & admin
   { title: 'Customers', url: '/customers', icon: Users, permission: 'customers.read' },
   { title: 'Suppliers', url: '/suppliers', icon: Truck, permission: 'suppliers.read' },
@@ -38,7 +41,7 @@ const navItems: { title: string; url: string; icon: typeof LayoutDashboard; perm
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
-  const { hasPermission, user } = useAuth();
+  const { hasPermission } = useAuth();
 
   const visibleItems = navItems.filter(i => !i.permission || hasPermission(i.permission));
 
@@ -88,6 +91,32 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {visibleItems.filter(i => i.group === 'Packaging').map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        end={false}
+                        className="hover:bg-accent/60"
+                        activeClassName="bg-accent text-accent-foreground font-medium"
+                      >
+                        <item.icon className="mr-2 h-4 w-4 shrink-0" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {/* Storage section */}
+        {visibleItems.some(i => i.group === 'Storage') && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Storage</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {visibleItems.filter(i => i.group === 'Storage').map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
                       <NavLink

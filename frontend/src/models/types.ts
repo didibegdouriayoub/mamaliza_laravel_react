@@ -15,7 +15,8 @@ export type Permission =
   | 'customers.read' | 'customers.write'
   | 'analytics.read'
   | 'permissions.read' | 'permissions.write'
-  | 'packaging.read' | 'packaging.write';
+  | 'packaging.read' | 'packaging.write'
+  | 'storage.read' | 'storage.write';
 
 export type MaterialType = 'raw' | 'packaging' | 'Box' | 'Case' | 'Vacbag' | 'Label' | 'Ticket' | 'Wrap' | 'Wax' | 'leftover' | 'product';
 export type BatchStatus = 'completed' | 'failed';
