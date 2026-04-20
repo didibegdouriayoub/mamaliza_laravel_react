@@ -13,16 +13,15 @@ class CheckPermission
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
-    // Accepts comma-separated permissions: passes if the user has ANY of them.
-    public function handle(Request $request, Closure $next, string $permission): Response
+    // Accepts one or more permission args (Laravel splits "a,b,c" into separate args).
+    // Passes if the user has ANY of the listed permissions.
+    public function handle(Request $request, Closure $next, string ...$permissions): Response
     {
         $user = $request->user();
 
-        $any = array_map('trim', explode(',', $permission));
-
-        if (!$user || !collect($any)->contains(fn($p) => $user->hasPermission($p))) {
+        if (!$user || !collect($permissions)->contains(fn($p) => $user->hasPermission(trim($p)))) {
             return response()->json([
-                'message' => 'Unauthorized: Missing permission ' . $permission
+                'message' => 'Unauthorized: Missing permission ' . implode(' or ', $permissions)
             ], 403);
         }
 
