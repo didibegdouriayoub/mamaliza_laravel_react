@@ -53,10 +53,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/batches/{batch}', [\App\Http\Controllers\BatchController::class, 'destroy'])->middleware('permission:batches.write');
     Route::post('/batches/{batch}/notes', [\App\Http\Controllers\BatchController::class, 'storeNote'])->middleware('permission:batches.write');
 
-    // Batch Groups
-    Route::get('/batch-groups', [\App\Http\Controllers\BatchGroupController::class, 'index'])->middleware('permission:batches.read');
+    // Batch Groups — readable by anyone who can see batches, pieces, or leftover
+    Route::get('/batch-groups', [\App\Http\Controllers\BatchGroupController::class, 'index'])->middleware('permission:batches.read,pieces.read,leftover.read');
     Route::post('/batch-groups', [\App\Http\Controllers\BatchGroupController::class, 'store'])->middleware('permission:batches.write');
-    Route::match(['put', 'patch'], '/batch-groups/{batchGroup}', [\App\Http\Controllers\BatchGroupController::class, 'update'])->middleware('permission:batches.write');
+    Route::match(['put', 'patch'], '/batch-groups/{batchGroup}', [\App\Http\Controllers\BatchGroupController::class, 'update'])->middleware('permission:batches.write,pieces.write,leftover.write');
     Route::delete('/batch-groups/{batchGroup}', [\App\Http\Controllers\BatchGroupController::class, 'destroy'])->middleware('permission:batches.write');
 
     // Quality Controls
@@ -84,37 +84,37 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/orders/{order}/status', [\App\Http\Controllers\OrderController::class, 'updateStatus'])->middleware('permission:sales.write');
 
     // Production Logs
-    Route::get('/production-logs', [\App\Http\Controllers\ProductionLogController::class, 'index'])->middleware('permission:batches.read');
-    Route::post('/production-logs', [\App\Http\Controllers\ProductionLogController::class, 'store'])->middleware('permission:batches.write');
-    Route::delete('/production-logs/{production_log}', [\App\Http\Controllers\ProductionLogController::class, 'destroy'])->middleware('permission:batches.write');
+    Route::get('/production-logs', [\App\Http\Controllers\ProductionLogController::class, 'index'])->middleware('permission:batches.read,leftover.read');
+    Route::post('/production-logs', [\App\Http\Controllers\ProductionLogController::class, 'store'])->middleware('permission:batches.write,leftover.write');
+    Route::delete('/production-logs/{production_log}', [\App\Http\Controllers\ProductionLogController::class, 'destroy'])->middleware('permission:batches.write,leftover.write');
 
-    // Notifications
-    Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->middleware('permission:inventory.read');
-    Route::patch('/notifications/{notification}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->middleware('permission:inventory.read');
-    Route::delete('/notifications', [\App\Http\Controllers\NotificationController::class, 'destroyAll'])->middleware('permission:inventory.write');
-    Route::delete('/notifications/{notification}', [\App\Http\Controllers\NotificationController::class, 'destroy'])->middleware('permission:inventory.write');
+    // Notifications — no extra permission needed beyond auth:sanctum
+    Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index']);
+    Route::patch('/notifications/{notification}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead']);
+    Route::delete('/notifications', [\App\Http\Controllers\NotificationController::class, 'destroyAll']);
+    Route::delete('/notifications/{notification}', [\App\Http\Controllers\NotificationController::class, 'destroy']);
 
     // Analytics
     Route::get('/analytics/dashboard', [\App\Http\Controllers\AnalyticsController::class, 'dashboard'])->middleware('permission:analytics.read');
 
     // Packaging Materials
-    Route::get('/packaging/materials', [\App\Http\Controllers\PackagingMaterialController::class, 'index'])->middleware('permission:inventory.read');
-    Route::post('/packaging/materials', [\App\Http\Controllers\PackagingMaterialController::class, 'store'])->middleware('permission:inventory.write');
-    Route::get('/packaging/materials/{packagingMaterial}', [\App\Http\Controllers\PackagingMaterialController::class, 'show'])->middleware('permission:inventory.read');
-    Route::match(['put', 'patch'], '/packaging/materials/{packagingMaterial}', [\App\Http\Controllers\PackagingMaterialController::class, 'update'])->middleware('permission:inventory.write');
-    Route::delete('/packaging/materials/{packagingMaterial}', [\App\Http\Controllers\PackagingMaterialController::class, 'destroy'])->middleware('permission:inventory.write');
+    Route::get('/packaging/materials', [\App\Http\Controllers\PackagingMaterialController::class, 'index'])->middleware('permission:packaging.read,inventory.read');
+    Route::post('/packaging/materials', [\App\Http\Controllers\PackagingMaterialController::class, 'store'])->middleware('permission:packaging.write,inventory.write');
+    Route::get('/packaging/materials/{packagingMaterial}', [\App\Http\Controllers\PackagingMaterialController::class, 'show'])->middleware('permission:packaging.read,inventory.read');
+    Route::match(['put', 'patch'], '/packaging/materials/{packagingMaterial}', [\App\Http\Controllers\PackagingMaterialController::class, 'update'])->middleware('permission:packaging.write,inventory.write');
+    Route::delete('/packaging/materials/{packagingMaterial}', [\App\Http\Controllers\PackagingMaterialController::class, 'destroy'])->middleware('permission:packaging.write,inventory.write');
 
     // Packaging Cartons
-    Route::get('/packaging/cartons', [\App\Http\Controllers\PackagingCartonController::class, 'index'])->middleware('permission:inventory.read');
-    Route::post('/packaging/cartons', [\App\Http\Controllers\PackagingCartonController::class, 'store'])->middleware('permission:inventory.write');
-    Route::get('/packaging/cartons/{packagingCarton}', [\App\Http\Controllers\PackagingCartonController::class, 'show'])->middleware('permission:inventory.read');
-    Route::match(['put', 'patch'], '/packaging/cartons/{packagingCarton}', [\App\Http\Controllers\PackagingCartonController::class, 'update'])->middleware('permission:inventory.write');
-    Route::delete('/packaging/cartons/{packagingCarton}', [\App\Http\Controllers\PackagingCartonController::class, 'destroy'])->middleware('permission:inventory.write');
+    Route::get('/packaging/cartons', [\App\Http\Controllers\PackagingCartonController::class, 'index'])->middleware('permission:packaging.read,inventory.read');
+    Route::post('/packaging/cartons', [\App\Http\Controllers\PackagingCartonController::class, 'store'])->middleware('permission:packaging.write,inventory.write');
+    Route::get('/packaging/cartons/{packagingCarton}', [\App\Http\Controllers\PackagingCartonController::class, 'show'])->middleware('permission:packaging.read,inventory.read');
+    Route::match(['put', 'patch'], '/packaging/cartons/{packagingCarton}', [\App\Http\Controllers\PackagingCartonController::class, 'update'])->middleware('permission:packaging.write,inventory.write');
+    Route::delete('/packaging/cartons/{packagingCarton}', [\App\Http\Controllers\PackagingCartonController::class, 'destroy'])->middleware('permission:packaging.write,inventory.write');
 
     // Packaging Logs
-    Route::get('/packaging/logs', [\App\Http\Controllers\PackagingLogController::class, 'index'])->middleware('permission:inventory.read');
-    Route::post('/packaging/logs', [\App\Http\Controllers\PackagingLogController::class, 'store'])->middleware('permission:inventory.write');
-    Route::delete('/packaging/logs/{packagingLog}', [\App\Http\Controllers\PackagingLogController::class, 'destroy'])->middleware('permission:inventory.write');
+    Route::get('/packaging/logs', [\App\Http\Controllers\PackagingLogController::class, 'index'])->middleware('permission:packaging.read,inventory.read');
+    Route::post('/packaging/logs', [\App\Http\Controllers\PackagingLogController::class, 'store'])->middleware('permission:packaging.write,inventory.write');
+    Route::delete('/packaging/logs/{packagingLog}', [\App\Http\Controllers\PackagingLogController::class, 'destroy'])->middleware('permission:packaging.write,inventory.write');
 
     // Storage
     Route::get('/storage/locations', [\App\Http\Controllers\StorageLocationController::class, 'index'])->middleware('permission:storage.read');

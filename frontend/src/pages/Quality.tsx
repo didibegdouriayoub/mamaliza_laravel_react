@@ -50,7 +50,7 @@ export default function Quality() {
     try {
       const [qcData, batchData] = await Promise.all([
         qualityService.getAll(),
-        batchService.getAll()
+        batchService.getAll().catch(() => []),
       ]);
       setControls(qcData || []);
       setBatches(batchData || []);

@@ -49,7 +49,7 @@ export default function PackagingLog() {
     try {
       const [logsData, cartonsData] = await Promise.all([
         packagingLogService.getAll(),
-        packagingCartonService.getAll(),
+        packagingCartonService.getAll().catch(() => []),
       ]);
       setLogs(logsData || []);
       setCartons(cartonsData || []);

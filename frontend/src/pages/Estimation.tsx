@@ -30,8 +30,8 @@ export default function Estimation() {
     const loadData = async () => {
       try {
         const [recipeData, invData] = await Promise.all([
-          recipeService.getAll(),
-          inventoryService.getAll(),
+          recipeService.getAll().catch(() => []),
+          inventoryService.getAll().catch(() => []),
         ]);
         const rData = (recipeData || []).map((r: any) => ({
           ...r,

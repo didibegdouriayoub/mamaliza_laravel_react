@@ -56,7 +56,7 @@ export default function PackagingCartons() {
     try {
       const [cartonsData, allItems] = await Promise.all([
         packagingCartonService.getAll(),
-        inventoryService.getAll(),
+        inventoryService.getAll().catch(() => []),
       ]);
       setCartons(cartonsData || []);
       const packagingTypes = ['packaging', 'Box', 'Case', 'Vacbag', 'Label', 'Ticket', 'Wrap', 'Wax', 'raw'];

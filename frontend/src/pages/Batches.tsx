@@ -227,9 +227,9 @@ export default function Batches() {
     try {
       const [groupData, recipeData, invData, qcData] = await Promise.all([
         batchGroupService.getAll(),
-        recipeService.getAll(),
-        inventoryService.getAll(),
-        qualityService.getAll(),
+        recipeService.getAll().catch(() => []),
+        inventoryService.getAll().catch(() => []),
+        qualityService.getAll().catch(() => []),
       ]);
       setQualityControls((qcData || []).map((q: any) => ({
         ...q,

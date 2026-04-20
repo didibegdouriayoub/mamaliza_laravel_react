@@ -44,7 +44,7 @@ export default function Recipes() {
     try {
       const [recipeRaw, invData] = await Promise.all([
         recipeService.getAll(),
-        inventoryService.getAll()
+        inventoryService.getAll().catch(() => []),
       ]);
       // Ensure arrays are never null/undefined
       const recipeData = (recipeRaw || []).map((r: any) => ({
