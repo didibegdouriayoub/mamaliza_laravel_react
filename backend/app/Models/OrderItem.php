@@ -12,6 +12,9 @@ class OrderItem extends Model
         'order_id',
         'product_name',
         'quantity',
+        'unit',
+        'carton_id',
+        'inventory_item_id',
         'unit_price',
         'total'
     ];
@@ -19,5 +22,29 @@ class OrderItem extends Model
     public function order()
     {
         return $this->belongsTo(Order::class);
+    }
+
+    public function carton()
+    {
+        return $this->belongsTo(PackagingCarton::class, 'carton_id');
+    }
+
+    public function inventoryItem()
+    {
+        return $this->belongsTo(InventoryItem::class, 'inventory_item_id');
+    }
+
+    /**
+     * Piece-equivalent of this line's quantity, resolving the carton's
+     * pieces_per_carton at read time so past sales stay accurate even if
+     * the carton definition changes later.
+     */
+    public function piecesQuantity(): float
+    {
+        if ($this->unit === 'carton' && $this->carton) {
+            return $this->quantity * $this->carton->pieces_per_carton;
+        }
+
+        return (float) $this->quantity;
     }
 }

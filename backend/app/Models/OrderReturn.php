@@ -13,7 +13,11 @@ class OrderReturn extends Model
         'order_item_id',
         'product_name',
         'quantity',
+        'unit',
+        'carton_id',
+        'inventory_item_id',
         'reason',
+        'disposition',
         'refund_amount',
         'returned_at'
     ];
@@ -30,5 +34,24 @@ class OrderReturn extends Model
     public function item()
     {
         return $this->belongsTo(OrderItem::class, 'order_item_id');
+    }
+
+    public function carton()
+    {
+        return $this->belongsTo(PackagingCarton::class, 'carton_id');
+    }
+
+    public function inventoryItem()
+    {
+        return $this->belongsTo(InventoryItem::class, 'inventory_item_id');
+    }
+
+    public function piecesQuantity(): float
+    {
+        if ($this->unit === 'carton' && $this->carton) {
+            return $this->quantity * $this->carton->pieces_per_carton;
+        }
+
+        return (float) $this->quantity;
     }
 }

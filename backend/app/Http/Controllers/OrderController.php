@@ -2,8 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\InventoryHistory;
+use App\Models\InventoryItem;
 use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\PackagingCarton;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class OrderController extends Controller
 {
@@ -24,22 +29,66 @@ class OrderController extends Controller
             'status'          => 'required|in:pending,partial,paid,shipped,cancelled',
             'paid_at'         => 'nullable|date',
             'items'           => 'nullable|array',
-            'items.*.product_name' => 'required_with:items|string|max:255',
-            'items.*.quantity'     => 'required_with:items|numeric|min:0',
-            'items.*.unit_price'   => 'required_with:items|numeric|min:0',
-            'items.*.total'        => 'required_with:items|numeric|min:0',
+            'items.*.product_name'      => 'required_with:items|string|max:255',
+            'items.*.quantity'          => 'required_with:items|numeric|min:0',
+            'items.*.unit'              => 'nullable|in:piece,carton',
+            'items.*.carton_id'         => 'nullable|exists:packaging_cartons,id',
+            'items.*.inventory_item_id' => 'nullable|exists:inventory_items,id',
+            'items.*.unit_price'        => 'required_with:items|numeric|min:0',
+            'items.*.total'             => 'required_with:items|numeric|min:0',
         ]);
 
         $items = $validated['items'] ?? [];
         unset($validated['items']);
 
-        $order = Order::create($validated);
+        $stockWarnings = [];
 
-        foreach ($items as $item) {
-            $order->items()->create($item);
-        }
+        $order = DB::transaction(function () use ($validated, $items, &$stockWarnings) {
+            $order = Order::create($validated);
 
-        return response()->json($order->load('items'), 201);
+            foreach ($items as $itemData) {
+                /** @var OrderItem $orderItem */
+                $orderItem = $order->items()->create($itemData);
+
+                if (!$orderItem->inventory_item_id) {
+                    continue;
+                }
+
+                $inventoryItem = InventoryItem::find($orderItem->inventory_item_id);
+                if (!$inventoryItem) {
+                    continue;
+                }
+
+                $piecesSold = $orderItem->piecesQuantity();
+                $before = $inventoryItem->quantity;
+
+                if ($piecesSold > $before) {
+                    // Warn-but-allow: sell anyway, surface the shortfall to the caller.
+                    $stockWarnings[] = [
+                        'inventory_item_id' => $inventoryItem->id,
+                        'name'              => $inventoryItem->name,
+                        'requested'         => $piecesSold,
+                        'available'         => $before,
+                    ];
+                }
+
+                $inventoryItem->quantity = $before - $piecesSold;
+                $inventoryItem->save();
+
+                InventoryHistory::create([
+                    'item_id'    => $inventoryItem->id,
+                    'field'      => 'quantity',
+                    'old_value'  => (string) $before,
+                    'new_value'  => (string) $inventoryItem->quantity,
+                    'changed_by' => auth()->id(),
+                ]);
+            }
+
+            return $order;
+        });
+
+        $response = $order->load('items');
+        return response()->json(array_merge($response->toArray(), ['stock_warnings' => $stockWarnings]), 201);
     }
 
     public function show(Order $order)
@@ -102,24 +151,69 @@ class OrderController extends Controller
     public function storeReturn(Request $request, Order $order)
     {
         $validated = $request->validate([
-            'product_name'  => 'nullable|string|max:255',
-            'order_item_id' => 'nullable|exists:order_items,id',
-            'quantity'      => 'required|numeric|min:0.001',
-            'reason'        => 'nullable|string',
-            'refund_amount' => 'nullable|numeric|min:0',
+            'product_name'   => 'nullable|string|max:255',
+            'order_item_id'  => 'nullable|exists:order_items,id',
+            'quantity'       => 'required|numeric|min:0.001',
+            'unit'           => 'nullable|in:piece,carton',
+            'carton_id'      => 'nullable|exists:packaging_cartons,id',
+            'reason'         => 'nullable|string',
+            'refund_amount'  => 'nullable|numeric|min:0',
+            // restock: back to sellable stock | reemploi: reworked into another inventory item | perte: written off
+            'disposition'    => 'nullable|in:restock,reemploi,perte',
+            // required for reemploi since a returned unit is no longer the same sellable item;
+            // optional for restock, where it defaults to the sold item itself
+            'target_inventory_item_id' => 'required_if:disposition,reemploi|nullable|exists:inventory_items,id',
         ]);
 
-        $return = $order->returns()->create([
-            'order_item_id' => $validated['order_item_id'] ?? null,
-            'product_name'  => $validated['product_name'] ?? null,
-            'quantity'      => $validated['quantity'],
-            'reason'        => $validated['reason'] ?? null,
-            'refund_amount' => $validated['refund_amount'] ?? 0,
-        ]);
+        $orderItem = isset($validated['order_item_id']) ? OrderItem::find($validated['order_item_id']) : null;
 
-        if (($validated['refund_amount'] ?? 0) > 0) {
-            $order->increment('amount_returned', $validated['refund_amount']);
-        }
+        $unit = $validated['unit'] ?? $orderItem?->unit ?? 'piece';
+        $cartonId = $validated['carton_id'] ?? $orderItem?->carton_id;
+        $piecesPerCarton = $cartonId ? PackagingCarton::find($cartonId)?->pieces_per_carton : null;
+        $piecesReturned = ($unit === 'carton' && $piecesPerCarton)
+            ? $validated['quantity'] * $piecesPerCarton
+            : $validated['quantity'];
+
+        $targetInventoryItemId = $validated['target_inventory_item_id'] ?? $orderItem?->inventory_item_id;
+
+        $return = DB::transaction(function () use ($order, $validated, $orderItem, $unit, $cartonId, $piecesReturned, $targetInventoryItemId) {
+            $return = $order->returns()->create([
+                'order_item_id'     => $orderItem?->id,
+                'product_name'      => $validated['product_name'] ?? null,
+                'quantity'          => $validated['quantity'],
+                'unit'              => $unit,
+                'carton_id'         => $cartonId,
+                'inventory_item_id' => $targetInventoryItemId,
+                'reason'            => $validated['reason'] ?? null,
+                'disposition'       => $validated['disposition'] ?? null,
+                'refund_amount'     => $validated['refund_amount'] ?? 0,
+            ]);
+
+            if (($validated['refund_amount'] ?? 0) > 0) {
+                $order->increment('amount_returned', $validated['refund_amount']);
+            }
+
+            $disposition = $validated['disposition'] ?? null;
+            if (in_array($disposition, ['restock', 'reemploi'], true) && $targetInventoryItemId) {
+                $inventoryItem = InventoryItem::find($targetInventoryItemId);
+                if ($inventoryItem) {
+                    $before = $inventoryItem->quantity;
+                    $inventoryItem->quantity = $before + $piecesReturned;
+                    $inventoryItem->save();
+
+                    InventoryHistory::create([
+                        'item_id'    => $inventoryItem->id,
+                        'field'      => 'quantity',
+                        'old_value'  => (string) $before,
+                        'new_value'  => (string) $inventoryItem->quantity,
+                        'changed_by' => auth()->id(),
+                    ]);
+                }
+            }
+            // disposition 'perte' (or none given): no inventory effect, matches prior write-off behaviour
+
+            return $return;
+        });
 
         return response()->json($return, 201);
     }
