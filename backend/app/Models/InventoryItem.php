@@ -6,6 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class InventoryItem extends Model
 {
+    protected $casts = [
+        'quantity' => 'float',
+        'price' => 'float',
+        'min_stock' => 'float',
+    ];
+
     protected $fillable = [
         'name',
         'type',

@@ -24,6 +24,8 @@ class OrderReturn extends Model
 
     protected $casts = [
         'returned_at' => 'datetime',
+        'quantity' => 'float',
+        'refund_amount' => 'float',
     ];
 
     public function order()

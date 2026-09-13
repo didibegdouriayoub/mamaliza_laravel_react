@@ -8,6 +8,12 @@ class OrderItem extends Model
 {
     public $timestamps = false; // Add this since migration doesn't have timestamps()
 
+    protected $casts = [
+        'quantity' => 'float',
+        'unit_price' => 'float',
+        'total' => 'float',
+    ];
+
     protected $fillable = [
         'order_id',
         'product_name',

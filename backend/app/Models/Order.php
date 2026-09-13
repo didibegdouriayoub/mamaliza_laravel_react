@@ -18,6 +18,9 @@ class Order extends Model
 
     protected $casts = [
         'paid_at' => 'datetime',
+        'total_amount' => 'float',
+        'amount_paid' => 'float',
+        'amount_returned' => 'float',
     ];
 
     public function customer()

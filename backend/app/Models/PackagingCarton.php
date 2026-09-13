@@ -6,6 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class PackagingCarton extends Model
 {
+    protected $casts = [
+        'pieces_per_carton' => 'integer',
+    ];
+
     protected $fillable = [
         'name',
         'product_name',
