@@ -4,6 +4,7 @@ FROM php:8.3-fpm-alpine
 RUN apk add --no-cache \
     git curl zip unzip bash linux-headers nginx \
     libpng-dev libzip-dev icu-dev oniguruma-dev libxml2-dev \
+    postgresql-dev \
     && docker-php-ext-configure intl \
     && docker-php-ext-install \
         pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd zip intl xml opcache
