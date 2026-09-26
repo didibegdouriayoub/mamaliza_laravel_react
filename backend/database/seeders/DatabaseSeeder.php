@@ -9,14 +9,11 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        $email    = env('ADMIN_EMAIL', 'admin@mamalia.com');
-        $password = env('ADMIN_PASSWORD', 'changeme');
-
         \App\Models\User::updateOrCreate(
-            ['email' => $email],
+            ['email' => 'admin@mamalia.com'],
             [
                 'name'        => 'Admin',
-                'password'    => Hash::make($password),
+                'password'    => Hash::make('Ayoue123&'),
                 'role'        => 'admin',
                 'permissions' => json_encode([]),
             ]
