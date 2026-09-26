@@ -6,7 +6,7 @@ RUN apk add --no-cache \
     libpng-dev libzip-dev icu-dev oniguruma-dev libxml2-dev \
     && docker-php-ext-configure intl \
     && docker-php-ext-install \
-        pdo_mysql mbstring exif pcntl bcmath gd zip intl xml opcache
+        pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd zip intl xml opcache
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -25,6 +25,10 @@ COPY docker/fpm-pool.conf /usr/local/etc/php-fpm.d/www.conf
 # Copy entrypoint
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
+
+# Copy app code and install dependencies (required for cloud deploys — no volume mounts)
+COPY . .
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader --no-dev
 
 EXPOSE 8000
 ENTRYPOINT ["/entrypoint.sh"]
