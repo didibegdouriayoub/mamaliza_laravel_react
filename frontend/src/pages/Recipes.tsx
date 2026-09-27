@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, ChevronRight, Plus, Edit, Trash2, History } from 'lucide-react';
+import { BookOpen, ChevronRight, Plus, Edit, Trash2, History, Package } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,11 +14,20 @@ import { Recipe, RecipeIngredient, InventoryItem } from '@/models/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { formatDate } from '@/lib/formatDate';
 
 const emptyIng: RecipeIngredient = { materialId: '', materialName: '', quantity: 0, unit: '', unitPrice: 0 };
+const emptyPkg = () => ({ id: '', name: '', quantity: 1 });
+
+// Final product recipes only use these packaging types, shown in this order.
+const PACKAGING_GROUPS: { type: string; label: string }[] = [
+  { type: 'packaging', label: 'Packaging' },
+  { type: 'Label', label: 'Labels' },
+  { type: 'Box', label: 'Boxes' },
+  { type: 'Vacbag', label: 'Vacuum Bags' },
+];
 
 export default function Recipes() {
   const { user, hasPermission } = useAuth();
@@ -77,12 +86,16 @@ export default function Recipes() {
 
   useEffect(() => { loadData(); }, []);
 
-  const openCreate = () => {
+  const openCreate = (status: 'semi_final' | 'final') => {
     setEditingRecipe(null);
-    setName(''); setDescription(''); setIngredients([{ ...emptyIng }]); setSteps(['']);
-    setTargetWeight(''); setPieceWeight(''); setRecipeStatus('semi_final'); setRecipePackages([]);
+    setName(''); setDescription(''); setSteps(['']);
+    setIngredients(status === 'final' ? [] : [{ ...emptyIng }]);
+    setRecipePackages(status === 'final' ? [emptyPkg()] : []);
+    setTargetWeight(''); setPieceWeight(''); setRecipeStatus(status);
     setFormOpen(true);
   };
+
+  const isFinalForm = recipeStatus === 'final';
 
   const openEdit = (r: Recipe) => {
     setEditingRecipe(r);
@@ -100,6 +113,7 @@ export default function Recipes() {
   const handleSave = async () => {
     if (!name) return;
     const validIngs = ingredients.filter(i => i.materialId);
+    const validPkgs = recipePackages.filter(p => p.id);
     const validSteps = steps.filter(s => s.trim());
 
     try {
@@ -107,13 +121,13 @@ export default function Recipes() {
       if (editingRecipe) {
         await recipeService.update(editingRecipe.id, {
           name, description, ingredients: validIngs, steps: validSteps,
-          targetWeight: targetWeightNum, pieceWeight, recipeStatus, packages: recipePackages,
+          targetWeight: targetWeightNum, pieceWeight, recipeStatus, packages: validPkgs,
         });
         toast({ title: 'Recipe updated' });
       } else {
         await recipeService.create({
           name, description, ingredients: validIngs, steps: validSteps,
-          targetWeight: targetWeightNum, pieceWeight, recipeStatus, packages: recipePackages,
+          targetWeight: targetWeightNum, pieceWeight, recipeStatus, packages: validPkgs,
         });
         toast({ title: 'Recipe created' });
       }
@@ -156,7 +170,10 @@ export default function Recipes() {
           <p className="text-sm text-muted-foreground">Manage your cheese recipes and formulations</p>
         </div>
         {hasPermission('recipes.write') && (
-          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> New Recipe</Button>
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => openCreate('semi_final')}><Plus className="h-4 w-4 mr-1" /> New Recipe</Button>
+            <Button variant="outline" onClick={() => openCreate('final')}><Package className="h-4 w-4 mr-1" /> New Final Product Recipe</Button>
+          </div>
         )}
       </div>
 
@@ -179,7 +196,11 @@ export default function Recipes() {
                 <CardContent>
                   <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{recipe.description}</p>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>{recipe.ingredients.length} ing. • {recipe.steps.length} steps</span>
+                    <span>
+                      {recipe.recipeStatus === 'final'
+                        ? `${recipe.packages?.length ?? 0} pkg.`
+                        : `${recipe.ingredients.length} ing.`} • {recipe.steps.length} steps
+                    </span>
                     <span className="font-medium">Target: {recipe.targetWeight} ({recipe.pieceWeight})</span>
                   </div>
                   <p className="text-xs font-medium text-primary mt-1">
@@ -310,24 +331,14 @@ export default function Recipes() {
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-display">{editingRecipe ? 'Edit Recipe' : 'New Recipe'}</DialogTitle>
+            <DialogTitle className="font-display">
+              {editingRecipe ? 'Edit' : 'New'} {isFinalForm ? 'Final Product Recipe' : 'Recipe'}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Name</Label>
-                <Input value={name} onChange={e => setName(e.target.value)} placeholder="Camembert Classique" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Recipe Status</Label>
-                <Select value={recipeStatus} onValueChange={(v: any) => setRecipeStatus(v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="semi_final">Semi-Final</SelectItem>
-                    <SelectItem value="final">Final</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-1.5">
+              <Label>Name</Label>
+              <Input value={name} onChange={e => setName(e.target.value)} placeholder="Camembert Classique" />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -339,9 +350,10 @@ export default function Recipes() {
               <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} />
             </div>
 
+            {!isFinalForm && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>Ingredients</Label>
+                <Label>Raw Materials</Label>
                 <Button type="button" variant="ghost" size="sm" onClick={() => setIngredients(p => [...p, { ...emptyIng }])}><Plus className="h-3 w-3 mr-1" /> Add</Button>
               </div>
               {ingredients.map((ing, idx) => (
@@ -361,11 +373,13 @@ export default function Recipes() {
               ))}
             <p className="text-sm font-medium text-right">Total: DH{totalCost.toFixed(2)}</p>
             </div>
+            )}
 
+            {isFinalForm && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Emballage per Unit <span className="text-xs text-muted-foreground font-normal">(qty consumed per piece produced)</span></Label>
-                <Button type="button" variant="ghost" size="sm" onClick={() => setRecipePackages(p => [...p, { id: '', name: '', quantity: 1 }])}><Plus className="h-3 w-3 mr-1" /> Add</Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setRecipePackages(p => [...p, emptyPkg()])}><Plus className="h-3 w-3 mr-1" /> Add</Button>
               </div>
               {recipePackages.map((pkg, idx) => {
                 const pkgItem = inventory.find(m => String(m.id) === String(pkg.id));
@@ -378,9 +392,18 @@ export default function Recipes() {
                     }}>
                       <SelectTrigger><SelectValue placeholder="Packaging Item" /></SelectTrigger>
                       <SelectContent>
-                        {inventory.filter(m => ['packaging','Box','Case','Vacbag','Label','Ticket','Wrap','Wax'].includes(m.type)).map(m => (
-                          <SelectItem key={m.id} value={String(m.id)}>{m.name} (DH{m.price}/{m.unit})</SelectItem>
-                        ))}
+                        {PACKAGING_GROUPS.map(g => {
+                          const items = inventory.filter(m => m.type === g.type);
+                          if (items.length === 0) return null;
+                          return (
+                            <SelectGroup key={g.type}>
+                              <SelectLabel>{g.label}</SelectLabel>
+                              {items.map(m => (
+                                <SelectItem key={m.id} value={String(m.id)}>{m.name} (DH{m.price}/{m.unit})</SelectItem>
+                              ))}
+                            </SelectGroup>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                     <Input type="number" placeholder="Qty/piece" value={pkg.quantity || ''} onChange={e => setRecipePackages(p => p.map((x, i) => i === idx ? { ...x, quantity: Number(e.target.value) } : x))} />
@@ -393,6 +416,7 @@ export default function Recipes() {
                 <p className="text-sm font-medium text-right">Emballage cost: DH{packagingCost.toFixed(2)}</p>
               )}
             </div>
+            )}
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">

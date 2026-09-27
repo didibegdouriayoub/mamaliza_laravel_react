@@ -36,7 +36,8 @@ export function toSnakeCase<T = Record<string, unknown>>(obj: Record<string, unk
 // ── API Client ────────────────────────────────────────────────────────────────
 
 export const apiClient = {
-  async fetch(endpoint: string, options: RequestInit = {}) {
+  /** Pass `{ raw: true }` to keep the backend's snake_case keys (skips toCamelCase). */
+  async fetch(endpoint: string, options: RequestInit = {}, { raw = false }: { raw?: boolean } = {}) {
     const token = getAuthToken();
     const headers = new Headers(options.headers || {});
     headers.set('Content-Type', 'application/json');
@@ -84,7 +85,7 @@ export const apiClient = {
       if (response.status === 204) return null;
 
       const json = await response.json();
-      return toCamelCase(json);
+      return raw ? json : toCamelCase(json);
     } catch (error: any) {
       clearTimeout(timeoutId);
       if (error?.name === 'AbortError') {

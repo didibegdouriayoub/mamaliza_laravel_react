@@ -18,9 +18,12 @@ export interface FinishingLog {
   created_at: string;
 }
 
+// These endpoints are consumed in snake_case, so skip apiClient's camelCase conversion.
+const raw = { raw: true };
+
 export const finishingLogService = {
   getAll: (): Promise<FinishingLog[]> =>
-    apiClient('/finishing-logs').then(r => r.json()),
+    apiClient.fetch('/finishing-logs', { method: 'GET' }, raw),
 
   create: (data: {
     finished_product_id: number;
@@ -29,8 +32,8 @@ export const finishingLogService = {
     notes?: string;
     batch_sources: FinishingLogBatchSource[];
   }): Promise<void> =>
-    apiClient('/finishing-logs', { method: 'POST', body: JSON.stringify(data) }).then(() => undefined),
+    apiClient.fetch('/finishing-logs', { method: 'POST', body: JSON.stringify(data) }, raw).then(() => undefined),
 
   delete: (id: number): Promise<void> =>
-    apiClient(`/finishing-logs/${id}`, { method: 'DELETE' }).then(() => undefined),
+    apiClient.fetch(`/finishing-logs/${id}`, { method: 'DELETE' }, raw).then(() => undefined),
 };

@@ -15,6 +15,7 @@ import { finishedProductService, FinishedProduct } from '@/services/finishedProd
 import { finishingLogService, FinishingLog, FinishingLogBatchSource } from '@/services/finishingLogService';
 import { useToast } from '@/hooks/use-toast';
 import { formatDate } from '@/lib/formatDate';
+import { apiClient } from '@/lib/apiClient';
 
 interface BatchGroupOption {
   id: number;
@@ -46,9 +47,7 @@ export default function Finishing() {
       const [prods, logData, bgData] = await Promise.all([
         finishedProductService.getAll(),
         finishingLogService.getAll(),
-        fetch(`${import.meta.env.VITE_API_URL || ''}/api/batch-groups`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem('auth_token')}` },
-        }).then(r => r.json()).catch(() => []),
+        apiClient.fetch('/batch-groups', { method: 'GET' }, { raw: true }).catch(() => []),
       ]);
       setProducts(prods || []);
       setLogs(logData || []);

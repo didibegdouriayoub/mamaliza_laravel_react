@@ -32,16 +32,19 @@ export interface FinishedProduct {
   updated_at: string;
 }
 
+// These endpoints are consumed in snake_case, so skip apiClient's camelCase conversion.
+const raw = { raw: true };
+
 export const finishedProductService = {
   getAll: (): Promise<FinishedProduct[]> =>
-    apiClient('/finished-products').then(r => r.json()),
+    apiClient.fetch('/finished-products', { method: 'GET' }, raw),
 
   create: (data: Omit<FinishedProduct, 'id' | 'stock' | 'created_at' | 'updated_at'>): Promise<FinishedProduct> =>
-    apiClient('/finished-products', { method: 'POST', body: JSON.stringify(data) }).then(r => r.json()),
+    apiClient.fetch('/finished-products', { method: 'POST', body: JSON.stringify(data) }, raw),
 
   update: (id: number, data: Partial<Omit<FinishedProduct, 'id' | 'stock' | 'created_at' | 'updated_at'>>): Promise<FinishedProduct> =>
-    apiClient(`/finished-products/${id}`, { method: 'PUT', body: JSON.stringify(data) }).then(r => r.json()),
+    apiClient.fetch(`/finished-products/${id}`, { method: 'PUT', body: JSON.stringify(data) }, raw),
 
   delete: (id: number): Promise<void> =>
-    apiClient(`/finished-products/${id}`, { method: 'DELETE' }).then(() => undefined),
+    apiClient.fetch(`/finished-products/${id}`, { method: 'DELETE' }, raw).then(() => undefined),
 };
