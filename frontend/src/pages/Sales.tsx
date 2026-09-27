@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingCart, Search, Plus, Undo2, CreditCard, Download } from 'lucide-react';
+import { ShoppingCart, Search, Plus, Undo2, CreditCard, Download, Trash2, Printer } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -9,12 +9,23 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { OrderStatusBadge } from '@/components/StatusBadge';
 import { TableSkeleton, EmptyState } from '@/components/DataStates';
 import { orderService } from '@/services/orderService';
+import { customerService } from '@/services/customerService';
+import { finishedProductService, FinishedProduct } from '@/services/finishedProductService';
 import { Order } from '@/models/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { printDocument, fmtDate, fmtEur } from '@/lib/printDocument';
+
+interface OrderLine {
+  finished_product_id: number;
+  product_name: string;
+  unit_price: number;
+  quantity: number;
+  total: number;
+}
 
 export default function Sales() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -25,25 +36,94 @@ export default function Sales() {
   const [selected, setSelected] = useState<Order | null>(null);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [returnOpen, setReturnOpen] = useState(false);
+  const [newOrderOpen, setNewOrderOpen] = useState(false);
   const [payAmount, setPayAmount] = useState(0);
   const [payMethod, setPayMethod] = useState('Cash');
   const [retProductName, setRetProductName] = useState('');
+  const [retFinishedProductId, setRetFinishedProductId] = useState<number | null>(null);
   const [retQty, setRetQty] = useState(1);
   const [retReason, setRetReason] = useState('');
   const [retRefund, setRetRefund] = useState(0);
+  const [retDisposition, setRetDisposition] = useState<'restock' | 'perte'>('restock');
   const { user, hasPermission } = useAuth();
   const { toast } = useToast();
+
+  // New order state
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [finishedProducts, setFinishedProducts] = useState<FinishedProduct[]>([]);
+  const [newOrderCustomerId, setNewOrderCustomerId] = useState('');
+  const [newOrderCustomerName, setNewOrderCustomerName] = useState('');
+  const [orderLines, setOrderLines] = useState<OrderLine[]>([]);
+  const [savingOrder, setSavingOrder] = useState(false);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const data = await orderService.getAll();
+      const [data, custs, prods] = await Promise.all([
+        orderService.getAll(),
+        customerService.getAll().catch(() => []),
+        finishedProductService.getAll().catch(() => []),
+      ]);
       setOrders(data || []);
+      setCustomers(custs || []);
+      setFinishedProducts(prods || []);
     } catch (e) { console.error(e); }
     setLoading(false);
   };
 
   useEffect(() => { loadData(); }, []);
+
+  const openNewOrder = () => {
+    setNewOrderCustomerId(''); setNewOrderCustomerName(''); setOrderLines([]);
+    setNewOrderOpen(true);
+  };
+
+  const addOrderLine = (product: FinishedProduct) => {
+    setOrderLines(prev => [...prev, {
+      finished_product_id: product.id,
+      product_name: product.name,
+      unit_price: product.unit_price,
+      quantity: 1,
+      total: product.unit_price,
+    }]);
+  };
+
+  const updateLine = (i: number, qty: number) => {
+    setOrderLines(prev => prev.map((l, j) => j === i ? { ...l, quantity: qty, total: +(l.unit_price * qty).toFixed(2) } : l));
+  };
+
+  const removeLine = (i: number) => setOrderLines(prev => prev.filter((_, j) => j !== i));
+
+  const orderTotal = orderLines.reduce((s, l) => s + l.total, 0);
+
+  const handleCreateOrder = async () => {
+    if (!newOrderCustomerName.trim()) { toast({ title: 'Customer name required', variant: 'destructive' }); return; }
+    if (orderLines.length === 0) { toast({ title: 'Add at least one product', variant: 'destructive' }); return; }
+    setSavingOrder(true);
+    try {
+      await orderService.create({
+        customerId: newOrderCustomerId || undefined,
+        customerName: newOrderCustomerName,
+        totalAmount: orderTotal,
+        amountPaid: 0,
+        amountReturned: 0,
+        status: 'pending',
+        items: orderLines.map(l => ({
+          product_name: l.product_name,
+          finished_product_id: l.finished_product_id,
+          quantity: l.quantity,
+          unit_price: l.unit_price,
+          total: l.total,
+        } as any)),
+      } as any);
+      toast({ title: 'Order created' });
+      setNewOrderOpen(false);
+      loadData();
+    } catch (e: any) {
+      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    }
+    setSavingOrder(false);
+  };
 
   const handleExportCsv = () => {
     const headers = ['Order #', 'Customer', 'Total (DH)', 'Paid (DH)', 'Returned (DH)', 'Balance (DH)', 'Status', 'Date'];
@@ -80,9 +160,16 @@ export default function Sales() {
   };
 
   const handleReturn = async () => {
-    if (!selected || !retProductName) return;
+    if (!selected || (!retProductName && !retFinishedProductId)) return;
     try {
-      await orderService.addReturn(selected.id, { productName: retProductName, quantity: retQty, reason: retReason, refundAmount: retRefund });
+      await orderService.addReturn(selected.id, {
+        productName: retProductName,
+        finishedProductId: retFinishedProductId,
+        quantity: retQty,
+        reason: retReason,
+        refundAmount: retRefund,
+        disposition: retDisposition,
+      });
       toast({ title: 'Return recorded' });
       setReturnOpen(false);
       const updated = await orderService.getAll();
@@ -96,6 +183,91 @@ export default function Sales() {
 
   const balance = (o: Order) => o.totalAmount - o.amountPaid + o.amountReturned;
 
+  const printInvoice = (o: Order) => {
+    const itemRows = (o.items || []).map((item, i) => `
+      <tr class="${i % 2 === 1 ? 'alt' : ''}">
+        <td>${item.productName}</td>
+        <td class="c">${item.quantity}</td>
+        <td class="r">${fmtEur(item.unitPrice ?? 0)}</td>
+        <td class="r"><strong>${fmtEur(item.total)}</strong></td>
+      </tr>`).join('');
+
+    const bal = balance(o);
+    const html = `
+      <div class="doc-header">
+        <div class="brand">
+          <div class="brand-icon">F</div>
+          <div>
+            <div class="brand-name">Fromagerie Mamaliza</div>
+            <div class="brand-sub">Production fromagère artisanale</div>
+          </div>
+        </div>
+        <div class="doc-meta">
+          <div class="doc-title">FACTURE</div>
+          <div>N° <strong>${o.id}</strong></div>
+          <div>Date : ${fmtDate(o.createdAt)}</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <div class="section-title">Client</div>
+        <div style="font-size:10pt;font-weight:700;">${o.customerName}</div>
+      </div>
+
+      <div class="section-title">Détail de la commande</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Produit</th>
+            <th class="c">Qté</th>
+            <th class="r">Prix unitaire</th>
+            <th class="r">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemRows}
+          <tr class="total">
+            <td colspan="3">TOTAL</td>
+            <td class="r">${fmtEur(o.totalAmount)}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="cards" style="margin-top:16px;">
+        <div class="card">
+          <div class="card-label">Total</div>
+          <div class="card-value">${fmtEur(o.totalAmount)}</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Payé</div>
+          <div class="card-value green">${fmtEur(o.amountPaid)}</div>
+        </div>
+        <div class="card">
+          <div class="card-label">Solde restant</div>
+          <div class="card-value ${bal > 0 ? 'orange' : 'green'}">${fmtEur(Math.max(0, bal))}</div>
+        </div>
+      </div>
+
+      <div class="signatures">
+        <div class="sig-box">
+          <div class="sig-label">Cachet et signature du client</div>
+          <div class="sig-line"></div>
+          <div class="sig-name">${o.customerName}</div>
+        </div>
+        <div class="sig-box">
+          <div class="sig-label">Émis par — Fromagerie Mamaliza</div>
+          <div class="sig-line"></div>
+          <div class="sig-name">Signature</div>
+        </div>
+      </div>
+
+      <div class="doc-footer">
+        <span>Fromagerie Mamaliza</span>
+        <span>Facture N°${o.id} — ${fmtDate(o.createdAt)}</span>
+      </div>`;
+    printDocument(`Facture #${o.id}`, html);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -103,7 +275,10 @@ export default function Sales() {
           <h1 className="text-2xl font-display font-bold flex items-center gap-2"><ShoppingCart className="h-6 w-6" /> Sales</h1>
           <p className="text-sm text-muted-foreground">Manage orders, payments, and returns</p>
         </div>
-        <Button variant="outline" onClick={handleExportCsv}><Download className="h-4 w-4 mr-1" /> CSV</Button>
+        <div className="flex gap-2">
+          {hasPermission('sales.write') && <Button onClick={openNewOrder}><Plus className="h-4 w-4 mr-1" />New Order</Button>}
+          <Button variant="outline" onClick={handleExportCsv}><Download className="h-4 w-4 mr-1" /> CSV</Button>
+        </div>
       </div>
 
       <Card className="shadow-card">
@@ -216,16 +391,21 @@ export default function Sales() {
                   </div>
                 )}
 
-                {hasPermission('sales.write') && (
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={() => { setPayAmount(balance(selected)); setPaymentOpen(true); }}>
-                      <CreditCard className="h-3 w-3 mr-1" /> Record Payment
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => { setRetProductName(selected.items[0]?.productName || ''); setRetQty(1); setRetReason(''); setRetRefund(0); setReturnOpen(true); }}>
-                      <Undo2 className="h-3 w-3 mr-1" /> Record Return
-                    </Button>
-                  </div>
-                )}
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={() => printInvoice(selected)}>
+                    <Printer className="h-3 w-3 mr-1" /> Print Invoice
+                  </Button>
+                  {hasPermission('sales.write') && (
+                    <>
+                      <Button size="sm" onClick={() => { setPayAmount(balance(selected)); setPaymentOpen(true); }}>
+                        <CreditCard className="h-3 w-3 mr-1" /> Record Payment
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => { setRetProductName(''); setRetFinishedProductId(null); setRetQty(1); setRetReason(''); setRetRefund(0); setRetDisposition('restock'); setReturnOpen(true); }}>
+                        <Undo2 className="h-3 w-3 mr-1" /> Record Return
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
             </>
           )}
@@ -263,16 +443,121 @@ export default function Sales() {
         <DialogContent>
           <DialogHeader><DialogTitle className="font-display">Record Return</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="space-y-1.5"><Label>Product</Label><Input value={retProductName} onChange={e => setRetProductName(e.target.value)} /></div>
+            <div className="space-y-1.5">
+              <Label>Product</Label>
+              <Select value={retFinishedProductId ? String(retFinishedProductId) : '__manual__'} onValueChange={v => {
+                if (v === '__manual__') { setRetFinishedProductId(null); }
+                else {
+                  const p = finishedProducts.find(fp => String(fp.id) === v);
+                  setRetFinishedProductId(Number(v));
+                  if (p) setRetProductName(p.name);
+                }
+              }}>
+                <SelectTrigger><SelectValue placeholder="Select product or type manually" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__manual__">Manual entry</SelectItem>
+                  {finishedProducts.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {!retFinishedProductId && <Input className="mt-1" value={retProductName} onChange={e => setRetProductName(e.target.value)} placeholder="Product name" />}
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label>Quantity</Label><Input type="number" value={retQty} onChange={e => setRetQty(Number(e.target.value))} /></div>
               <div className="space-y-1.5"><Label>Refund Amount (DH)</Label><Input type="number" step="0.01" value={retRefund} onChange={e => setRetRefund(Number(e.target.value))} /></div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Disposition</Label>
+              <Select value={retDisposition} onValueChange={v => setRetDisposition(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="restock">Restock (back to stock)</SelectItem>
+                  <SelectItem value="perte">Write off (trash)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5"><Label>Reason</Label><Textarea value={retReason} onChange={e => setRetReason(e.target.value)} rows={2} /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setReturnOpen(false)}>Cancel</Button>
             <Button onClick={handleReturn}>Confirm Return</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Order dialog */}
+      <Dialog open={newOrderOpen} onOpenChange={setNewOrderOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="font-display">New Order</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-2">
+            {/* Customer */}
+            <div className="space-y-1.5">
+              <Label>Customer</Label>
+              <Select value={newOrderCustomerId} onValueChange={v => {
+                setNewOrderCustomerId(v);
+                const c = customers.find(c => String(c.id) === v);
+                if (c) setNewOrderCustomerName(c.name);
+              }}>
+                <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
+                <SelectContent>
+                  {customers.map((c: any) => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Input className="mt-1" value={newOrderCustomerName} onChange={e => setNewOrderCustomerName(e.target.value)} placeholder="Or type customer name manually" />
+            </div>
+
+            {/* Product selector */}
+            <div className="space-y-2">
+              <Label>Add Products</Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {finishedProducts.map(p => (
+                  <button key={p.id} type="button" onClick={() => addOrderLine(p)}
+                    className="flex items-center justify-between p-2 rounded-lg border hover:bg-accent/50 text-left text-sm transition-colors">
+                    <span className="font-medium">{p.name}</span>
+                    <span className="text-muted-foreground">{p.unit_price.toFixed(2)} DH · <span className={`${(p.stock?.quantity ?? 0) === 0 ? 'text-destructive' : 'text-green-600'}`}>{p.stock?.quantity ?? 0} pcs</span></span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Order lines */}
+            {orderLines.length > 0 && (
+              <div className="space-y-2">
+                <Label>Order Lines</Label>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Product</TableHead>
+                      <TableHead className="w-24">Qty</TableHead>
+                      <TableHead className="w-28 text-right">Total</TableHead>
+                      <TableHead className="w-10"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {orderLines.map((line, i) => (
+                      <TableRow key={i}>
+                        <TableCell>{line.product_name}</TableCell>
+                        <TableCell>
+                          <Input type="number" min="1" className="h-7 w-20" value={line.quantity} onChange={e => updateLine(i, Number(e.target.value) || 1)} />
+                        </TableCell>
+                        <TableCell className="text-right font-medium">{line.total.toFixed(2)} DH</TableCell>
+                        <TableCell>
+                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => removeLine(i)}><Trash2 className="h-3 w-3" /></Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    <TableRow>
+                      <TableCell colSpan={2} className="font-bold">Total</TableCell>
+                      <TableCell className="text-right font-bold">{orderTotal.toFixed(2)} DH</TableCell>
+                      <TableCell />
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewOrderOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateOrder} disabled={savingOrder}>{savingOrder ? 'Creating...' : 'Create Order'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

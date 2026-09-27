@@ -25,6 +25,7 @@ import Suppliers from "./pages/Suppliers";
 import Products from "./pages/Products";
 import Finishing from "./pages/Finishing";
 import FinishedGoods from "./pages/FinishedGoods";
+import Devis from "./pages/Devis";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ function AppRoutes() {
         <Route path="/products" element={<ProtectedRoute permissions={['analytics.read']}><Products /></ProtectedRoute>} />
         <Route path="/finishing" element={<ProtectedRoute permissions={['analytics.read']}><Finishing /></ProtectedRoute>} />
         <Route path="/finished-goods" element={<ProtectedRoute permissions={['analytics.read']}><FinishedGoods /></ProtectedRoute>} />
+        <Route path="/devis" element={<ProtectedRoute permissions={['sales.read']}><Devis /></ProtectedRoute>} />
         <Route path="/customers" element={<ProtectedRoute permissions={['customers.read']}><Customers /></ProtectedRoute>} />
         <Route path="/suppliers" element={<ProtectedRoute permissions={['suppliers.read']}><Suppliers /></ProtectedRoute>} />
         <Route path="/sales" element={<ProtectedRoute permissions={['sales.read']}><Sales /></ProtectedRoute>} />

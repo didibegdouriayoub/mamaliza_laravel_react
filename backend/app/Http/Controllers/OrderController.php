@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\FinishedGoodsStock;
 use App\Models\InventoryHistory;
 use App\Models\InventoryItem;
 use App\Models\Order;
@@ -29,13 +30,14 @@ class OrderController extends Controller
             'status'          => 'required|in:pending,partial,paid,shipped,cancelled',
             'paid_at'         => 'nullable|date',
             'items'           => 'nullable|array',
-            'items.*.product_name'      => 'required_with:items|string|max:255',
-            'items.*.quantity'          => 'required_with:items|numeric|min:0',
-            'items.*.unit'              => 'nullable|in:piece,carton',
-            'items.*.carton_id'         => 'nullable|exists:packaging_cartons,id',
-            'items.*.inventory_item_id' => 'nullable|exists:inventory_items,id',
-            'items.*.unit_price'        => 'required_with:items|numeric|min:0',
-            'items.*.total'             => 'required_with:items|numeric|min:0',
+            'items.*.product_name'         => 'required_with:items|string|max:255',
+            'items.*.quantity'             => 'required_with:items|numeric|min:0',
+            'items.*.unit'                 => 'nullable|in:piece,carton',
+            'items.*.carton_id'            => 'nullable|exists:packaging_cartons,id',
+            'items.*.inventory_item_id'    => 'nullable|exists:inventory_items,id',
+            'items.*.finished_product_id'  => 'nullable|exists:finished_products,id',
+            'items.*.unit_price'           => 'required_with:items|numeric|min:0',
+            'items.*.total'                => 'required_with:items|numeric|min:0',
         ]);
 
         $items = $validated['items'] ?? [];
@@ -50,6 +52,25 @@ class OrderController extends Controller
                 /** @var OrderItem $orderItem */
                 $orderItem = $order->items()->create($itemData);
 
+                // Deduct from finished goods stock when a finished product is linked
+                if ($orderItem->finished_product_id) {
+                    $stock = FinishedGoodsStock::where('finished_product_id', $orderItem->finished_product_id)->first();
+                    if ($stock) {
+                        $qty = (float) $orderItem->quantity;
+                        if ($qty > $stock->quantity) {
+                            $stockWarnings[] = [
+                                'finished_product_id' => $orderItem->finished_product_id,
+                                'name'                => $orderItem->product_name,
+                                'requested'           => $qty,
+                                'available'           => $stock->quantity,
+                            ];
+                        }
+                        $stock->quantity = max(0, $stock->quantity - $qty);
+                        $stock->save();
+                    }
+                    continue;
+                }
+
                 if (!$orderItem->inventory_item_id) {
                     continue;
                 }
@@ -63,7 +84,6 @@ class OrderController extends Controller
                 $before = $inventoryItem->quantity;
 
                 if ($piecesSold > $before) {
-                    // Warn-but-allow: sell anyway, surface the shortfall to the caller.
                     $stockWarnings[] = [
                         'inventory_item_id' => $inventoryItem->id,
                         'name'              => $inventoryItem->name,
@@ -156,13 +176,11 @@ class OrderController extends Controller
             'quantity'       => 'required|numeric|min:0.001',
             'unit'           => 'nullable|in:piece,carton',
             'carton_id'      => 'nullable|exists:packaging_cartons,id',
-            'reason'         => 'nullable|string',
-            'refund_amount'  => 'nullable|numeric|min:0',
-            // restock: back to sellable stock | reemploi: reworked into another inventory item | perte: written off
-            'disposition'    => 'nullable|in:restock,reemploi,perte',
-            // required for reemploi since a returned unit is no longer the same sellable item;
-            // optional for restock, where it defaults to the sold item itself
-            'target_inventory_item_id' => 'required_if:disposition,reemploi|nullable|exists:inventory_items,id',
+            'reason'               => 'nullable|string',
+            'refund_amount'        => 'nullable|numeric|min:0',
+            'disposition'          => 'nullable|in:restock,reemploi,perte',
+            'target_inventory_item_id'  => 'required_if:disposition,reemploi|nullable|exists:inventory_items,id',
+            'finished_product_id'  => 'nullable|exists:finished_products,id',
         ]);
 
         $orderItem = isset($validated['order_item_id']) ? OrderItem::find($validated['order_item_id']) : null;
@@ -176,17 +194,20 @@ class OrderController extends Controller
 
         $targetInventoryItemId = $validated['target_inventory_item_id'] ?? $orderItem?->inventory_item_id;
 
-        $return = DB::transaction(function () use ($order, $validated, $orderItem, $unit, $cartonId, $piecesReturned, $targetInventoryItemId) {
+        $finishedProductId = $validated['finished_product_id'] ?? $orderItem?->finished_product_id ?? null;
+
+        $return = DB::transaction(function () use ($order, $validated, $orderItem, $unit, $cartonId, $piecesReturned, $targetInventoryItemId, $finishedProductId) {
             $return = $order->returns()->create([
-                'order_item_id'     => $orderItem?->id,
-                'product_name'      => $validated['product_name'] ?? null,
-                'quantity'          => $validated['quantity'],
-                'unit'              => $unit,
-                'carton_id'         => $cartonId,
-                'inventory_item_id' => $targetInventoryItemId,
-                'reason'            => $validated['reason'] ?? null,
-                'disposition'       => $validated['disposition'] ?? null,
-                'refund_amount'     => $validated['refund_amount'] ?? 0,
+                'order_item_id'       => $orderItem?->id,
+                'product_name'        => $validated['product_name'] ?? null,
+                'quantity'            => $validated['quantity'],
+                'unit'                => $unit,
+                'carton_id'           => $cartonId,
+                'inventory_item_id'   => $targetInventoryItemId,
+                'finished_product_id' => $finishedProductId,
+                'reason'              => $validated['reason'] ?? null,
+                'disposition'         => $validated['disposition'] ?? null,
+                'refund_amount'       => $validated['refund_amount'] ?? 0,
             ]);
 
             if (($validated['refund_amount'] ?? 0) > 0) {
@@ -194,7 +215,15 @@ class OrderController extends Controller
             }
 
             $disposition = $validated['disposition'] ?? null;
-            if (in_array($disposition, ['restock', 'reemploi'], true) && $targetInventoryItemId) {
+
+            // Restore finished goods stock when restock disposition + finished product
+            if ($disposition === 'restock' && $finishedProductId) {
+                $stock = FinishedGoodsStock::firstOrCreate(
+                    ['finished_product_id' => $finishedProductId],
+                    ['quantity' => 0]
+                );
+                $stock->increment('quantity', $piecesReturned);
+            } elseif (in_array($disposition, ['restock', 'reemploi'], true) && $targetInventoryItemId) {
                 $inventoryItem = InventoryItem::find($targetInventoryItemId);
                 if ($inventoryItem) {
                     $before = $inventoryItem->quantity;
@@ -210,7 +239,7 @@ class OrderController extends Controller
                     ]);
                 }
             }
-            // disposition 'perte' (or none given): no inventory effect, matches prior write-off behaviour
+            // disposition 'perte' (or none): no stock effect
 
             return $return;
         });

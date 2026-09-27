@@ -25,14 +25,15 @@ export const orderService = {
       method: payment.method.toLowerCase().replace(' ', '_'),
       paid_at: payment.date,
     }),
-  // T12.7.4: send snake_case keys the backend expects
   addReturn: (id: string | number, ret: any) =>
     apiClient.post(`/orders/${id}/returns`, {
       product_name: ret.productName,
       order_item_id: ret.orderItemId ?? null,
+      finished_product_id: ret.finishedProductId ?? null,
       quantity: ret.quantity,
       reason: ret.reason,
       refund_amount: ret.refundAmount,
+      disposition: ret.disposition ?? null,
     }),
   patchStatus: (id: string | number, status: string) => apiClient.patch(`/orders/${id}/status`, { status }),
 };
