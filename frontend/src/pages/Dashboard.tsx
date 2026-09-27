@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Package, Factory, ShoppingCart, AlertTriangle, CalendarDays,
@@ -123,7 +123,7 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="Total Sales" value={`€${totalSales.toLocaleString()}`} icon={ShoppingCart} trend={{ value: '12% vs last month', positive: true }} index={0} />
+        <KpiCard title="Total Sales" value={`DH${totalSales.toLocaleString()}`} icon={ShoppingCart} trend={{ value: '12% vs last month', positive: true }} index={0} />
         <KpiCard title="Active Batches" value={activeBatchesCount} subtitle={`${completedBatches} completed this month`} icon={Factory} index={1} />
         <KpiCard title="Inventory Items" value={inventoryCount} icon={Package} index={2} />
         <KpiCard title="Low Stock Alerts" value={lowStockCount} subtitle="Items need restocking" icon={AlertTriangle} index={3} trend={lowStockCount > 0 ? { value: `${lowStockCount} items`, positive: false } : undefined} />

@@ -1,4 +1,4 @@
-import {
+﻿import {
   User, Supplier, InventoryItem, Recipe, Batch, QualityControl,
   Customer, Order, Notification
 } from '@/models/types';
@@ -169,7 +169,7 @@ export const mockOrders: Order[] = [
 export const mockNotifications: Notification[] = [
   { id: 'nt1', title: 'Low Stock Alert', message: 'Cheese Wraps below minimum (3/10 rolls)', type: 'warning', read: false, createdAt: '2025-03-22' },
   { id: 'nt2', title: 'Batch Failed', message: 'Batch #b3 (Camembert) failed quality control', type: 'error', read: false, createdAt: '2025-03-05' },
-  { id: 'nt3', title: 'Order Received', message: 'New order from Restaurant Étoile — €220', type: 'info', read: true, createdAt: '2025-03-21' },
+  { id: 'nt3', title: 'Order Received', message: 'New order from Restaurant Étoile — DH220', type: 'info', read: true, createdAt: '2025-03-21' },
   { id: 'nt4', title: 'Batch Completed', message: 'Batch #b1 (Camembert) completed successfully', type: 'success', read: true, createdAt: '2025-03-15' },
 ];
 

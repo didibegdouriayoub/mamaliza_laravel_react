@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Opens a styled print window with the given HTML body content.
  * The caller builds the inner HTML; this function wraps it in a
  * fully-styled document shell and triggers the browser print dialog.
@@ -271,7 +271,7 @@ export function fmtDate(iso?: string | null): string {
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-/** Format a number as €X,XXX.XX */
+/** Format a number as DHX,XXX.XX */
 export function fmtEur(n: number): string {
-  return '€' + n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return 'DH' + n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen, ChevronRight, Plus, Edit, Trash2, History } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -183,7 +183,7 @@ export default function Recipes() {
                     <span className="font-medium">Target: {recipe.targetWeight} ({recipe.pieceWeight})</span>
                   </div>
                   <p className="text-xs font-medium text-primary mt-1">
-                    Cost: €{recipe.ingredients.reduce((s, i) => s + i.quantity * i.unitPrice, 0).toFixed(2)}
+                    Cost: DH{recipe.ingredients.reduce((s, i) => s + i.quantity * i.unitPrice, 0).toFixed(2)}
                   </p>
                   <div className="flex items-center gap-1 text-primary text-xs mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
                     View details <ChevronRight className="h-3 w-3" />
@@ -213,12 +213,12 @@ export default function Recipes() {
                     {selected.ingredients.map((ing, i) => (
                       <div key={i} className="flex justify-between text-sm py-1 border-b last:border-0">
                         <span>{ing.materialName}</span>
-                        <span className="text-muted-foreground">{ing.quantity} {ing.unit} × €{ing.unitPrice.toFixed(2)} = <span className="text-foreground font-medium">€{(ing.quantity * ing.unitPrice).toFixed(2)}</span></span>
+                        <span className="text-muted-foreground">{ing.quantity} {ing.unit} × DH{ing.unitPrice.toFixed(2)} = <span className="text-foreground font-medium">DH{(ing.quantity * ing.unitPrice).toFixed(2)}</span></span>
                       </div>
                     ))}
                     <div className="flex justify-between text-sm font-semibold pt-1">
                       <span>Total Cost</span>
-                      <span>€{selected.ingredients.reduce((s, i) => s + i.quantity * i.unitPrice, 0).toFixed(2)}</span>
+                      <span>DH{selected.ingredients.reduce((s, i) => s + i.quantity * i.unitPrice, 0).toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
@@ -350,16 +350,16 @@ export default function Recipes() {
                     <SelectTrigger><SelectValue placeholder="Material" /></SelectTrigger>
                     <SelectContent>
                       {inventory.filter(m => m.type === 'raw').map(m => (
-                        <SelectItem key={m.id} value={String(m.id)}>{m.name} (€{m.price}/{m.unit})</SelectItem>
+                        <SelectItem key={m.id} value={String(m.id)}>{m.name} (DH{m.price}/{m.unit})</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   <Input type="number" placeholder="Qty" value={ing.quantity || ''} onChange={e => setIng(idx, { quantity: Number(e.target.value) })} />
-                  <span className="text-xs text-muted-foreground py-2">€{(ing.quantity * ing.unitPrice).toFixed(2)}</span>
+                  <span className="text-xs text-muted-foreground py-2">DH{(ing.quantity * ing.unitPrice).toFixed(2)}</span>
                   <Button type="button" variant="ghost" size="icon" onClick={() => setIngredients(p => p.filter((_, i) => i !== idx))}><Trash2 className="h-3 w-3" /></Button>
                 </div>
               ))}
-            <p className="text-sm font-medium text-right">Total: €{totalCost.toFixed(2)}</p>
+            <p className="text-sm font-medium text-right">Total: DH{totalCost.toFixed(2)}</p>
             </div>
 
             <div className="space-y-2">
@@ -379,18 +379,18 @@ export default function Recipes() {
                       <SelectTrigger><SelectValue placeholder="Packaging Item" /></SelectTrigger>
                       <SelectContent>
                         {inventory.filter(m => ['packaging','Box','Case','Vacbag','Label','Ticket','Wrap','Wax'].includes(m.type)).map(m => (
-                          <SelectItem key={m.id} value={String(m.id)}>{m.name} (€{m.price}/{m.unit})</SelectItem>
+                          <SelectItem key={m.id} value={String(m.id)}>{m.name} (DH{m.price}/{m.unit})</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <Input type="number" placeholder="Qty/piece" value={pkg.quantity || ''} onChange={e => setRecipePackages(p => p.map((x, i) => i === idx ? { ...x, quantity: Number(e.target.value) } : x))} />
-                    <span className="text-xs text-muted-foreground py-2">€{rowCost.toFixed(2)}</span>
+                    <span className="text-xs text-muted-foreground py-2">DH{rowCost.toFixed(2)}</span>
                     <Button type="button" variant="ghost" size="icon" onClick={() => setRecipePackages(p => p.filter((_, i) => i !== idx))}><Trash2 className="h-3 w-3" /></Button>
                   </div>
                 );
               })}
               {recipePackages.length > 0 && (
-                <p className="text-sm font-medium text-right">Emballage cost: €{packagingCost.toFixed(2)}</p>
+                <p className="text-sm font-medium text-right">Emballage cost: DH{packagingCost.toFixed(2)}</p>
               )}
             </div>
 

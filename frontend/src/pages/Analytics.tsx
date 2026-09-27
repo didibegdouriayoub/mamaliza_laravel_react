@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+﻿import { motion } from 'framer-motion';
 import { BarChart3, TrendingUp, Factory, ShoppingCart } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { KpiCard } from '@/components/KpiCard';
@@ -50,7 +50,7 @@ export default function Analytics() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <KpiCard title="Total Revenue" value={`€${totalRevenue}`} icon={ShoppingCart} index={0} />
+        <KpiCard title="Total Revenue" value={`DH${totalRevenue}`} icon={ShoppingCart} index={0} />
         <KpiCard title="Batch Success Rate" value={`${successRate}%`} icon={Factory} index={1} />
         <KpiCard title="Active Recipes" value={activeRecipes} icon={TrendingUp} index={2} />
       </div>

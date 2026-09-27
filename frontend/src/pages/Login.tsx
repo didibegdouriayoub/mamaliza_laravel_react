@@ -9,8 +9,8 @@ import cheeseLogo from '@/assets/cheese-logo.png';
 
 export default function Login() {
   const { login } = useAuth();
-  const [email, setEmail] = useState('marie@fromagerie.com');
-  const [password, setPassword] = useState('password');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -20,7 +20,7 @@ export default function Login() {
     setIsSubmitting(true);
     try {
       const success = await login(email, password);
-      if (!success) setError('Invalid credentials. Try: marie@fromagerie.com, jean@fromagerie.com, or sophie@fromagerie.com');
+      if (!success) setError('Invalid credentials.');
     } catch (err: any) {
       setError(err.message || 'Failed to connect. Please check that the server is running.');
     } finally {
@@ -64,12 +64,6 @@ export default function Login() {
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? 'Signing in…' : 'Sign In'}
               </Button>
-              <div className="text-xs text-muted-foreground text-center space-y-1 pt-2">
-                <p className="font-medium">Demo accounts:</p>
-                <p>marie@fromagerie.com (Admin)</p>
-                <p>jean@fromagerie.com (Supervisor)</p>
-                <p>sophie@fromagerie.com (Operator)</p>
-              </div>
             </form>
           </CardContent>
         </Card>

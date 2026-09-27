@@ -88,7 +88,7 @@ class InventoryItemController extends Controller
             'quantity' => 'sometimes|numeric|min:0',
             'unit' => 'sometimes|string|max:50',
             'price' => 'sometimes|numeric|min:0',
-            'supplier_id' => 'sometimes|exists:suppliers,id',
+            'supplier_id' => 'nullable|exists:suppliers,id',
             'min_stock' => 'sometimes|numeric|min:0',
             'lead_time_days' => 'nullable|integer|min:0',
             'lot' => 'nullable|string|max:50',

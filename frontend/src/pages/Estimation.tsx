@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Calculator, Plus, Trash2, Printer, AlertTriangle, CheckCircle2, Clock } from 'lucide-react';
 import { printDocument, fmtEur } from '@/lib/printDocument';
@@ -435,7 +435,7 @@ export default function Estimation() {
             <Card className="shadow-card">
               <CardContent className="p-4 text-center">
                 <p className="text-xs text-muted-foreground mb-1">Already in Stock</p>
-                <p className="text-2xl font-display font-bold text-green-600">€{inStockCost.toFixed(2)}</p>
+                <p className="text-2xl font-display font-bold text-green-600">DH{inStockCost.toFixed(2)}</p>
                 <p className="text-xs text-muted-foreground mt-1">value consumed from existing stock</p>
               </CardContent>
             </Card>
@@ -443,7 +443,7 @@ export default function Estimation() {
               <CardContent className="p-4 text-center">
                 <p className="text-xs text-muted-foreground mb-1">To Order</p>
                 <p className={cn('text-2xl font-display font-bold', orderCost > 0 ? 'text-amber-600' : 'text-muted-foreground')}>
-                  €{orderCost.toFixed(2)}
+                  DH{orderCost.toFixed(2)}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">purchase cost of missing materials</p>
               </CardContent>
@@ -451,7 +451,7 @@ export default function Estimation() {
             <Card className="shadow-card">
               <CardContent className="p-4 text-center">
                 <p className="text-xs text-muted-foreground mb-1">Total Investment</p>
-                <p className="text-2xl font-display font-bold text-primary">€{totalInvestment.toFixed(2)}</p>
+                <p className="text-2xl font-display font-bold text-primary">DH{totalInvestment.toFixed(2)}</p>
                 <p className="text-xs text-muted-foreground mt-1">stock used + materials to buy</p>
               </CardContent>
             </Card>
@@ -491,7 +491,7 @@ export default function Estimation() {
                             </Badge>
                           )}
                         </TableCell>
-                        <TableCell className="text-right font-medium">€{(r.needed * r.unitPrice).toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-medium">DH{(r.needed * r.unitPrice).toFixed(2)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -534,7 +534,7 @@ export default function Estimation() {
                             </Badge>
                           )}
                         </TableCell>
-                        <TableCell className="text-right font-medium">€{(r.needed * r.unitPrice).toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-medium">DH{(r.needed * r.unitPrice).toFixed(2)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -588,13 +588,13 @@ export default function Estimation() {
                             )}
                           </TableCell>
                           <TableCell className="text-right font-medium">
-                            €{(r.deficit * r.unitPrice).toFixed(2)}
+                            DH{(r.deficit * r.unitPrice).toFixed(2)}
                           </TableCell>
                         </TableRow>
                       ))}
                     <TableRow>
                       <TableCell colSpan={5} className="text-right font-semibold text-sm">Total to order</TableCell>
-                      <TableCell className="text-right font-bold">€{orderCost.toFixed(2)}</TableCell>
+                      <TableCell className="text-right font-bold">DH{orderCost.toFixed(2)}</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -631,8 +631,8 @@ export default function Estimation() {
                         <TableCell className="text-right font-semibold">
                           {(recipe.targetWeight * line.batchCount).toLocaleString()} {recipe.pieceWeight}
                         </TableCell>
-                        <TableCell className="text-right">€{batchCost.toFixed(2)}</TableCell>
-                        <TableCell className="text-right font-semibold">€{(batchCost * line.batchCount).toFixed(2)}</TableCell>
+                        <TableCell className="text-right">DH{batchCost.toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-semibold">DH{(batchCost * line.batchCount).toFixed(2)}</TableCell>
                       </TableRow>
                     );
                   })}

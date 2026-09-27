@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, Search, Trash2, Edit, Package, History, Printer, CalendarDays, Download, Clock } from 'lucide-react';
 import { printDocument, fmtDate, fmtEur } from '@/lib/printDocument';
@@ -352,7 +352,7 @@ export default function Inventory() {
   };
 
   const handleExportCsv = () => {
-    const headers = ['Name', 'Type', 'Lot', 'Code', 'Quantity', 'Unit', 'Price (€)', 'Supplier', 'Min Stock', 'Status', 'Added'];
+    const headers = ['Name', 'Type', 'Lot', 'Code', 'Quantity', 'Unit', 'Price (DH)', 'Supplier', 'Min Stock', 'Status', 'Added'];
     const rows = filtered.map(i => [
       i.name, i.type, i.lot || '', i.code || '',
       i.quantity, i.unit, i.price.toFixed(2), i.supplier,
@@ -441,7 +441,7 @@ export default function Inventory() {
                     <Input type="number" value={form.quantity} onChange={e => setForm(p => ({ ...p, quantity: Number(e.target.value) }))} />
                   </div>
                   <div className="space-y-1.5">
-                    <Label>Price (€)</Label>
+                    <Label>Price (DH)</Label>
                     <Input type="number" step="0.01" value={form.price} onChange={e => setForm(p => ({ ...p, price: Number(e.target.value) }))} />
                   </div>
                   <div className="space-y-1.5">
@@ -555,7 +555,7 @@ export default function Inventory() {
                     <TableHead className="hidden lg:table-cell">Code</TableHead>
                     <TableHead className="text-right">Qty</TableHead>
                     <TableHead className="hidden sm:table-cell">Unit</TableHead>
-                    <TableHead className="text-right hidden sm:table-cell">Price (€)</TableHead>
+                    <TableHead className="text-right hidden sm:table-cell">Price (DH)</TableHead>
                     <TableHead className="hidden md:table-cell">Supplier</TableHead>
                     <TableHead>Stock</TableHead>
                     <TableHead className="text-right print:hidden">Actions</TableHead>
@@ -577,7 +577,7 @@ export default function Inventory() {
                         <TableCell className="hidden lg:table-cell font-mono text-xs">{item.code || '—'}</TableCell>
                         <TableCell className="text-right">{displayQty !== null ? displayQty.toLocaleString() : '—'}</TableCell>
                         <TableCell className="hidden sm:table-cell">{item.unit}</TableCell>
-                        <TableCell className="text-right hidden sm:table-cell">€{item.price.toFixed(2)}</TableCell>
+                        <TableCell className="text-right hidden sm:table-cell">DH{item.price.toFixed(2)}</TableCell>
                         <TableCell className="hidden md:table-cell">{item.supplier}</TableCell>
                         <TableCell><StockBadge quantity={displayQty ?? item.quantity} minStock={item.minStock} /></TableCell>
                         <TableCell className="text-right print:hidden">

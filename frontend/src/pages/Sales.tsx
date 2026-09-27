@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingCart, Search, Plus, Undo2, CreditCard, Download } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -46,7 +46,7 @@ export default function Sales() {
   useEffect(() => { loadData(); }, []);
 
   const handleExportCsv = () => {
-    const headers = ['Order #', 'Customer', 'Total (€)', 'Paid (€)', 'Returned (€)', 'Balance (€)', 'Status', 'Date'];
+    const headers = ['Order #', 'Customer', 'Total (DH)', 'Paid (DH)', 'Returned (DH)', 'Balance (DH)', 'Status', 'Date'];
     const rows = filtered.map(o => [
       o.id, o.customerName,
       o.totalAmount.toFixed(2), o.amountPaid.toFixed(2), o.amountReturned.toFixed(2),
@@ -68,7 +68,7 @@ export default function Sales() {
     if (!selected || payAmount <= 0) return;
     try {
       await orderService.addPayment(selected.id, { amount: payAmount, method: payMethod, date: new Date().toISOString().split('T')[0] });
-      toast({ title: 'Payment recorded', description: `€${payAmount} received.` });
+      toast({ title: 'Payment recorded', description: `DH${payAmount} received.` });
       setPaymentOpen(false);
       const updated = await orderService.getAll();
       setOrders(updated);
@@ -135,10 +135,10 @@ export default function Sales() {
                   <motion.tr key={order.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: idx * 0.04 }} className="border-b cursor-pointer hover:bg-accent/30" onClick={() => setSelected(order)}>
                     <TableCell className="font-medium">#{order.id}</TableCell>
                     <TableCell>{order.customerName}</TableCell>
-                    <TableCell className="text-right font-medium">€{order.totalAmount.toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-success hidden sm:table-cell">€{order.amountPaid.toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-destructive hidden md:table-cell">€{order.amountReturned.toLocaleString()}</TableCell>
-                    <TableCell className="text-right font-semibold hidden sm:table-cell">{balance(order) > 0 ? <span className="text-warning">€{balance(order)}</span> : <span className="text-success">€0</span>}</TableCell>
+                    <TableCell className="text-right font-medium">DH{order.totalAmount.toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-success hidden sm:table-cell">DH{order.amountPaid.toLocaleString()}</TableCell>
+                    <TableCell className="text-right text-destructive hidden md:table-cell">DH{order.amountReturned.toLocaleString()}</TableCell>
+                    <TableCell className="text-right font-semibold hidden sm:table-cell">{balance(order) > 0 ? <span className="text-warning">DH{balance(order)}</span> : <span className="text-success">DH0</span>}</TableCell>
                     <TableCell><OrderStatusBadge status={order.status} /></TableCell>
                     <TableCell className="text-muted-foreground hidden md:table-cell">{order.createdAt}</TableCell>
                   </motion.tr>
@@ -176,15 +176,15 @@ export default function Sales() {
                   {selected.items.map((item, i) => (
                     <div key={i} className="flex justify-between text-sm py-1 border-b last:border-0">
                       <span>{item.productName} × {item.quantity}</span>
-                      <span className="font-medium">€{item.total}</span>
+                      <span className="font-medium">DH{item.total}</span>
                     </div>
                   ))}
                 </div>
                 <div className="space-y-1 text-sm border-t pt-2">
-                  <div className="flex justify-between"><span>Total</span><span className="font-semibold">€{selected.totalAmount}</span></div>
-                  <div className="flex justify-between text-success"><span>Paid</span><span>€{selected.amountPaid}</span></div>
-                  <div className="flex justify-between text-destructive"><span>Returned</span><span>€{selected.amountReturned}</span></div>
-                  <div className="flex justify-between font-bold border-t pt-1"><span>Balance</span><span>{balance(selected) > 0 ? `€${balance(selected)}` : '€0 (Settled)'}</span></div>
+                  <div className="flex justify-between"><span>Total</span><span className="font-semibold">DH{selected.totalAmount}</span></div>
+                  <div className="flex justify-between text-success"><span>Paid</span><span>DH{selected.amountPaid}</span></div>
+                  <div className="flex justify-between text-destructive"><span>Returned</span><span>DH{selected.amountReturned}</span></div>
+                  <div className="flex justify-between font-bold border-t pt-1"><span>Balance</span><span>{balance(selected) > 0 ? `DH${balance(selected)}` : 'DH0 (Settled)'}</span></div>
                 </div>
 
                 {/* Payments list */}
@@ -194,7 +194,7 @@ export default function Sales() {
                     {selected.payments.map(p => (
                       <div key={p.id} className="flex justify-between text-sm py-1 border-b last:border-0">
                         <span className="text-muted-foreground">{p.paidAt} — {p.method}</span>
-                        <span className="text-success font-medium">€{p.amount}</span>
+                        <span className="text-success font-medium">DH{p.amount}</span>
                       </div>
                     ))}
                   </div>
@@ -208,7 +208,7 @@ export default function Sales() {
                       <div key={r.id} className="text-sm py-1 border-b last:border-0">
                         <div className="flex justify-between">
                           <span>{r.productName} × {r.quantity}</span>
-                          <span className="text-destructive font-medium">-€{r.refundAmount}</span>
+                          <span className="text-destructive font-medium">-DH{r.refundAmount}</span>
                         </div>
                         <p className="text-xs text-muted-foreground">{r.reason} — {r.returnedAt}</p>
                       </div>
@@ -237,7 +237,7 @@ export default function Sales() {
         <DialogContent>
           <DialogHeader><DialogTitle className="font-display">Record Payment</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="space-y-1.5"><Label>Amount (€)</Label><Input type="number" step="0.01" value={payAmount} onChange={e => setPayAmount(Number(e.target.value))} /></div>
+            <div className="space-y-1.5"><Label>Amount (DH)</Label><Input type="number" step="0.01" value={payAmount} onChange={e => setPayAmount(Number(e.target.value))} /></div>
             <div className="space-y-1.5">
               <Label>Method</Label>
               <Select value={payMethod} onValueChange={setPayMethod}>
@@ -266,7 +266,7 @@ export default function Sales() {
             <div className="space-y-1.5"><Label>Product</Label><Input value={retProductName} onChange={e => setRetProductName(e.target.value)} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label>Quantity</Label><Input type="number" value={retQty} onChange={e => setRetQty(Number(e.target.value))} /></div>
-              <div className="space-y-1.5"><Label>Refund Amount (€)</Label><Input type="number" step="0.01" value={retRefund} onChange={e => setRetRefund(Number(e.target.value))} /></div>
+              <div className="space-y-1.5"><Label>Refund Amount (DH)</Label><Input type="number" step="0.01" value={retRefund} onChange={e => setRetRefund(Number(e.target.value))} /></div>
             </div>
             <div className="space-y-1.5"><Label>Reason</Label><Textarea value={retReason} onChange={e => setRetReason(e.target.value)} rows={2} /></div>
           </div>
