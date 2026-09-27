@@ -13,9 +13,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { TableSkeleton, EmptyState } from '@/components/DataStates';
 import { finishedProductService, FinishedProduct } from '@/services/finishedProductService';
 import { finishingLogService, FinishingLog, FinishingLogBatchSource } from '@/services/finishingLogService';
+import { apiClient } from '@/lib/apiClient';
 import { useToast } from '@/hooks/use-toast';
 import { formatDate } from '@/lib/formatDate';
-import { apiClient } from '@/lib/apiClient';
 
 interface BatchGroupOption {
   id: number;
@@ -47,15 +47,15 @@ export default function Finishing() {
       const [prods, logData, bgData] = await Promise.all([
         finishedProductService.getAll(),
         finishingLogService.getAll(),
-        apiClient.fetch('/batch-groups', { method: 'GET' }, { raw: true }).catch(() => []),
+        apiClient.get<any[]>('/batch-groups').catch(() => []),
       ]);
       setProducts(prods || []);
       setLogs(logData || []);
       setBatchGroups((bgData || []).map((bg: any) => ({
         id: bg.id,
-        recipeName: bg.recipe_name ?? bg.recipe?.name ?? '—',
-        outputQuantity: bg.output_quantity ?? 0,
-        createdAt: bg.created_at,
+        recipeName: bg.recipeName ?? bg.recipe?.name ?? '—',
+        outputQuantity: bg.outputQuantity ?? 0,
+        createdAt: bg.createdAt,
       })));
     } catch (e) { console.error(e); }
     setLoading(false);

@@ -28,7 +28,7 @@ const emptyComponent = (): FinishedProductComponent => ({ component_id: '', qty_
 export default function Products() {
   const { hasPermission } = useAuth();
   const { toast } = useToast();
-  const canWrite = hasPermission('products.write') || hasPermission('products.read'); // admin can always write
+  const canWrite = hasPermission('analytics.read');
 
   const [products, setProducts] = useState<FinishedProduct[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
