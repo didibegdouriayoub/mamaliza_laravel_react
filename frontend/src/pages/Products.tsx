@@ -53,7 +53,7 @@ export default function Products() {
     setLoading(true);
     try {
       const [prods, recs, inv] = await Promise.all([
-        finishedProductService.getAll(),
+        finishedProductService.getAll().catch(() => []),
         recipeService.getAll().catch(() => []),
         inventoryService.getAll().catch(() => []),
       ]);
@@ -227,20 +227,19 @@ export default function Products() {
             {/* Piece: recipe inputs */}
             {type === 'piece' && (
               <div className="space-y-2">
-                <Label>Pâte Sources (recipe + kg per piece)</Label>
+                <Label>Pâte Source (recipe)</Label>
                 {inputs.map((inp, i) => (
                   <div key={i} className="flex gap-2 items-center">
-                    <Select value={String(inp.recipe_id)} onValueChange={v => setInputs(prev => prev.map((x, j) => j === i ? { ...x, recipe_id: v } : x))}>
+                    <Select value={String(inp.recipe_id)} onValueChange={v => setInputs(prev => prev.map((x, j) => j === i ? { ...x, recipe_id: v, kg_per_piece: 0 } : x))}>
                       <SelectTrigger className="flex-1"><SelectValue placeholder="Select recipe" /></SelectTrigger>
                       <SelectContent>
                         {recipes.map(r => <SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
-                    <Input type="number" min="0" step="0.001" className="w-28" placeholder="kg/piece" value={inp.kg_per_piece || ''} onChange={e => setInputs(prev => prev.map((x, j) => j === i ? { ...x, kg_per_piece: parseFloat(e.target.value) || 0 } : x))} />
                     <Button size="icon" variant="ghost" onClick={() => setInputs(prev => prev.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 ))}
-                <Button variant="outline" size="sm" onClick={() => setInputs(prev => [...prev, emptyInput()])}>+ Add recipe input</Button>
+                <Button variant="outline" size="sm" onClick={() => setInputs(prev => [...prev, emptyInput()])}>+ Add recipe</Button>
               </div>
             )}
 

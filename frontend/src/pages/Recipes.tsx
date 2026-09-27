@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, ChevronRight, Plus, Edit, Trash2, History, Package } from 'lucide-react';
+import { BookOpen, ChevronRight, Plus, Edit, Trash2, History } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,20 +14,11 @@ import { Recipe, RecipeIngredient, InventoryItem } from '@/models/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { formatDate } from '@/lib/formatDate';
 
 const emptyIng: RecipeIngredient = { materialId: '', materialName: '', quantity: 0, unit: '', unitPrice: 0 };
-const emptyPkg = () => ({ id: '', name: '', quantity: 1 });
-
-// Final product recipes only use these packaging types, shown in this order.
-const PACKAGING_GROUPS: { type: string; label: string }[] = [
-  { type: 'packaging', label: 'Packaging' },
-  { type: 'Label', label: 'Labels' },
-  { type: 'Box', label: 'Boxes' },
-  { type: 'Vacbag', label: 'Vacuum Bags' },
-];
 
 export default function Recipes() {
   const { user, hasPermission } = useAuth();
@@ -44,8 +35,6 @@ export default function Recipes() {
   const [steps, setSteps] = useState<string[]>(['']);
   const [targetWeight, setTargetWeight] = useState('');
   const [pieceWeight, setPieceWeight] = useState('');
-  const [recipeStatus, setRecipeStatus] = useState<'semi_final' | 'final'>('semi_final');
-  const [recipePackages, setRecipePackages] = useState<any[]>([]);
   const { toast } = useToast();
 
   const loadData = async () => {
@@ -86,26 +75,21 @@ export default function Recipes() {
 
   useEffect(() => { loadData(); }, []);
 
-  const openCreate = (status: 'semi_final' | 'final') => {
+  const openCreate = () => {
     setEditingRecipe(null);
     setName(''); setDescription(''); setSteps(['']);
-    setIngredients(status === 'final' ? [] : [{ ...emptyIng }]);
-    setRecipePackages(status === 'final' ? [emptyPkg()] : []);
-    setTargetWeight(''); setPieceWeight(''); setRecipeStatus(status);
+    setIngredients([{ ...emptyIng }]);
+    setTargetWeight(''); setPieceWeight('');
     setFormOpen(true);
   };
-
-  const isFinalForm = recipeStatus === 'final';
 
   const openEdit = (r: Recipe) => {
     setEditingRecipe(r);
     setName(r.name); setDescription(r.description);
     setIngredients(r.ingredients.map(i => ({ ...i })));
-    setSteps([...r.steps]); 
+    setSteps([...r.steps]);
     setTargetWeight(r.targetWeight ? String(r.targetWeight) : '');
-    setPieceWeight(r.pieceWeight); 
-    setRecipeStatus(r.recipeStatus);
-    setRecipePackages(r.packages || []);
+    setPieceWeight(r.pieceWeight);
     setFormOpen(true);
     setSelected(null);
   };
@@ -113,7 +97,6 @@ export default function Recipes() {
   const handleSave = async () => {
     if (!name) return;
     const validIngs = ingredients.filter(i => i.materialId);
-    const validPkgs = recipePackages.filter(p => p.id);
     const validSteps = steps.filter(s => s.trim());
 
     try {
@@ -121,13 +104,13 @@ export default function Recipes() {
       if (editingRecipe) {
         await recipeService.update(editingRecipe.id, {
           name, description, ingredients: validIngs, steps: validSteps,
-          targetWeight: targetWeightNum, pieceWeight, recipeStatus, packages: validPkgs,
+          targetWeight: targetWeightNum, pieceWeight,
         });
         toast({ title: 'Recipe updated' });
       } else {
         await recipeService.create({
           name, description, ingredients: validIngs, steps: validSteps,
-          targetWeight: targetWeightNum, pieceWeight, recipeStatus, packages: validPkgs,
+          targetWeight: targetWeightNum, pieceWeight,
         });
         toast({ title: 'Recipe created' });
       }
@@ -155,10 +138,6 @@ export default function Recipes() {
   };
 
   const totalCost = ingredients.reduce((sum, i) => sum + (i.quantity * i.unitPrice), 0);
-  const packagingCost = recipePackages.reduce((sum, pkg) => {
-    const item = inventory.find(m => String(m.id) === String(pkg.id));
-    return sum + (pkg.quantity * (item?.price || 0));
-  }, 0);
 
   if (loading) return <div className="space-y-6"><TableSkeleton /></div>;
 
@@ -170,10 +149,7 @@ export default function Recipes() {
           <p className="text-sm text-muted-foreground">Manage your cheese recipes and formulations</p>
         </div>
         {hasPermission('recipes.write') && (
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={() => openCreate('semi_final')}><Plus className="h-4 w-4 mr-1" /> New Recipe</Button>
-            <Button variant="outline" onClick={() => openCreate('final')}><Package className="h-4 w-4 mr-1" /> New Final Product Recipe</Button>
-          </div>
+          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> New Recipe</Button>
         )}
       </div>
 
@@ -187,9 +163,6 @@ export default function Recipes() {
                     <CardTitle className="text-lg font-display">{recipe.name}</CardTitle>
                     <div className="flex flex-col items-end gap-1">
                       <Badge variant="secondary" className="text-[10px] px-1.5 h-4">v{recipe.version}</Badge>
-                      <Badge variant={recipe.recipeStatus === 'final' ? 'default' : 'outline'} className="text-[10px] px-1.5 h-4 capitalize">
-                        {recipe.recipeStatus.replace('_', ' ')}
-                      </Badge>
                     </div>
                   </div>
                 </CardHeader>
@@ -197,9 +170,7 @@ export default function Recipes() {
                   <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{recipe.description}</p>
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>
-                      {recipe.recipeStatus === 'final'
-                        ? `${recipe.packages?.length ?? 0} pkg.`
-                        : `${recipe.ingredients.length} ing.`} • {recipe.steps.length} steps
+                      {recipe.ingredients.length} ing. • {recipe.steps.length} steps
                     </span>
                     <span className="font-medium">Target: {recipe.targetWeight} ({recipe.pieceWeight})</span>
                   </div>
@@ -254,9 +225,6 @@ export default function Recipes() {
                     Target: <span className="font-medium text-foreground">{selected.targetWeight}</span> •
                     Piece Weight: <span className="font-medium text-foreground">{selected.pieceWeight}</span>
                   </div>
-                  <Badge variant={selected.recipeStatus === 'final' ? 'default' : 'outline'} className="capitalize">
-                    {selected.recipeStatus.replace('_', ' ')}
-                  </Badge>
                 </div>
                 {selected.packages && selected.packages.length > 0 && (
                   <div className="pt-2 border-t text-xs">
@@ -332,7 +300,7 @@ export default function Recipes() {
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display">
-              {editingRecipe ? 'Edit' : 'New'} {isFinalForm ? 'Final Product Recipe' : 'Recipe'}
+              {editingRecipe ? 'Edit' : 'New'} Recipe
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -350,7 +318,6 @@ export default function Recipes() {
               <Textarea value={description} onChange={e => setDescription(e.target.value)} rows={2} />
             </div>
 
-            {!isFinalForm && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Raw Materials</Label>
@@ -371,52 +338,8 @@ export default function Recipes() {
                   <Button type="button" variant="ghost" size="icon" onClick={() => setIngredients(p => p.filter((_, i) => i !== idx))}><Trash2 className="h-3 w-3" /></Button>
                 </div>
               ))}
-            <p className="text-sm font-medium text-right">Total: DH{totalCost.toFixed(2)}</p>
+              <p className="text-sm font-medium text-right">Total: DH{totalCost.toFixed(2)}</p>
             </div>
-            )}
-
-            {isFinalForm && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Emballage per Unit <span className="text-xs text-muted-foreground font-normal">(qty consumed per piece produced)</span></Label>
-                <Button type="button" variant="ghost" size="sm" onClick={() => setRecipePackages(p => [...p, emptyPkg()])}><Plus className="h-3 w-3 mr-1" /> Add</Button>
-              </div>
-              {recipePackages.map((pkg, idx) => {
-                const pkgItem = inventory.find(m => String(m.id) === String(pkg.id));
-                const rowCost = pkg.quantity * (pkgItem?.price || 0);
-                return (
-                  <div key={idx} className="grid grid-cols-1 sm:grid-cols-[1fr_150px_80px_40px] gap-2 items-end">
-                    <Select value={pkg.id} onValueChange={v => {
-                      const item = inventory.find(m => String(m.id) === String(v));
-                      if (item) setRecipePackages(p => p.map((x, i) => i === idx ? { id: String(item.id), name: item.name, quantity: x.quantity } : x));
-                    }}>
-                      <SelectTrigger><SelectValue placeholder="Packaging Item" /></SelectTrigger>
-                      <SelectContent>
-                        {PACKAGING_GROUPS.map(g => {
-                          const items = inventory.filter(m => m.type === g.type);
-                          if (items.length === 0) return null;
-                          return (
-                            <SelectGroup key={g.type}>
-                              <SelectLabel>{g.label}</SelectLabel>
-                              {items.map(m => (
-                                <SelectItem key={m.id} value={String(m.id)}>{m.name} (DH{m.price}/{m.unit})</SelectItem>
-                              ))}
-                            </SelectGroup>
-                          );
-                        })}
-                      </SelectContent>
-                    </Select>
-                    <Input type="number" placeholder="Qty/piece" value={pkg.quantity || ''} onChange={e => setRecipePackages(p => p.map((x, i) => i === idx ? { ...x, quantity: Number(e.target.value) } : x))} />
-                    <span className="text-xs text-muted-foreground py-2">DH{rowCost.toFixed(2)}</span>
-                    <Button type="button" variant="ghost" size="icon" onClick={() => setRecipePackages(p => p.filter((_, i) => i !== idx))}><Trash2 className="h-3 w-3" /></Button>
-                  </div>
-                );
-              })}
-              {recipePackages.length > 0 && (
-                <p className="text-sm font-medium text-right">Emballage cost: DH{packagingCost.toFixed(2)}</p>
-              )}
-            </div>
-            )}
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">

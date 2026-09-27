@@ -22,6 +22,7 @@ const navItems: { title: string; url: string; icon: typeof LayoutDashboard; perm
   { title: 'Quality', url: '/quality', icon: ShieldCheck, permission: 'quality.read' },
   { title: 'Estimation', url: '/estimation', icon: Calculator, permission: 'estimation.read' },
   // Finished goods
+  { title: 'Products', url: '/products', icon: Box, permission: 'analytics.read' },
   { title: 'Finishing', url: '/finishing', icon: Layers, permission: 'analytics.read' },
   { title: 'Finished Goods', url: '/finished-goods', icon: Warehouse, permission: 'analytics.read' },
   { title: 'Devis', url: '/devis', icon: FileText, permission: 'sales.read' },
