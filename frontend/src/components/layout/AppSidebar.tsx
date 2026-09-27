@@ -1,7 +1,6 @@
 import {
   LayoutDashboard, Package, BookOpen, Factory, ShieldCheck,
   ShoppingCart, BarChart3, Users, Calculator, PackageCheck, Recycle, Truck,
-  ClipboardList, Warehouse, MapPin, ArrowLeftRight,
 } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,13 +21,6 @@ const navItems: { title: string; url: string; icon: typeof LayoutDashboard; perm
   { title: 'Leftover', url: '/leftover', icon: Recycle, permission: 'leftover.read' },
   { title: 'Quality', url: '/quality', icon: ShieldCheck, permission: 'quality.read' },
   { title: 'Estimation', url: '/estimation', icon: Calculator, permission: 'estimation.read' },
-  // Packaging
-  { title: 'Pkg Cartons', url: '/packaging/cartons', icon: Package, permission: 'packaging.read', group: 'Packaging' },
-  { title: 'Pkg Log', url: '/packaging/log', icon: ClipboardList, permission: 'packaging.read', group: 'Packaging' },
-  // Storage
-  { title: 'Locations', url: '/storage/locations', icon: MapPin, permission: 'storage.read', group: 'Storage' },
-  { title: 'Stock Log', url: '/storage/log', icon: Warehouse, permission: 'storage.read', group: 'Storage' },
-  { title: 'Movements', url: '/storage/movements', icon: ArrowLeftRight, permission: 'storage.read', group: 'Storage' },
   // Sales & admin
   { title: 'Customers', url: '/customers', icon: Users, permission: 'customers.read' },
   { title: 'Suppliers', url: '/suppliers', icon: Truck, permission: 'suppliers.read' },
@@ -84,57 +76,6 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Packaging section */}
-        {visibleItems.some(i => i.group === 'Packaging') && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Packaging</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {visibleItems.filter(i => i.group === 'Packaging').map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to={item.url}
-                        end={false}
-                        className="hover:bg-accent/60"
-                        activeClassName="bg-accent text-accent-foreground font-medium"
-                      >
-                        <item.icon className="mr-2 h-4 w-4 shrink-0" />
-                        {!collapsed && <span>{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {/* Storage section */}
-        {visibleItems.some(i => i.group === 'Storage') && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Storage</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {visibleItems.filter(i => i.group === 'Storage').map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <NavLink
-                        to={item.url}
-                        end={false}
-                        className="hover:bg-accent/60"
-                        activeClassName="bg-accent text-accent-foreground font-medium"
-                      >
-                        <item.icon className="mr-2 h-4 w-4 shrink-0" />
-                        {!collapsed && <span>{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
       </SidebarContent>
 
       <SidebarFooter className="p-4">

@@ -97,36 +97,4 @@ Route::middleware('auth:sanctum')->group(function () {
     // Analytics
     Route::get('/analytics/dashboard', [\App\Http\Controllers\AnalyticsController::class, 'dashboard'])->middleware('permission:analytics.read');
 
-    // Packaging Materials
-    Route::get('/packaging/materials', [\App\Http\Controllers\PackagingMaterialController::class, 'index'])->middleware('permission:packaging.read,inventory.read');
-    Route::post('/packaging/materials', [\App\Http\Controllers\PackagingMaterialController::class, 'store'])->middleware('permission:packaging.write,inventory.write');
-    Route::get('/packaging/materials/{packagingMaterial}', [\App\Http\Controllers\PackagingMaterialController::class, 'show'])->middleware('permission:packaging.read,inventory.read');
-    Route::match(['put', 'patch'], '/packaging/materials/{packagingMaterial}', [\App\Http\Controllers\PackagingMaterialController::class, 'update'])->middleware('permission:packaging.write,inventory.write');
-    Route::delete('/packaging/materials/{packagingMaterial}', [\App\Http\Controllers\PackagingMaterialController::class, 'destroy'])->middleware('permission:packaging.write,inventory.write');
-
-    // Packaging Cartons
-    Route::get('/packaging/cartons', [\App\Http\Controllers\PackagingCartonController::class, 'index'])->middleware('permission:packaging.read,inventory.read');
-    Route::post('/packaging/cartons', [\App\Http\Controllers\PackagingCartonController::class, 'store'])->middleware('permission:packaging.write,inventory.write');
-    Route::get('/packaging/cartons/{packagingCarton}', [\App\Http\Controllers\PackagingCartonController::class, 'show'])->middleware('permission:packaging.read,inventory.read');
-    Route::match(['put', 'patch'], '/packaging/cartons/{packagingCarton}', [\App\Http\Controllers\PackagingCartonController::class, 'update'])->middleware('permission:packaging.write,inventory.write');
-    Route::delete('/packaging/cartons/{packagingCarton}', [\App\Http\Controllers\PackagingCartonController::class, 'destroy'])->middleware('permission:packaging.write,inventory.write');
-
-    // Packaging Logs
-    Route::get('/packaging/logs', [\App\Http\Controllers\PackagingLogController::class, 'index'])->middleware('permission:packaging.read,inventory.read');
-    Route::post('/packaging/logs', [\App\Http\Controllers\PackagingLogController::class, 'store'])->middleware('permission:packaging.write,inventory.write');
-    Route::delete('/packaging/logs/{packagingLog}', [\App\Http\Controllers\PackagingLogController::class, 'destroy'])->middleware('permission:packaging.write,inventory.write');
-
-    // Storage
-    Route::get('/storage/locations', [\App\Http\Controllers\StorageLocationController::class, 'index'])->middleware('permission:storage.read');
-    Route::post('/storage/locations', [\App\Http\Controllers\StorageLocationController::class, 'store'])->middleware('permission:storage.write');
-    Route::match(['put', 'patch'], '/storage/locations/{storageLocation}', [\App\Http\Controllers\StorageLocationController::class, 'update'])->middleware('permission:storage.write');
-    Route::delete('/storage/locations/{storageLocation}', [\App\Http\Controllers\StorageLocationController::class, 'destroy'])->middleware('permission:storage.write');
-
-    Route::get('/storage/logs', [\App\Http\Controllers\ProductStorageLogController::class, 'index'])->middleware('permission:storage.read');
-    Route::post('/storage/logs', [\App\Http\Controllers\ProductStorageLogController::class, 'store'])->middleware('permission:storage.write');
-    Route::match(['put', 'patch'], '/storage/logs/{productStorageLog}', [\App\Http\Controllers\ProductStorageLogController::class, 'update'])->middleware('permission:storage.write');
-    Route::delete('/storage/logs/{productStorageLog}', [\App\Http\Controllers\ProductStorageLogController::class, 'destroy'])->middleware('permission:storage.write');
-
-    Route::get('/storage/movements', [\App\Http\Controllers\StorageMovementController::class, 'index'])->middleware('permission:storage.read');
-    Route::post('/storage/movements', [\App\Http\Controllers\StorageMovementController::class, 'store'])->middleware('permission:storage.write');
 });
