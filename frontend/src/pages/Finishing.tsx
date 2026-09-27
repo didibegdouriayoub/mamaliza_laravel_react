@@ -51,9 +51,10 @@ export default function Finishing() {
       ]);
       setProducts(prods || []);
       setLogs(logData || []);
-      setBatchGroups((bgData || []).map((bg: any) => ({
+      const bgList = Array.isArray(bgData) ? bgData : (bgData?.data ?? []);
+      setBatchGroups(bgList.map((bg: any) => ({
         id: bg.id,
-        recipeName: bg.recipeName ?? bg.recipe?.name ?? '—',
+        recipeName: bg.recipeName ?? bg.recipe?.name ?? bg.name ?? '—',
         outputQuantity: bg.outputQuantity ?? 0,
         createdAt: bg.createdAt,
       })));
