@@ -97,4 +97,15 @@ Route::middleware('auth:sanctum')->group(function () {
     // Analytics
     Route::get('/analytics/dashboard', [\App\Http\Controllers\AnalyticsController::class, 'dashboard'])->middleware('permission:analytics.read');
 
+    // Finished Products catalog
+    Route::get('/finished-products', [\App\Http\Controllers\FinishedProductController::class, 'index']);
+    Route::post('/finished-products', [\App\Http\Controllers\FinishedProductController::class, 'store']);
+    Route::match(['put', 'patch'], '/finished-products/{finishedProduct}', [\App\Http\Controllers\FinishedProductController::class, 'update']);
+    Route::delete('/finished-products/{finishedProduct}', [\App\Http\Controllers\FinishedProductController::class, 'destroy']);
+
+    // Finishing / Assembly logs
+    Route::get('/finishing-logs', [\App\Http\Controllers\FinishingLogController::class, 'index']);
+    Route::post('/finishing-logs', [\App\Http\Controllers\FinishingLogController::class, 'store']);
+    Route::delete('/finishing-logs/{finishingLog}', [\App\Http\Controllers\FinishingLogController::class, 'destroy']);
+
 });

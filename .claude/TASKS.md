@@ -278,6 +278,63 @@
 
 ---
 
+## Phase 18 — Finished Products, Finishing Process & Invoicing
+
+### Sprint 1: Product Catalog
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T18.1 | Migration: `finished_products` (id, name, type enum piece/box, unit_price, notes, timestamps) | 🔴 | ☐ |
+| T18.2 | Migration: `finished_product_inputs` pivot (finished_product_id FK, recipe_id FK, kg_per_piece) — which pâte recipe and how many kg per piece | 🔴 | ☐ |
+| T18.3 | Migration: `finished_product_materials` pivot (finished_product_id FK, inventory_item_id FK, qty_per_piece) — packaging per piece | 🔴 | ☐ |
+| T18.4 | Migration: `finished_product_components` pivot (finished_product_id FK, component_id FK, qty_per_box) — box contains X pieces of another product | 🔴 | ☐ |
+| T18.5 | Migration: `finished_goods_stock` (id, finished_product_id FK unique, quantity decimal, updated_at) | 🔴 | ☐ |
+| T18.6 | Models + relationships: `FinishedProduct`, `FinishedGoodsStock` | 🔴 | ☐ |
+| T18.7 | `FinishedProductController`: index, store, update, destroy + routes | 🔴 | ☐ |
+| T18.8 | Frontend service: `finishedProductService.ts` | 🔴 | ☐ |
+| T18.9 | Frontend page: `Products.tsx` — table with name/type/price/stock; Add/Edit/Delete modal with packaging inputs and recipe mapping | 🔴 | ☐ |
+| T18.10 | Sidebar + router: add Products link under a new "Sales" group | 🔴 | ☐ |
+
+### Sprint 2: Finishing / Assembly
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T18.11 | Migration: `finishing_logs` (id, finished_product_id FK, pieces_produced int, date, operator_id FK, timestamps) | 🔴 | ☐ |
+| T18.12 | Migration: `finishing_log_batches` pivot (finishing_log_id FK, batch_group_id FK, kg_used decimal) | 🔴 | ☐ |
+| T18.13 | Backend: `FinishingLogController::store` — deducts kg from batch output tracking, deducts packaging from inventory, upserts finished_goods_stock | 🔴 | ☐ |
+| T18.14 | Backend: `FinishingLogController::destroy` — reverses all deductions and stock | 🔴 | ☐ |
+| T18.15 | Frontend service: `finishingLogService.ts` | 🔴 | ☐ |
+| T18.16 | Frontend page: `Finishing.tsx` — select product → select batch groups (with kg to draw) → enter pieces → preview deductions → confirm | 🔴 | ☐ |
+| T18.17 | Sidebar + router: add Finishing link | 🔴 | ☐ |
+
+### Sprint 3: Finished Goods Stock Page
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T18.18 | Frontend page: `FinishedGoods.tsx` — live stock table: product name / type / qty available / unit price; read-only | 🔴 | ☐ |
+| T18.19 | Sidebar + router: add Finished Goods link | 🔴 | ☐ |
+
+### Sprint 4: Sales Upgrade
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T18.20 | Migration: add `finished_product_id` nullable FK to `order_items` | 🔴 | ☐ |
+| T18.21 | Backend: `OrderController::store` — when order created, deduct from finished_goods_stock per order item | 🔴 | ☐ |
+| T18.22 | Backend: `OrderController::destroy` — restore finished_goods_stock on order delete | 🔴 | ☐ |
+| T18.23 | Frontend: upgrade order create form — line items select from finished products catalog (name, unit price pre-filled, shows available stock) | 🔴 | ☐ |
+
+### Sprint 5: Returns Enhancement
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T18.24 | Migration: add `return_status` enum (reusable/trash/resellable) and `finished_product_id` FK to `order_returns` | 🔴 | ☐ |
+| T18.25 | Backend: on return saved with reusable/resellable status → add quantity back to finished_goods_stock | 🔴 | ☐ |
+| T18.26 | Frontend: upgrade return dialog — select product from order items, quantity, choose return status (reusable/trash/resellable) | 🔴 | ☐ |
+| T18.27 | Frontend: Customer detail view — total sold, total paid, total returned, net gain/loss per customer | 🔴 | ☐ |
+
+### Sprint 6: Devis & Facture
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T18.28 | Frontend page: `Devis.tsx` — select customer, add product lines from catalog, set qty+price, print devis template | 🔴 | ☐ |
+| T18.29 | Frontend: "Print Invoice" button on each Sales order → fills facture template with order data → browser print | 🔴 | ☐ |
+
+---
+
 ## Rules for this Project
 1. Take tasks ONE at a time.
 2. After completing a task, make a descriptive git commit immediately.
