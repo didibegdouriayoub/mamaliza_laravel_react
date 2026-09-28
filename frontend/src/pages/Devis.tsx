@@ -298,7 +298,16 @@ export default function DevisFacture() {
           total: l.total,
         } as any)),
       } as any);
-      toast({ title: 'Facture created', description: 'Stock deducted. Printing…' });
+      const warnings: any[] = (order as any)?.stockWarnings ?? [];
+      if (warnings.length > 0) {
+        toast({
+          title: 'Facture created — stock warning',
+          description: warnings.map((w: any) => `${w.name}: sold ${w.requested}, had ${w.available}`).join(' | '),
+          variant: 'destructive',
+        });
+      } else {
+        toast({ title: 'Facture created', description: 'Stock deducted. Printing…' });
+      }
       const ref = `FA N°${new Date().getFullYear()}-${String((order as any)?.id ?? factureNum).padStart(3, '0')}`;
       const html = buildInvoiceHtml('FACTURE', ref, factureDate, factureDate, "Date d'échéance", customerName, customerAddress, factureLines);
       printDocument(`Facture ${ref}`, html);

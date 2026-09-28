@@ -69,7 +69,7 @@ class OrderController extends Controller
                             'available'           => $stock->quantity,
                         ];
                     }
-                    $stock->quantity = max(0, $stock->quantity - $qty);
+                    $stock->quantity = $stock->quantity - $qty; // allow negative (oversell)
                     $stock->save();
                     continue;
                 }
