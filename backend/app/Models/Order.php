@@ -13,6 +13,7 @@ class Order extends Model
         'amount_paid',
         'amount_returned',
         'status',
+        'document_type',
         'paid_at'
     ];
 

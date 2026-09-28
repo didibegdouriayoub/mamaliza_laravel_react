@@ -1,13 +1,14 @@
 import { apiClient } from '../lib/apiClient';
 import { Order } from '../models/types';
 
-const toPayload = (o: Partial<Order>) => ({
+const toPayload = (o: Partial<Order> & { document_type?: string }) => ({
   customer_id: o.customerId,
   customer_name: o.customerName,
   total_amount: o.totalAmount,
   amount_paid: o.amountPaid,
   amount_returned: o.amountReturned,
   status: o.status,
+  document_type: o.document_type,
   paid_at: o.paidAt,
   items: o.items,
 });

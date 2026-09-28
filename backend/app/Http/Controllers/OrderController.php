@@ -28,6 +28,7 @@ class OrderController extends Controller
             'amount_returned' => 'nullable|numeric|min:0',
             // T12.7.6: align with migration enum
             'status'          => 'required|in:pending,partial,paid,shipped,cancelled',
+            'document_type'   => 'nullable|in:order,facture,devis',
             'paid_at'         => 'nullable|date',
             'items'           => 'nullable|array',
             'items.*.product_name'         => 'required_with:items|string|max:255',
@@ -47,13 +48,14 @@ class OrderController extends Controller
 
         $order = DB::transaction(function () use ($validated, $items, &$stockWarnings) {
             $order = Order::create($validated);
+            $isDevis = ($validated['document_type'] ?? 'order') === 'devis';
 
             foreach ($items as $itemData) {
                 /** @var OrderItem $orderItem */
                 $orderItem = $order->items()->create($itemData);
 
-                // Deduct from finished goods stock when a finished product is linked
-                if ($orderItem->finished_product_id) {
+                // Deduct from finished goods stock when a finished product is linked (not for devis)
+                if ($orderItem->finished_product_id && !$isDevis) {
                     $stock = FinishedGoodsStock::firstOrCreate(
                         ['finished_product_id' => $orderItem->finished_product_id],
                         ['quantity' => 0]
@@ -70,6 +72,10 @@ class OrderController extends Controller
                     $stock->quantity = max(0, $stock->quantity - $qty);
                     $stock->save();
                     continue;
+                }
+
+                if ($orderItem->finished_product_id) {
+                    continue; // devis — skip stock, skip inventory
                 }
 
                 if (!$orderItem->inventory_item_id) {

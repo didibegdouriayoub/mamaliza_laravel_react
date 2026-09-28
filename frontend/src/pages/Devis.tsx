@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FileText, Plus, Trash2, Printer, Receipt } from 'lucide-react';
+import { FileText, Plus, Trash2, Printer, Receipt, History } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -166,6 +166,7 @@ export default function DevisFacture() {
   const { toast } = useToast();
   const [products, setProducts] = useState<FinishedProduct[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
+  const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Shared customer state
@@ -182,23 +183,32 @@ export default function DevisFacture() {
   });
   const [devisLines, setDevisLines] = useState<Line[]>([]);
   const [devisNotes, setDevisNotes] = useState('');
+  const [savingDevis, setSavingDevis] = useState(false);
 
   // Facture state
   const [factureNum, setFactureNum] = useState(factureNumber());
   const [factureDate, setFactureDate] = useState(today());
   const [factureLines, setFactureLines] = useState<Line[]>([]);
   const [savingFacture, setSavingFacture] = useState(false);
-  const [lastCreatedOrder, setLastCreatedOrder] = useState<any>(null);
 
-  useEffect(() => {
-    Promise.all([
+  const load = async () => {
+    setLoading(true);
+    const [prods, custs, orders] = await Promise.all([
       finishedProductService.getAll().catch(() => []),
       customerService.getAll().catch(() => []),
-    ]).then(([prods, custs]) => {
-      setProducts(prods || []);
-      setCustomers(custs || []);
-    }).finally(() => setLoading(false));
-  }, []);
+      orderService.getAll().catch(() => []),
+    ]);
+    setProducts(prods || []);
+    setCustomers(custs || []);
+    // Keep only factures and devis in history
+    const docs = (orders || []).filter((o: any) =>
+      o.documentType === 'facture' || o.documentType === 'devis'
+    );
+    setHistory(docs);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
 
   const selectCustomer = (id: string) => {
     setCustomerId(id);
@@ -206,7 +216,6 @@ export default function DevisFacture() {
     if (c) { setCustomerName(c.name); setCustomerAddress(c.address || ''); }
   };
 
-  // Line helpers
   const addLine = (p: FinishedProduct, setter: React.Dispatch<React.SetStateAction<Line[]>>) => {
     setter(prev => [...prev, {
       finished_product_id: p.id,
@@ -231,15 +240,42 @@ export default function DevisFacture() {
     }));
   };
 
-  // Print devis
-  const handlePrintDevis = () => {
+  // Print devis + save to DB
+  const handlePrintDevis = async () => {
     if (!customerName.trim()) { toast({ title: 'Client name required', variant: 'destructive' }); return; }
     if (devisLines.length === 0) { toast({ title: 'Add at least one product', variant: 'destructive' }); return; }
-    const html = buildInvoiceHtml('DEVIS', devisNum, devisDate, validUntil, "Validité jusqu'au", customerName, customerAddress, devisLines);
-    printDocument(`Devis ${devisNum}`, html);
+    setSavingDevis(true);
+    try {
+      const total = devisLines.reduce((s, l) => s + l.total, 0);
+      await orderService.create({
+        customerId: customerId || undefined,
+        customerName,
+        totalAmount: total,
+        amountPaid: 0,
+        amountReturned: 0,
+        status: 'pending',
+        document_type: 'devis',
+        items: devisLines.map(l => ({
+          product_name: l.product_name,
+          finished_product_id: l.finished_product_id,
+          quantity: l.quantity,
+          unit_price: l.unit_price,
+          total: l.total,
+        } as any)),
+      } as any);
+      const html = buildInvoiceHtml('DEVIS', devisNum, devisDate, validUntil, "Validité jusqu'au", customerName, customerAddress, devisLines);
+      printDocument(`Devis ${devisNum}`, html);
+      toast({ title: 'Devis saved & printed' });
+      setDevisLines([]);
+      setDevisNum(devisNumber());
+      load();
+    } catch (e: any) {
+      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    }
+    setSavingDevis(false);
   };
 
-  // Create facture (order) + print
+  // Create facture (order with stock deduction) + print
   const handleCreateFacture = async () => {
     if (!customerName.trim()) { toast({ title: 'Client name required', variant: 'destructive' }); return; }
     if (factureLines.length === 0) { toast({ title: 'Add at least one product', variant: 'destructive' }); return; }
@@ -253,6 +289,7 @@ export default function DevisFacture() {
         amountPaid: 0,
         amountReturned: 0,
         status: 'pending',
+        document_type: 'facture',
         items: factureLines.map(l => ({
           product_name: l.product_name,
           finished_product_id: l.finished_product_id,
@@ -261,25 +298,41 @@ export default function DevisFacture() {
           total: l.total,
         } as any)),
       } as any);
-      setLastCreatedOrder(order);
-      toast({ title: 'Facture created', description: 'Stock deducted. Ready to print.' });
-      // Print immediately
+      toast({ title: 'Facture created', description: 'Stock deducted. Printing…' });
       const ref = `FA N°${new Date().getFullYear()}-${String((order as any)?.id ?? factureNum).padStart(3, '0')}`;
       const html = buildInvoiceHtml('FACTURE', ref, factureDate, factureDate, "Date d'échéance", customerName, customerAddress, factureLines);
       printDocument(`Facture ${ref}`, html);
-      // Reset
       setFactureLines([]);
       setFactureNum(factureNumber());
+      load();
     } catch (e: any) {
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
     }
     setSavingFacture(false);
   };
 
+  const reprintDocument = (doc: any) => {
+    const type = doc.documentType === 'devis' ? 'DEVIS' : 'FACTURE';
+    const ref = type === 'FACTURE'
+      ? `FA N°${new Date(doc.createdAt).getFullYear()}-${String(doc.id).padStart(3, '0')}`
+      : `DV N°${new Date(doc.createdAt).getFullYear()}-${String(doc.id).padStart(3, '0')}`;
+    const lines: Line[] = (doc.items || []).map((i: any) => ({
+      finished_product_id: i.finishedProductId ?? 0,
+      product_name: i.productName,
+      unit_price: i.unitPrice ?? 0,
+      quantity: i.quantity,
+      total: i.total,
+    }));
+    const html = buildInvoiceHtml(type, ref, doc.createdAt, doc.createdAt, type === 'DEVIS' ? "Validité" : "Date d'échéance", doc.customerName, '', lines);
+    printDocument(`${type} ${ref}`, html);
+  };
+
   const devisTotal = devisLines.reduce((s, l) => s + l.total, 0);
   const factureTotal = factureLines.reduce((s, l) => s + l.total, 0);
 
-  // Product picker panel (shared)
+  const factureHistory = history.filter(d => d.documentType === 'facture');
+  const devisHistory = history.filter(d => d.documentType === 'devis');
+
   const ProductPicker = ({ setter }: { setter: React.Dispatch<React.SetStateAction<Line[]>> }) => (
     <Card>
       <CardHeader><CardTitle className="text-sm">Add Products</CardTitle></CardHeader>
@@ -302,7 +355,6 @@ export default function DevisFacture() {
     </Card>
   );
 
-  // Shared customer card
   const CustomerCard = () => (
     <Card>
       <CardHeader><CardTitle className="text-sm">Client</CardTitle></CardHeader>
@@ -327,7 +379,6 @@ export default function DevisFacture() {
     </Card>
   );
 
-  // Lines table
   const LinesTable = ({ lines, setter, total }: { lines: Line[]; setter: React.Dispatch<React.SetStateAction<Line[]>>; total: number }) => (
     <Card>
       <CardHeader><CardTitle className="text-sm">Products</CardTitle></CardHeader>
@@ -378,6 +429,53 @@ export default function DevisFacture() {
     </Card>
   );
 
+  const HistoryTable = ({ docs, emptyText }: { docs: any[]; emptyText: string }) => (
+    <Card>
+      <CardHeader className="flex flex-row items-center gap-2 pb-2">
+        <History className="h-4 w-4 text-muted-foreground" />
+        <CardTitle className="text-sm">History</CardTitle>
+      </CardHeader>
+      <CardContent className="p-0">
+        {docs.length === 0 ? (
+          <p className="text-sm text-muted-foreground p-4 text-center">{emptyText}</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Ref</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead className="text-right">Total TTC</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead className="w-16"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {docs.map(doc => {
+                const year = new Date(doc.createdAt).getFullYear();
+                const prefix = doc.documentType === 'facture' ? 'FA' : 'DV';
+                const ref = `${prefix} N°${year}-${String(doc.id).padStart(3, '0')}`;
+                const ttc = (doc.totalAmount * 1.2).toFixed(2);
+                return (
+                  <TableRow key={doc.id}>
+                    <TableCell className="font-medium text-sm">{ref}</TableCell>
+                    <TableCell className="text-sm">{doc.customerName}</TableCell>
+                    <TableCell className="text-right text-sm font-semibold">{ttc} DH</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{doc.createdAt?.slice(0, 10)}</TableCell>
+                    <TableCell>
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => reprintDocument(doc)}>
+                        <Printer className="h-3 w-3" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="p-6 space-y-4">
       <div className="flex items-center gap-2">
@@ -392,7 +490,7 @@ export default function DevisFacture() {
         </TabsList>
 
         {/* ── FACTURE TAB ── */}
-        <TabsContent value="facture" className="mt-4">
+        <TabsContent value="facture" className="mt-4 space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-2 space-y-4">
               <Card>
@@ -422,10 +520,12 @@ export default function DevisFacture() {
             </div>
             <ProductPicker setter={setFactureLines} />
           </div>
+
+          <HistoryTable docs={factureHistory} emptyText="No factures created yet." />
         </TabsContent>
 
         {/* ── DEVIS TAB ── */}
-        <TabsContent value="devis" className="mt-4">
+        <TabsContent value="devis" className="mt-4 space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-2 space-y-4">
               <Card>
@@ -455,13 +555,16 @@ export default function DevisFacture() {
                 <Badge variant="outline" className="text-sm py-1 px-3">
                   Total TTC: {(devisTotal * 1.2).toFixed(2)} DH
                 </Badge>
-                <Button onClick={handlePrintDevis}>
-                  <Printer className="h-4 w-4 mr-2" />Print Devis
+                <Button onClick={handlePrintDevis} disabled={savingDevis}>
+                  <Printer className="h-4 w-4 mr-2" />
+                  {savingDevis ? 'Saving…' : 'Save & Print Devis'}
                 </Button>
               </div>
             </div>
             <ProductPicker setter={setDevisLines} />
           </div>
+
+          <HistoryTable docs={devisHistory} emptyText="No devis created yet." />
         </TabsContent>
       </Tabs>
     </motion.div>
