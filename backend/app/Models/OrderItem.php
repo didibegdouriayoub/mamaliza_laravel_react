@@ -21,6 +21,7 @@ class OrderItem extends Model
         'unit',
         'carton_id',
         'inventory_item_id',
+        'finished_product_id',
         'unit_price',
         'total'
     ];
