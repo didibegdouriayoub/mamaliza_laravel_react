@@ -166,6 +166,7 @@ export interface OrderItem {
   quantity: number;
   unitPrice: number;
   total: number;
+  finishedProductId?: number;
 }
 
 export interface Payment {

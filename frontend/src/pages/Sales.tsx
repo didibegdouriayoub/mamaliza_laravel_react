@@ -42,6 +42,7 @@ export default function Sales() {
   const [retProductName, setRetProductName] = useState('');
   const [retFinishedProductId, setRetFinishedProductId] = useState<number | null>(null);
   const [retQty, setRetQty] = useState(1);
+  const [retUnitPrice, setRetUnitPrice] = useState(0);
   const [retReason, setRetReason] = useState('');
   const [retRefund, setRetRefund] = useState(0);
   const [retDisposition, setRetDisposition] = useState<'restock' | 'perte'>('restock');
@@ -440,7 +441,7 @@ export default function Sales() {
                       <Button size="sm" onClick={() => { setPayAmount(balance(selected)); setPaymentOpen(true); }}>
                         <CreditCard className="h-3 w-3 mr-1" /> Record Payment
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => { setRetProductName(''); setRetFinishedProductId(null); setRetQty(1); setRetReason(''); setRetRefund(0); setRetDisposition('restock'); setReturnOpen(true); }}>
+                      <Button size="sm" variant="outline" onClick={() => { setRetProductName(''); setRetFinishedProductId(null); setRetQty(1); setRetUnitPrice(0); setRetReason(''); setRetRefund(0); setRetDisposition('restock'); setReturnOpen(true); }}>
                         <Undo2 className="h-3 w-3 mr-1" /> Record Return
                       </Button>
                     </>
@@ -486,11 +487,16 @@ export default function Sales() {
             <div className="space-y-1.5">
               <Label>Product</Label>
               <Select value={retFinishedProductId ? String(retFinishedProductId) : '__manual__'} onValueChange={v => {
-                if (v === '__manual__') { setRetFinishedProductId(null); }
+                if (v === '__manual__') { setRetFinishedProductId(null); setRetUnitPrice(0); setRetRefund(0); }
                 else {
-                  const p = finishedProducts.find(fp => String(fp.id) === v);
+                  const fp = finishedProducts.find(fp => String(fp.id) === v);
+                  // prefer the unit price stored on the order item for this product
+                  const orderItem = selected?.items?.find(i => i.finishedProductId === Number(v));
+                  const price = orderItem?.unitPrice ?? fp?.unit_price ?? 0;
                   setRetFinishedProductId(Number(v));
-                  if (p) setRetProductName(p.name);
+                  if (fp) setRetProductName(fp.name);
+                  setRetUnitPrice(price);
+                  setRetRefund(+(price * retQty).toFixed(2));
                 }
               }}>
                 <SelectTrigger><SelectValue placeholder="Select product or type manually" /></SelectTrigger>
@@ -502,8 +508,18 @@ export default function Sales() {
               {!retFinishedProductId && <Input className="mt-1" value={retProductName} onChange={e => setRetProductName(e.target.value)} placeholder="Product name" />}
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5"><Label>Quantity</Label><Input type="number" value={retQty} onChange={e => setRetQty(Number(e.target.value))} /></div>
-              <div className="space-y-1.5"><Label>Refund Amount (DH)</Label><Input type="number" step="0.01" value={retRefund} onChange={e => setRetRefund(Number(e.target.value))} /></div>
+              <div className="space-y-1.5">
+                <Label>Quantity</Label>
+                <Input type="number" min="1" value={retQty} onChange={e => {
+                  const q = Number(e.target.value) || 1;
+                  setRetQty(q);
+                  if (retUnitPrice > 0) setRetRefund(+(retUnitPrice * q).toFixed(2));
+                }} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Refund Amount (DH){retUnitPrice > 0 && <span className="ml-1 text-xs text-muted-foreground">auto: {retUnitPrice.toFixed(2)} × {retQty}</span>}</Label>
+                <Input type="number" step="0.01" value={retRefund} onChange={e => setRetRefund(Number(e.target.value))} />
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label>Disposition</Label>
