@@ -54,20 +54,21 @@ class OrderController extends Controller
 
                 // Deduct from finished goods stock when a finished product is linked
                 if ($orderItem->finished_product_id) {
-                    $stock = FinishedGoodsStock::where('finished_product_id', $orderItem->finished_product_id)->first();
-                    if ($stock) {
-                        $qty = (float) $orderItem->quantity;
-                        if ($qty > $stock->quantity) {
-                            $stockWarnings[] = [
-                                'finished_product_id' => $orderItem->finished_product_id,
-                                'name'                => $orderItem->product_name,
-                                'requested'           => $qty,
-                                'available'           => $stock->quantity,
-                            ];
-                        }
-                        $stock->quantity = max(0, $stock->quantity - $qty);
-                        $stock->save();
+                    $stock = FinishedGoodsStock::firstOrCreate(
+                        ['finished_product_id' => $orderItem->finished_product_id],
+                        ['quantity' => 0]
+                    );
+                    $qty = (float) $orderItem->quantity;
+                    if ($qty > $stock->quantity) {
+                        $stockWarnings[] = [
+                            'finished_product_id' => $orderItem->finished_product_id,
+                            'name'                => $orderItem->product_name,
+                            'requested'           => $qty,
+                            'available'           => $stock->quantity,
+                        ];
                     }
+                    $stock->quantity = max(0, $stock->quantity - $qty);
+                    $stock->save();
                     continue;
                 }
 
