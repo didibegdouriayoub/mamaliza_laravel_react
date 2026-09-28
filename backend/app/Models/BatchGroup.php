@@ -25,4 +25,9 @@ class BatchGroup extends Model
     {
         return $this->hasMany(Batch::class);
     }
+
+    public function recipe()
+    {
+        return $this->belongsTo(Recipe::class);
+    }
 }
