@@ -1,16 +1,14 @@
-FROM oven/bun:1 as base
-
+FROM oven/bun:1 AS builder
 WORKDIR /app
-
-# Install dependencies into temp directory
-# This will cache them and speed up future builds
 COPY package.json bun.lockb ./
 RUN bun install
-
-# Copy project files
 COPY . .
+# API calls go to /api — Nginx proxies them to the backend container
+ENV VITE_API_URL=/api
+RUN bun run build
 
+FROM nginx:alpine
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 8080
-
-# Run the dev server exposing host (vite.config.ts sets port 8080)
-CMD ["bun", "run", "dev", "--host", "0.0.0.0"]
+CMD ["nginx", "-g", "daemon off;"]
