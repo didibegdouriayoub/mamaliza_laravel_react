@@ -43,22 +43,26 @@ export default function Finishing() {
 
   const load = async () => {
     setLoading(true);
-    try {
-      const [prods, logData, bgData] = await Promise.all([
-        finishedProductService.getAll(),
-        finishingLogService.getAll(),
-        apiClient.get<any[]>('/batch-groups').catch(() => []),
-      ]);
-      setProducts(prods || []);
-      setLogs(logData || []);
-      const bgList = Array.isArray(bgData) ? bgData : (bgData?.data ?? []);
-      setBatchGroups(bgList.map((bg: any) => ({
-        id: bg.id,
-        recipeName: bg.recipeName ?? bg.recipe?.name ?? bg.name ?? '—',
-        outputQuantity: bg.outputQuantity ?? 0,
-        createdAt: bg.createdAt,
-      })));
-    } catch (e) { console.error(e); }
+    // Load each source independently so one failing endpoint doesn't blank the others
+    const fail = (what: string) => (e: any) => {
+      console.error(e);
+      toast({ title: `Failed to load ${what}`, description: e?.message, variant: 'destructive' });
+      return null;
+    };
+    const [prods, logData, bgData] = await Promise.all([
+      finishedProductService.getAll().catch(fail('products')),
+      finishingLogService.getAll().catch(fail('production history')),
+      apiClient.get<any>('/batch-groups').catch(fail('batch groups')),
+    ]);
+    setProducts(prods || []);
+    setLogs(logData || []);
+    const bgList = Array.isArray(bgData) ? bgData : (bgData?.data ?? []);
+    setBatchGroups(bgList.map((bg: any) => ({
+      id: bg.id,
+      recipeName: bg.recipeName ?? bg.recipe?.name ?? bg.name ?? '—',
+      outputQuantity: bg.outputQuantity ?? 0,
+      createdAt: bg.createdAt,
+    })));
     setLoading(false);
   };
 

@@ -340,3 +340,10 @@
 2. After completing a task, make a descriptive git commit immediately.
 3. Test the feature before marking ✅.
 4. Update this file as tasks are completed.
+
+### Deployment
+| # | Task | Priority | Status |
+|---|---|---|---|
+| D1 | Vercel `vercel.json`: proxy `/api/*` to Hetzner backend (135.181.24.140:8000) + SPA fallback | 🔴 | ✅ |
+| D2 | Backend: return 401/403 (not 500) for unauthenticated/unauthorized API requests | 🔴 | ☐ (needs deploy to server) |
+| D3 | `php artisan legacy:import` — idempotent sync of legacy bakery dump (ingredients/lots, recipes, batch groups + mixes) with `--dry-run`/`--no-stock`; `batch_groups.legacy_id` migration | 🔴 | ☐ (tested locally on March dump; awaiting 28 Sep dump + server run) |

@@ -26,6 +26,14 @@ return Application::configure(basePath: dirname(__DIR__))
                     ], $e->status);
                 }
 
+                if ($e instanceof \Illuminate\Auth\AuthenticationException) {
+                    return response()->json(['message' => $e->getMessage()], 401);
+                }
+
+                if ($e instanceof \Illuminate\Auth\Access\AuthorizationException) {
+                    return response()->json(['message' => $e->getMessage()], 403);
+                }
+
                 return response()->json([
                     'message' => $e->getMessage(),
                 ], $e instanceof \Symfony\Component\HttpKernel\Exception\HttpException ? $e->getStatusCode() : 500);
