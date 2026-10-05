@@ -349,3 +349,4 @@
 | D3 | `php artisan legacy:import` — idempotent sync of legacy bakery dump (ingredients/lots, recipes, batch groups + mixes) with `--dry-run`/`--no-stock`; `batch_groups.legacy_id` migration | 🔴 | ✅ (server: 127 groups / 406 mixes imported 2026-10-05) |
 | D4 | Remove Pieces Produced / Leftover from Batches page, Dashboard loss chart, permission tables (kept in Finishing) | 🟡 | ✅ |
 | D5 | Admin 'Replace in recipes': swap an inventory item for another with same code + unit across selected recipes (history + version bump) | 🔴 | ✅ |
+| D6 | inventory:import-csv command + packaging list (40 items: wax, cartons, vacuum bags, labels) | 🟡 | ☐ (run on server) |
