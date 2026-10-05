@@ -21,6 +21,8 @@ export const inventoryService = {
   getAll: () => apiClient.get('/inventory'),
   getById: (id: string | number) => apiClient.get(`/inventory/${id}`),
   getAllHistory: () => apiClient.get('/inventory/history/all'),
+  // Admin: recipes using this item + same-code/same-unit replacement candidates
+  getRecipeUsage: (id: string | number) => apiClient.get(`/inventory/${id}/recipe-usage`),
   create: (item: Partial<InventoryItem>) => apiClient.post('/inventory', toPayload(item)),
   update: (id: string | number, item: Partial<InventoryItem>) => apiClient.put(`/inventory/${id}`, toPayload(item)),
   delete: (id: string | number) => apiClient.delete(`/inventory/${id}`),

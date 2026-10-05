@@ -35,6 +35,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/inventory', [\App\Http\Controllers\InventoryItemController::class, 'store'])->middleware('permission:inventory.write');
     Route::get('/inventory/history/all', [\App\Http\Controllers\InventoryItemController::class, 'allHistory'])->middleware('permission:inventory.read');
     Route::get('/inventory/{inventory}', [\App\Http\Controllers\InventoryItemController::class, 'show'])->middleware('permission:inventory.read');
+    Route::get('/inventory/{inventory}/recipe-usage', [\App\Http\Controllers\RecipeIngredientReplaceController::class, 'usage']);
     Route::match(['put', 'patch'], '/inventory/{inventory}', [\App\Http\Controllers\InventoryItemController::class, 'update'])->middleware('permission:inventory.write');
     Route::delete('/inventory/{inventory}', [\App\Http\Controllers\InventoryItemController::class, 'destroy'])->middleware('permission:inventory.write');
 
@@ -44,6 +45,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/recipes/{recipe}', [\App\Http\Controllers\RecipeController::class, 'show'])->middleware('permission:recipes.read');
     Route::match(['put', 'patch'], '/recipes/{recipe}', [\App\Http\Controllers\RecipeController::class, 'update'])->middleware('permission:recipes.write');
     Route::delete('/recipes/{recipe}', [\App\Http\Controllers\RecipeController::class, 'destroy'])->middleware('permission:recipes.write');
+    Route::post('/recipes/replace-ingredient', [\App\Http\Controllers\RecipeIngredientReplaceController::class, 'replace']);
 
     // Batches
     Route::get('/batches', [\App\Http\Controllers\BatchController::class, 'index'])->middleware('permission:batches.read');

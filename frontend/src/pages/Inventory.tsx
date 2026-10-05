@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Search, Trash2, Edit, Package, History, Printer, CalendarDays, Download, Clock } from 'lucide-react';
+import { Plus, Search, Trash2, Edit, Package, History, Printer, CalendarDays, Download, Clock, ArrowRightLeft } from 'lucide-react';
 import { printDocument, fmtDate, fmtEur } from '@/lib/printDocument';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { StockBadge } from '@/components/StatusBadge';
+import { ReplaceIngredientDialog } from '@/components/ReplaceIngredientDialog';
 import { TableSkeleton, EmptyState } from '@/components/DataStates';
 import { inventoryService } from '@/services/inventoryService';
 import { supplierService } from '@/services/supplierService';
@@ -52,6 +53,7 @@ export default function Inventory() {
   const [allHistoryRecords, setAllHistoryRecords] = useState<any[]>([]);
   const [allHistoryLoading, setAllHistoryLoading] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+  const [replaceItemId, setReplaceItemId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const { toast } = useToast();
 
@@ -585,6 +587,11 @@ export default function Inventory() {
                             <Button variant="ghost" size="icon" onClick={() => openItemHistory(item)} title="View history">
                               <History className="h-4 w-4 text-muted-foreground" />
                             </Button>
+                            {user?.role === 'admin' && item.type !== 'leftover' && item.type !== 'product' && (
+                              <Button variant="ghost" size="icon" onClick={() => setReplaceItemId(String(item.id))} title="Replace in recipes">
+                                <ArrowRightLeft className={`h-4 w-4 ${item.quantity <= item.minStock ? 'text-amber-600' : 'text-muted-foreground'}`} />
+                              </Button>
+                            )}
                             {hasPermission('inventory.write') && (
                               <>
                                 <Button variant="ghost" size="icon" onClick={() => openEdit(item)}>
@@ -627,6 +634,8 @@ export default function Inventory() {
           )}
         </CardContent>
       </Card>
+
+      <ReplaceIngredientDialog itemId={replaceItemId} onClose={() => setReplaceItemId(null)} />
 
       {/* All History Dialog */}
       <Dialog open={allHistoryOpen} onOpenChange={setAllHistoryOpen}>
