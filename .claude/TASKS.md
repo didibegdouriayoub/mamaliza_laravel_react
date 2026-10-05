@@ -346,4 +346,5 @@
 |---|---|---|---|
 | D1 | Vercel `vercel.json`: proxy `/api/*` to Hetzner backend (135.181.24.140:8000) + SPA fallback | 🔴 | ✅ |
 | D2 | Backend: return 401/403 (not 500) for unauthenticated/unauthorized API requests | 🔴 | ☐ (needs deploy to server) |
-| D3 | `php artisan legacy:import` — idempotent sync of legacy bakery dump (ingredients/lots, recipes, batch groups + mixes) with `--dry-run`/`--no-stock`; `batch_groups.legacy_id` migration | 🔴 | ☐ (tested locally on March dump; awaiting 28 Sep dump + server run) |
+| D3 | `php artisan legacy:import` — idempotent sync of legacy bakery dump (ingredients/lots, recipes, batch groups + mixes) with `--dry-run`/`--no-stock`; `batch_groups.legacy_id` migration | 🔴 | ✅ (server: 127 groups / 406 mixes imported 2026-10-05) |
+| D4 | Remove Pieces Produced / Leftover from Batches page, Dashboard loss chart, permission tables (kept in Finishing) | 🟡 | ✅ |

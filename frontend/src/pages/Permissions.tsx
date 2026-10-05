@@ -14,8 +14,6 @@ const PAGE_PERMISSIONS: { page: string; read: Permission; write: Permission | nu
   { page: 'Inventory',             read: 'inventory.read',    write: 'inventory.write' },
   { page: 'Recipes',               read: 'recipes.read',      write: 'recipes.write' },
   { page: 'Batches',               read: 'batches.read',      write: 'batches.write' },
-  { page: 'Pieces Produced',       read: 'pieces.read',       write: 'pieces.write' },
-  { page: 'Leftover',              read: 'leftover.read',     write: 'leftover.write' },
   { page: 'Quality',               read: 'quality.read',      write: 'quality.write' },
   { page: 'Estimation',            read: 'estimation.read',   write: 'estimation.write' },
   { page: 'Sales',                 read: 'sales.read',        write: 'sales.write' },

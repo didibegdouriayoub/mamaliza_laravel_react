@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Factory, Plus, Trash2, Printer, Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, ClipboardList, Eye, Pencil } from 'lucide-react';
+import { Factory, Plus, Trash2, Printer, Search, ChevronDown, ChevronRight, CheckCircle2, XCircle, Eye, Pencil } from 'lucide-react';
 import { printDocument, fmtDate, fmtEur } from '@/lib/printDocument';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -47,12 +47,6 @@ export default function Batches() {
   const [batchCount, setBatchCount] = useState(1);
   const [batchDrafts, setBatchDrafts] = useState<BatchDraft[]>([]);
   const [expandedBatch, setExpandedBatch] = useState<number | null>(0);
-
-  // Fill details dialog
-  const [fillGroup, setFillGroup] = useState<BatchGroup | null>(null);
-  const [fillPieces, setFillPieces] = useState('');
-  const [fillLeftover, setFillLeftover] = useState('');
-  const [fillLeftoverUnit, setFillLeftoverUnit] = useState('kg');
 
   // View group dialog
   const [viewGroup, setViewGroup] = useState<BatchGroup | null>(null);
@@ -243,9 +237,6 @@ export default function Batches() {
         batchCount: Number(g.batchCount ?? g.batch_count) || 0,
         targetWeight: Number(g.targetWeight ?? g.target_weight) || 0,
         pieceWeightValue: Number(g.pieceWeightValue ?? g.piece_weight_value) || 0,
-        piecesProduced: g.piecesProduced != null ? Number(g.piecesProduced) : undefined,
-        leftoverQty: g.leftoverQty != null ? Number(g.leftoverQty) : undefined,
-        leftoverUnit: g.leftoverUnit ?? g.leftover_unit ?? 'kg',
         createdAt: g.createdAt ?? g.created_at ?? '',
         batches: (g.batches || []).map((b: any) => ({
           ...b,
@@ -374,22 +365,6 @@ export default function Batches() {
     }
   };
 
-  const handleFillDetails = async () => {
-    if (!fillGroup) return;
-    try {
-      await batchGroupService.updateStats(fillGroup.id, {
-        piecesProduced: fillPieces ? Number(fillPieces) : undefined,
-        leftoverQty: fillLeftover ? Number(fillLeftover) : undefined,
-        leftoverUnit: fillLeftoverUnit,
-      });
-      toast({ title: 'Group details saved', description: 'Inventory updated.' });
-      setFillGroup(null);
-      loadData();
-    } catch (err: any) {
-      toast({ title: 'Save failed', description: err.message, variant: 'destructive' });
-    }
-  };
-
   const handleDeleteGroup = async (groupId: string) => {
     try {
       await batchGroupService.delete(groupId);
@@ -441,10 +416,6 @@ export default function Batches() {
           const completedCount = batches.filter(b => b.status === 'completed').length;
           const failedCount = batches.filter(b => b.status === 'failed').length;
           const expected = group.targetWeight * group.batchCount;
-          const produced = (group.piecesProduced ?? 0) * (group.pieceWeightValue || 1);
-          const leftover = group.leftoverQty ?? 0;
-          const loss = expected - produced + leftover;
-          const hasFilled = group.piecesProduced != null || group.leftoverQty != null;
 
           return (
             <motion.div key={group.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
@@ -466,13 +437,6 @@ export default function Batches() {
                       <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200"><CheckCircle2 className="h-3 w-3 mr-1" />{completedCount}</Badge>
                       {failedCount > 0 && <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200"><XCircle className="h-3 w-3 mr-1" />{failedCount}</Badge>}
                     </div>
-                    {hasFilled ? (
-                      <Badge variant="secondary" className="text-xs">
-                        {group.piecesProduced ?? '—'} pcs · {group.leftoverQty ?? '—'} {group.leftoverUnit}
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-xs text-amber-600 border-amber-300 bg-amber-50">Awaiting details</Badge>
-                    )}
                     <div className="flex gap-1 print:hidden" onClick={e => e.stopPropagation()}>
                       <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setViewGroup(group)}>
                         <Eye className="h-3 w-3 mr-1" /> View
@@ -502,16 +466,6 @@ export default function Batches() {
                       }}>
                         <Printer className="h-3 w-3 mr-1" /> Print
                       </Button>
-                      {hasPermission('batches.write') && (
-                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
-                          setFillGroup(group);
-                          setFillPieces(group.piecesProduced != null ? String(group.piecesProduced) : '');
-                          setFillLeftover(group.leftoverQty != null ? String(group.leftoverQty) : '');
-                          setFillLeftoverUnit(group.leftoverUnit ?? 'kg');
-                        }}>
-                          <ClipboardList className="h-3 w-3 mr-1" /> Fill
-                        </Button>
-                      )}
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button size="sm" variant="ghost" className="h-7 w-7 p-0"><Trash2 className="h-3 w-3 text-destructive" /></Button>
@@ -525,7 +479,7 @@ export default function Batches() {
                   </div>
                 </div>
 
-                {/* Expanded: individual batches + loss summary */}
+                {/* Expanded: individual batches */}
                 {isExpanded && (
                   <CardContent className="p-0">
                     <Table>
@@ -574,12 +528,8 @@ export default function Batches() {
                       </TableBody>
                     </Table>
 
-                    {/* Loss summary */}
-                    <div className="px-4 py-3 bg-muted/30 border-t flex flex-wrap gap-4 text-sm">
-                      <span>Expected: <span className="font-medium">{expected.toLocaleString()} kg</span></span>
-                      <span>Produced: <span className="font-medium">{produced > 0 ? `${produced.toLocaleString()} kg` : '—'}</span></span>
-                      <span>Leftover: <span className="font-medium">{leftover > 0 ? `${leftover} ${group.leftoverUnit}` : '—'}</span></span>
-                      {hasFilled && <span className={cn('font-semibold', loss > 0 ? 'text-red-600' : 'text-green-600')}>Loss: {loss.toFixed(2)} kg</span>}
+                    <div className="px-4 py-3 bg-muted/30 border-t text-sm">
+                      Expected: <span className="font-medium">{expected.toLocaleString()} kg</span>
                     </div>
                   </CardContent>
                 )}
@@ -678,52 +628,11 @@ export default function Batches() {
         </DialogContent>
       </Dialog>
 
-      {/* Fill Details dialog */}
-      <Dialog open={!!fillGroup} onOpenChange={() => setFillGroup(null)}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="font-display">Fill Group Details — {fillGroup?.recipeName}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <p className="text-sm text-muted-foreground">These values will create inventory entries for products and leftover materials.</p>
-            <div className="space-y-1.5">
-              <Label>Pieces Produced (qty)</Label>
-              <Input type="number" min={0} value={fillPieces} onChange={e => setFillPieces(e.target.value)} placeholder="e.g. 45" />
-              <p className="text-xs text-muted-foreground">Will add to <em>{fillGroup?.recipeName}</em> inventory as <strong>product</strong></p>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Leftover Quantity</Label>
-              <div className="flex gap-2">
-                <Input type="number" min={0} value={fillLeftover} onChange={e => setFillLeftover(e.target.value)} placeholder="e.g. 2.5" />
-                <Select value={fillLeftoverUnit} onValueChange={setFillLeftoverUnit}>
-                  <SelectTrigger className="w-20"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="kg">kg</SelectItem>
-                    <SelectItem value="g">g</SelectItem>
-                    <SelectItem value="L">L</SelectItem>
-                    <SelectItem value="pcs">pcs</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <p className="text-xs text-muted-foreground">Will add to inventory as <strong>leftover</strong> (LO-date-recipe)</p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setFillGroup(null)}>Cancel</Button>
-            <Button onClick={handleFillDetails} disabled={!fillPieces && !fillLeftover}>Save & Update Inventory</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* View Group dialog — full details */}
       <Dialog open={!!viewGroup} onOpenChange={v => { if (!v) setViewGroup(null); }}>
         <DialogContent className="max-w-3xl max-h-[92vh] overflow-y-auto">
           {viewGroup && (() => {
             const expected = viewGroup.targetWeight * viewGroup.batchCount;
-            const produced = (viewGroup.piecesProduced ?? 0) * (viewGroup.pieceWeightValue || 1);
-            const leftover = viewGroup.leftoverQty ?? 0;
-            const loss = expected - produced + leftover;
-            const hasFilled = viewGroup.piecesProduced != null || viewGroup.leftoverQty != null;
             return (
               <>
                 <DialogHeader>
@@ -733,22 +642,11 @@ export default function Batches() {
                 </DialogHeader>
 
                 {/* Group summary bar */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm border rounded-lg p-3 bg-accent/20">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm border rounded-lg p-3 bg-accent/20">
                   <div><p className="text-xs text-muted-foreground">Created</p><p className="font-medium">{formatDate(viewGroup.createdAt)}</p></div>
                   <div><p className="text-xs text-muted-foreground">Batches</p><p className="font-medium">{viewGroup.batchCount}</p></div>
                   <div><p className="text-xs text-muted-foreground">Target × batches</p><p className="font-medium">{viewGroup.targetWeight} kg × {viewGroup.batchCount} = {expected} kg</p></div>
-                  <div><p className="text-xs text-muted-foreground">Pieces produced</p><p className="font-medium">{viewGroup.piecesProduced ?? '—'} pcs</p></div>
                 </div>
-
-                {/* Loss summary */}
-                {hasFilled && (
-                  <div className="flex flex-wrap gap-4 text-sm p-3 rounded-lg bg-muted/30 border">
-                    <span>Expected: <strong>{expected.toLocaleString()} kg</strong></span>
-                    <span>Produced: <strong>{produced > 0 ? `${produced.toLocaleString()} kg` : '—'}</strong></span>
-                    <span>Leftover: <strong>{leftover > 0 ? `${leftover} ${viewGroup.leftoverUnit}` : '—'}</strong></span>
-                    <span className={cn('font-semibold', loss > 0 ? 'text-red-600' : 'text-green-600')}>Loss: {loss.toFixed(2)} kg</span>
-                  </div>
-                )}
 
                 {/* Per-batch cards */}
                 <div className="space-y-4">
