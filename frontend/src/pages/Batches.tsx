@@ -553,7 +553,7 @@ export default function Batches() {
                 <Label>Recipe</Label>
                 <Select value={recipeId} onValueChange={setRecipeId}>
                   <SelectTrigger><SelectValue placeholder="Select recipe" /></SelectTrigger>
-                  <SelectContent>{recipes.map(r => <SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>)}</SelectContent>
+                  <SelectContent>{recipes.map(r => <SelectItem key={r.id} value={String(r.id)}>{r.name}{r.targetWeight ? ` — target ${r.targetWeight} kg` : ''}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               {selectedRecipe && (

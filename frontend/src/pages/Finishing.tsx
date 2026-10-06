@@ -21,6 +21,8 @@ interface BatchGroupOption {
   id: number;
   recipeName: string;
   outputQuantity: number;
+  batchCount: number;
+  targetWeight: number;
   createdAt: string;
 }
 
@@ -61,6 +63,8 @@ export default function Finishing() {
       id: bg.id,
       recipeName: bg.recipeName ?? bg.recipe?.name ?? bg.name ?? '—',
       outputQuantity: bg.outputQuantity ?? 0,
+      batchCount: Number(bg.batchCount ?? bg.batch_count) || 0,
+      targetWeight: Number(bg.targetWeight ?? bg.target_weight) || 0,
       createdAt: bg.createdAt,
     })));
     setLoading(false);
@@ -154,7 +158,7 @@ export default function Finishing() {
                   <SelectContent>
                     {batchGroups.map(bg => (
                       <SelectItem key={bg.id} value={String(bg.id)}>
-                        {bg.recipeName} — {formatDate(bg.createdAt)}
+                        {bg.recipeName} — {formatDate(bg.createdAt)} · {bg.batchCount} batches{bg.targetWeight ? ` · ${bg.targetWeight * bg.batchCount} kg` : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
