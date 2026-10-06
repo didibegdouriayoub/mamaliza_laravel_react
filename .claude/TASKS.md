@@ -335,6 +335,24 @@
 
 ---
 
+## Phase 19 — Product Cards, Lot Stock (per batch date) & Quick Orders
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T19.1 | Migration + model: `finished_goods_lots` (product, lot_date, qty_produced, qty_remaining, finishing_log_id) + opening lot per product from current stock | 🔴 | ✅ |
+| T19.2 | Finishing store/destroy create/remove a lot (keep `finished_goods_stock` total in sync) | 🔴 | ✅ |
+| T19.3 | Orders deduct FIFO from lots (record lots used); returns restore into lot; oversell stays warn-only | 🔴 | ✅ |
+| T19.4 | API: product lots list + manual adjustment (add/remove with reason) + movement history; permissions for finished-products/finishing routes | 🔴 | ✅ |
+| T19.5 | Product image upload (column + endpoint + storage link) | 🟠 | ✅ |
+| T19.6 | Frontend: Products card grid (image, name, fridge total, low-stock badge) | 🔴 | ✅ (backend tested; screens need your browser check) |
+| T19.7 | Frontend: product panel — stock by batch date, add/remove, history | 🔴 | ✅ (backend tested; screens need your browser check) |
+| T19.8 | Frontend: quick order screen using product cards (cart → existing orders flow) | 🟠 | ✅ (backend tested; screens need your browser check) |
+| T19.9 | **Bug:** confirming production on Finishing failed ("Expression could not be converted to string") — raw SQL in stock update; fixed in T19.2 | 🔴 | ✅ |
+| T19.10 | UI: show target weight in the Batches recipe select, and batch count + total kg in the Finishing batch-group select | 🟡 | ✅ (needs browser check) |
+| T19.11 | Manual stock adjustments: admin only + mandatory reason (backend 403/422, UI hidden for non-admins) | 🟠 | ✅ |
+
+---
+
 ## Rules for this Project
 1. Take tasks ONE at a time.
 2. After completing a task, make a descriptive git commit immediately.
