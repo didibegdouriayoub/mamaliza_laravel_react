@@ -3,7 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\FinishingLog;
-use App\Models\FinishedGoodsStock;
+use App\Models\FinishedGoodsLot;
+use App\Services\FinishedStockService;
 use App\Models\InventoryItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +23,7 @@ class FinishingLogController extends Controller
         return response()->json($logs);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, FinishedStockService $stockService)
     {
         $validated = $request->validate([
             'finished_product_id' => 'required|exists:finished_products,id',
@@ -34,7 +35,7 @@ class FinishingLogController extends Controller
             'batch_sources.*.kg_used'        => 'required|numeric|min:0',
         ]);
 
-        DB::transaction(function () use ($validated, $request) {
+        DB::transaction(function () use ($validated, $stockService) {
             $log = FinishingLog::create([
                 'finished_product_id' => $validated['finished_product_id'],
                 'pieces_produced'     => $validated['pieces_produced'],
@@ -63,19 +64,16 @@ class FinishingLogController extends Controller
                 });
             }
 
-            // Add to finished goods stock
-            FinishedGoodsStock::updateOrCreate(
-                ['finished_product_id' => $product->id],
-                ['quantity' => DB::raw("quantity + {$pieces}")]
-            );
+            // Add to finished goods stock (total) and record the lot (per production date)
+            $stockService->receive($product->id, $pieces, $validated['date'], 'production', $log->id);
         });
 
         return response()->json(['message' => 'Finishing log saved.'], 201);
     }
 
-    public function destroy(FinishingLog $finishingLog)
+    public function destroy(FinishingLog $finishingLog, FinishedStockService $stockService)
     {
-        DB::transaction(function () use ($finishingLog) {
+        DB::transaction(function () use ($finishingLog, $stockService) {
             $pieces = $finishingLog->pieces_produced;
             $product = $finishingLog->product()->with('materials')->first();
 
@@ -91,11 +89,18 @@ class FinishingLogController extends Controller
                 });
             }
 
-            // Remove from finished goods stock
-            $stock = FinishedGoodsStock::where('finished_product_id', $product->id)->first();
-            if ($stock) {
-                $stock->quantity = max(0, $stock->quantity - $pieces);
-                $stock->save();
+            // Remove this log's lot from stock. Only what is still unsold in the lot leaves the total;
+            // logs created before lots existed have no lot, so take their pieces from the oldest lots.
+            $lot = FinishedGoodsLot::where('finishing_log_id', $finishingLog->id)->lockForUpdate()->first();
+            if ($lot) {
+                $removed = $lot->qty_remaining;
+                $lot->qty_remaining = 0;
+                $lot->save();
+                $stockService->log($product->id, $lot->id, 'production_removed', -$removed, 'Finishing log deleted');
+                $stockService->adjustTotal($product->id, -$removed);
+                $lot->delete();
+            } else {
+                $stockService->deduct($product->id, $pieces, 'production_removed', 'Finishing log deleted');
             }
 
             $finishingLog->batchSources()->delete();

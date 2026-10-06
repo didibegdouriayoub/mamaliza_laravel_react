@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\FinishedProduct;
 use App\Models\FinishedGoodsStock;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class FinishedProductController extends Controller
 {
@@ -15,6 +16,7 @@ class FinishedProductController extends Controller
             'materials.inventoryItem:id,name,type,unit',
             'components.component:id,name,type',
             'stock',
+            'availableLots',
         ])->get();
 
         return response()->json($products);
@@ -119,6 +121,41 @@ class FinishedProductController extends Controller
             'materials.inventoryItem:id,name,type,unit',
             'components.component:id,name,type',
             'stock',
+            'availableLots',
         ])->findOrFail($id);
+    }
+
+    public function uploadImage(Request $request, FinishedProduct $finishedProduct)
+    {
+        $request->validate(['image' => 'required|image|mimes:jpg,jpeg,png,webp|max:4096']);
+
+        if ($finishedProduct->image_path) {
+            Storage::disk('public')->delete($finishedProduct->image_path);
+        }
+        $finishedProduct->image_path = $request->file('image')->store('product-images', 'public');
+        $finishedProduct->save();
+
+        return response()->json($this->loadProduct($finishedProduct->id));
+    }
+
+    public function deleteImage(FinishedProduct $finishedProduct)
+    {
+        if ($finishedProduct->image_path) {
+            Storage::disk('public')->delete($finishedProduct->image_path);
+            $finishedProduct->image_path = null;
+            $finishedProduct->save();
+        }
+
+        return response()->json($this->loadProduct($finishedProduct->id));
+    }
+
+    // Public on purpose: <img> tags cannot send the auth token, and product photos are not sensitive.
+    public function showImage(FinishedProduct $finishedProduct)
+    {
+        abort_unless($finishedProduct->image_path && Storage::disk('public')->exists($finishedProduct->image_path), 404);
+
+        return response()->file(Storage::disk('public')->path($finishedProduct->image_path), [
+            'Cache-Control' => 'public, max-age=86400',
+        ]);
     }
 }

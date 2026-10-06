@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\FinishedGoodsStock;
 use App\Models\InventoryHistory;
 use App\Models\InventoryItem;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\PackagingCarton;
+use App\Services\FinishedStockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -18,7 +18,7 @@ class OrderController extends Controller
         return response()->json(Order::with('items', 'returns', 'payments')->latest()->get());
     }
 
-    public function store(Request $request)
+    public function store(Request $request, FinishedStockService $stockService)
     {
         $validated = $request->validate([
             'customer_id'     => 'nullable|exists:customers,id',
@@ -46,7 +46,7 @@ class OrderController extends Controller
 
         $stockWarnings = [];
 
-        $order = DB::transaction(function () use ($validated, $items, &$stockWarnings) {
+        $order = DB::transaction(function () use ($validated, $items, &$stockWarnings, $stockService) {
             $order = Order::create($validated);
             $isDevis = ($validated['document_type'] ?? 'order') === 'devis';
 
@@ -56,21 +56,19 @@ class OrderController extends Controller
 
                 // Deduct from finished goods stock when a finished product is linked (not for devis)
                 if ($orderItem->finished_product_id && !$isDevis) {
-                    $stock = FinishedGoodsStock::firstOrCreate(
-                        ['finished_product_id' => $orderItem->finished_product_id],
-                        ['quantity' => 0]
-                    );
                     $qty = (float) $orderItem->quantity;
-                    if ($qty > $stock->quantity) {
+                    $taken = $stockService->deduct(
+                        $orderItem->finished_product_id, $qty, 'order', null, null,
+                        $order->id, $orderItem->id, true // allow oversell: total may go negative
+                    );
+                    if ($taken < $qty) {
                         $stockWarnings[] = [
                             'finished_product_id' => $orderItem->finished_product_id,
                             'name'                => $orderItem->product_name,
                             'requested'           => $qty,
-                            'available'           => $stock->quantity,
+                            'available'           => $taken,
                         ];
                     }
-                    $stock->quantity = $stock->quantity - $qty; // allow negative (oversell)
-                    $stock->save();
                     continue;
                 }
 
@@ -139,9 +137,12 @@ class OrderController extends Controller
         return response()->json($order);
     }
 
-    public function destroy(Order $order)
+    public function destroy(Order $order, FinishedStockService $stockService)
     {
-        $order->delete();
+        DB::transaction(function () use ($order, $stockService) {
+            $stockService->restoreForOrder($order->load('items'));
+            $order->delete();
+        });
         return response()->json(null, 204);
     }
 
@@ -175,7 +176,7 @@ class OrderController extends Controller
     }
 
     // T12.7.1: Record a return and update amount_returned
-    public function storeReturn(Request $request, Order $order)
+    public function storeReturn(Request $request, Order $order, FinishedStockService $stockService)
     {
         $validated = $request->validate([
             'product_name'   => 'nullable|string|max:255',
@@ -203,7 +204,7 @@ class OrderController extends Controller
 
         $finishedProductId = $validated['finished_product_id'] ?? $orderItem?->finished_product_id ?? null;
 
-        $return = DB::transaction(function () use ($order, $validated, $orderItem, $unit, $cartonId, $piecesReturned, $targetInventoryItemId, $finishedProductId) {
+        $return = DB::transaction(function () use ($order, $validated, $orderItem, $unit, $cartonId, $piecesReturned, $targetInventoryItemId, $finishedProductId, $stockService) {
             $return = $order->returns()->create([
                 'order_item_id'       => $orderItem?->id,
                 'product_name'        => $validated['product_name'] ?? null,
@@ -225,11 +226,7 @@ class OrderController extends Controller
 
             // Restore finished goods stock when restock disposition + finished product
             if ($disposition === 'restock' && $finishedProductId) {
-                $stock = FinishedGoodsStock::firstOrCreate(
-                    ['finished_product_id' => $finishedProductId],
-                    ['quantity' => 0]
-                );
-                $stock->increment('quantity', $piecesReturned);
+                $stockService->restoreForOrderItem($finishedProductId, (float) $piecesReturned, $order->id, $orderItem?->id, $validated['reason'] ?? null);
             } elseif (in_array($disposition, ['restock', 'reemploi'], true) && $targetInventoryItemId) {
                 $inventoryItem = InventoryItem::find($targetInventoryItemId);
                 if ($inventoryItem) {
