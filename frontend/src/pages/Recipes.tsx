@@ -132,6 +132,10 @@ export default function Recipes() {
     setIngredients(prev => prev.map((ing, i) => i === idx ? { ...ing, ...updates } : ing));
   };
 
+  const materialOptions = inventory
+    .filter(m => m.type === 'raw')
+    .sort((x, y) => x.name.localeCompare(y.name, undefined, { sensitivity: 'base' }));
+
   const handleMaterialSelect = (idx: number, materialId: string) => {
     const mat = inventory.find(m => String(m.id) === String(materialId));
     if (mat) setIng(idx, { materialId: String(mat.id), materialName: mat.name, unit: mat.unit, unitPrice: mat.price });
@@ -325,10 +329,14 @@ export default function Recipes() {
               </div>
               {ingredients.map((ing, idx) => (
                 <div key={idx} className="grid grid-cols-1 sm:grid-cols-[1fr_130px_80px_40px] gap-2 items-end">
-                  <Select value={ing.materialId} onValueChange={v => handleMaterialSelect(idx, v)}>
+                  <Select value={ing.materialId ? String(ing.materialId) : ''} onValueChange={v => handleMaterialSelect(idx, v)}>
                     <SelectTrigger><SelectValue placeholder="Material" /></SelectTrigger>
                     <SelectContent>
-                      {inventory.filter(m => m.type === 'raw').map(m => (
+                      {/* Keep the recipe's current material listed even if it is not a raw item (or was removed) */}
+                      {ing.materialId && !materialOptions.some(m => String(m.id) === String(ing.materialId)) && (
+                        <SelectItem value={String(ing.materialId)}>{ing.materialName || `#${ing.materialId}`}</SelectItem>
+                      )}
+                      {materialOptions.map(m => (
                         <SelectItem key={m.id} value={String(m.id)}>{m.name} (DH{m.price}/{m.unit})</SelectItem>
                       ))}
                     </SelectContent>
