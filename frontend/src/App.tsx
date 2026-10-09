@@ -43,9 +43,9 @@ function AppRoutes() {
         <Route path="/batches" element={<ProtectedRoute permissions={['batches.read']}><Batches /></ProtectedRoute>} />
         <Route path="/quality" element={<ProtectedRoute permissions={['quality.read']}><Quality /></ProtectedRoute>} />
         <Route path="/estimation" element={<ProtectedRoute permissions={['estimation.read']}><Estimation /></ProtectedRoute>} />
-        <Route path="/products" element={<ProtectedRoute permissions={['analytics.read']}><Products /></ProtectedRoute>} />
-        <Route path="/finishing" element={<ProtectedRoute permissions={['analytics.read']}><Finishing /></ProtectedRoute>} />
-        <Route path="/finished-goods" element={<ProtectedRoute permissions={['analytics.read']}><FinishedGoods /></ProtectedRoute>} />
+        <Route path="/products" element={<ProtectedRoute permissions={['products.read']}><Products /></ProtectedRoute>} />
+        <Route path="/finishing" element={<ProtectedRoute permissions={['finishing.read']}><Finishing /></ProtectedRoute>} />
+        <Route path="/finished-goods" element={<ProtectedRoute permissions={['finished_goods.read']}><FinishedGoods /></ProtectedRoute>} />
         <Route path="/devis" element={<ProtectedRoute permissions={['sales.read']}><Devis /></ProtectedRoute>} />
         <Route path="/customers" element={<ProtectedRoute permissions={['customers.read']}><Customers /></ProtectedRoute>} />
         <Route path="/suppliers" element={<ProtectedRoute permissions={['suppliers.read']}><Suppliers /></ProtectedRoute>} />

@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { recipeLabel } from '@/lib/recipeLabel';
 import { recipeService } from '@/services/recipeService';
 import { inventoryService } from '@/services/inventoryService';
 import { Recipe, InventoryItem } from '@/models/types';
@@ -373,7 +374,7 @@ export default function Estimation() {
                   <SelectContent>
                     {recipes.map(r => (
                       <SelectItem key={r.id} value={String(r.id)}>
-                        {r.name} — {r.targetWeight} {r.pieceWeight}
+                        {recipeLabel(r)}
                       </SelectItem>
                     ))}
                   </SelectContent>

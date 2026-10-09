@@ -11,19 +11,23 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { TableSkeleton, EmptyState } from '@/components/DataStates';
-import { finishedProductService, FinishedProduct } from '@/services/finishedProductService';
+import { finishedProductService, FinishedProduct, fridgeTotal } from '@/services/finishedProductService';
 import { finishingLogService, FinishingLog, FinishingLogBatchSource } from '@/services/finishingLogService';
 import { apiClient } from '@/lib/apiClient';
 import { useToast } from '@/hooks/use-toast';
 import { formatDate } from '@/lib/formatDate';
+import { splitKg } from '@/lib/doughSplit';
 
 interface BatchGroupOption {
   id: number;
+  recipeId: string;
   recipeName: string;
   outputQuantity: number;
   batchCount: number;
   targetWeight: number;
   createdAt: string;
+  usedKg: number;
+  closed: boolean;
 }
 
 export default function Finishing() {
@@ -35,13 +39,58 @@ export default function Finishing() {
 
   // Form state
   const [selectedProductId, setSelectedProductId] = useState('');
-  const [piecesProduced, setPiecesProduced] = useState('');
+  const [piecesProduced, setPiecesProduced] = useState('1');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [notes, setNotes] = useState('');
   const [batchSources, setBatchSources] = useState<FinishingLogBatchSource[]>([{ batch_group_id: '', kg_used: 0 }]);
   const [saving, setSaving] = useState(false);
+  const [cartonsOverride, setCartonsOverride] = useState<string | null>(null); // null = pack the maximum
 
   const selectedProduct = products.find(p => String(p.id) === selectedProductId);
+
+  // A piece product is packed into its carton automatically (only for a carton that holds this product alone)
+  const boxProduct = selectedProduct?.type === 'piece' && selectedProduct.carton
+    ? products.find(b => b.id === selectedProduct.carton!.box_id)
+    : undefined;
+  const autoPack = boxProduct && boxProduct.components.length === 1 ? selectedProduct!.carton! : null;
+  const pieceCount = parseInt(piecesProduced) || 0;
+  const maxCartons = autoPack ? Math.floor(pieceCount / autoPack.qty_per_box) : 0;
+  const cartonsToPack = autoPack
+    ? Math.max(0, Math.min(maxCartons, cartonsOverride !== null ? parseInt(cartonsOverride) || 0 : maxCartons))
+    : 0;
+
+  // Dough batches offered as sources: only those made from the product's recipes (all when it has none)
+  const productRecipeIds = new Set((selectedProduct?.inputs ?? []).map(i => String(i.recipe_id)));
+  const sourceOptions = (productRecipeIds.size
+    ? batchGroups.filter(bg => productRecipeIds.has(bg.recipeId))
+    : batchGroups).filter(bg => !bg.closed);
+
+  const leftKg = (bg: BatchGroupOption) => bg.targetWeight * bg.batchCount - bg.usedKg;
+  const chosenIds = batchSources.map(s => s.batch_group_id).filter(Boolean).map(String);
+  const chosenKey = chosenIds.join(',');
+
+  // kg of dough per piece, from the recipe of the first chosen batch group (else the product's first rate)
+  const kgPerPiece = (() => {
+    const inputs = selectedProduct?.inputs ?? [];
+    const first = batchGroups.find(bg => String(bg.id) === chosenIds[0]);
+    const match = first ? inputs.find(i => String(i.recipe_id) === first.recipeId) : undefined;
+    return (match ?? inputs.find(i => i.kg_per_piece > 0))?.kg_per_piece ?? 0;
+  })();
+  const neededKg = Math.round(pieceCount * kgPerPiece * 1000) / 1000;
+  const assignedKg = batchSources.reduce((s, x) => s + (x.batch_group_id ? x.kg_used : 0), 0);
+
+  // Default split of the needed kg, oldest batch group first (still editable per row afterwards)
+  useEffect(() => {
+    if (!neededKg || !chosenIds.length) return;
+    const ordered = chosenIds
+      .map(id => batchGroups.find(bg => String(bg.id) === id))
+      .filter((bg): bg is BatchGroupOption => !!bg)
+      .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)))
+      .map(bg => ({ id: String(bg.id), capacity: leftKg(bg) }));
+    const split = splitKg(neededKg, ordered);
+    setBatchSources(prev => prev.map(s => s.batch_group_id ? { ...s, kg_used: split[String(s.batch_group_id)] ?? s.kg_used } : s));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [neededKg, chosenKey, selectedProductId, batchGroups]);
 
   const load = async () => {
     setLoading(true);
@@ -61,11 +110,14 @@ export default function Finishing() {
     const bgList = Array.isArray(bgData) ? bgData : (bgData?.data ?? []);
     setBatchGroups(bgList.map((bg: any) => ({
       id: bg.id,
+      recipeId: String(bg.recipeId ?? bg.recipe_id ?? bg.recipe?.id ?? ''),
       recipeName: bg.recipeName ?? bg.recipe?.name ?? bg.name ?? '—',
       outputQuantity: bg.outputQuantity ?? 0,
       batchCount: Number(bg.batchCount ?? bg.batch_count) || 0,
       targetWeight: Number(bg.targetWeight ?? bg.target_weight) || 0,
       createdAt: bg.createdAt,
+      usedKg: Number(bg.usedKg ?? bg.used_kg) || 0,
+      closed: !!(bg.closedAt ?? bg.closed_at),
     })));
     setLoading(false);
   };
@@ -80,12 +132,14 @@ export default function Finishing() {
       await finishingLogService.create({
         finished_product_id: parseInt(selectedProductId),
         pieces_produced: parseInt(piecesProduced),
+        cartons: autoPack ? cartonsToPack : undefined,
         date,
         notes: notes.trim() || undefined,
         batch_sources: batchSources.filter(s => s.batch_group_id && s.kg_used > 0),
       });
-      toast({ title: `${piecesProduced} pieces of "${selectedProduct?.name}" produced` });
-      setSelectedProductId(''); setPiecesProduced(''); setNotes('');
+      toast({ title: `${piecesProduced} pieces of "${selectedProduct?.name}" produced`, description: autoPack ? `${cartonsToPack} carton(s) packed, ${pieceCount - cartonsToPack * autoPack.qty_per_box} loose` : undefined });
+      setCartonsOverride(null);
+      setSelectedProductId(''); setPiecesProduced('1'); setNotes('');
       setBatchSources([{ batch_group_id: '', kg_used: 0 }]);
       load();
     } catch (e: any) {
@@ -106,11 +160,19 @@ export default function Finishing() {
 
   // Preview: packaging that will be deducted
   const packagingPreview = selectedProduct && piecesProduced
-    ? selectedProduct.materials.map(m => ({
-        name: m.inventory_item?.name ?? '—',
-        total: (m.qty_per_piece * (parseInt(piecesProduced) || 0)).toFixed(3),
-        unit: m.inventory_item?.unit ?? '',
-      }))
+    ? [
+        ...selectedProduct.materials.map(m => ({
+          name: m.inventory_item?.name ?? '—',
+          total: (m.qty_per_piece * pieceCount).toFixed(3),
+          unit: m.inventory_item?.unit ?? '',
+        })),
+        // packaging of the cartons that will be packed automatically
+        ...(autoPack && boxProduct ? boxProduct.materials.map(m => ({
+          name: `${m.inventory_item?.name ?? '—'} (cartons)`,
+          total: (m.qty_per_piece * cartonsToPack).toFixed(3),
+          unit: m.inventory_item?.unit ?? '',
+        })) : []),
+      ]
     : [];
 
   return (
@@ -127,7 +189,7 @@ export default function Finishing() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <Label>Product</Label>
-              <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+              <Select value={selectedProductId} onValueChange={v => { setSelectedProductId(v); setCartonsOverride(null); setBatchSources([{ batch_group_id: '', kg_used: 0 }]); }}>
                 <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
                 <SelectContent>
                   {products.map(p => (
@@ -139,7 +201,7 @@ export default function Finishing() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Pieces Produced</Label>
+              <Label>{selectedProduct?.type === 'box' ? 'Cartons to pack' : 'Pieces Produced'}</Label>
               <Input type="number" min="1" value={piecesProduced} onChange={e => setPiecesProduced(e.target.value)} placeholder="0" />
             </div>
             <div className="space-y-1.5">
@@ -148,29 +210,73 @@ export default function Finishing() {
             </div>
           </div>
 
+          {autoPack && (
+            <div className="rounded-lg border bg-accent/30 p-3 text-sm space-y-2">
+              <div className="flex flex-wrap items-end gap-3">
+                <div className="space-y-1.5">
+                  <Label>Cartons to pack (of {autoPack.qty_per_box})</Label>
+                  <Input type="number" min="0" max={maxCartons} className="w-28" value={cartonsOverride ?? String(maxCartons)} onChange={e => setCartonsOverride(e.target.value)} />
+                </div>
+                <p className="pb-2 font-medium">
+                  → {cartonsToPack} carton{cartonsToPack === 1 ? '' : 's'} of {autoPack.qty_per_box} + {pieceCount - cartonsToPack * autoPack.qty_per_box} loose piece{pieceCount - cartonsToPack * autoPack.qty_per_box === 1 ? '' : 's'}
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground">Packed automatically with "{autoPack.box_name}". Lower the number to keep more pieces loose.</p>
+            </div>
+          )}
+
+          {selectedProduct?.type === 'box' && (
+            <div className="rounded-lg border bg-accent/30 p-3 text-sm space-y-1">
+              <p className="font-medium">Packing uses the loose pieces in stock:</p>
+              {selectedProduct.components.map((c, i) => {
+                const comp = products.find(p => p.id === Number(c.component_id));
+                const need = c.qty_per_box * (parseInt(piecesProduced) || 0);
+                const have = comp ? fridgeTotal(comp) : 0;
+                return (
+                  <p key={i} className={need > have ? 'text-destructive' : ''}>
+                    {need} × {c.component?.name ?? comp?.name ?? '—'} <span className="text-muted-foreground">({have} loose in stock)</span>
+                    {need > have && ' — not enough'}
+                  </p>
+                );
+              })}
+              <p className="text-xs text-muted-foreground">Each carton takes the date of the oldest pieces inside it. Packaging (carton, tape) is deducted below.</p>
+            </div>
+          )}
+
           {/* Batch sources */}
+          {selectedProduct?.type !== 'box' && (
           <div className="space-y-2">
             <Label>Batch Sources (optional — which pâte batches used)</Label>
+            {productRecipeIds.size > 0 && <p className="text-xs text-muted-foreground">Only batches of this product's recipes are listed.</p>}
             {batchSources.map((src, i) => (
               <div key={i} className="flex gap-2 items-center">
                 <Select value={String(src.batch_group_id)} onValueChange={v => setBatchSources(prev => prev.map((x, j) => j === i ? { ...x, batch_group_id: v } : x))}>
                   <SelectTrigger className="flex-1"><SelectValue placeholder="Select batch group" /></SelectTrigger>
                   <SelectContent>
-                    {batchGroups.map(bg => (
+                    {sourceOptions.length === 0 && <p className="px-3 py-2 text-sm text-muted-foreground">No batches yet for this product's recipes.</p>}
+                    {sourceOptions.map(bg => (
                       <SelectItem key={bg.id} value={String(bg.id)}>
-                        {bg.recipeName} — {formatDate(bg.createdAt)} · {bg.batchCount} batches{bg.targetWeight ? ` · ${bg.targetWeight * bg.batchCount} kg` : ''}
+                        {bg.recipeName} — {formatDate(bg.createdAt)} · {bg.batchCount} batches{bg.targetWeight ? ` · ${Math.round(leftKg(bg) * 100) / 100} kg left` : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                <Input type="number" min="0" step="0.001" className="w-28" placeholder="kg used" value={src.kg_used || ''} onChange={e => setBatchSources(prev => prev.map((x, j) => j === i ? { ...x, kg_used: parseFloat(e.target.value) || 0 } : x))} />
+                <Input type="number" min="0" step="0.001" className="w-28" placeholder="kg used" value={src.kg_used} onChange={e => setBatchSources(prev => prev.map((x, j) => j === i ? { ...x, kg_used: parseFloat(e.target.value) || 0 } : x))} />
                 <Button size="icon" variant="ghost" onClick={() => setBatchSources(prev => prev.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4" /></Button>
               </div>
             ))}
             <Button variant="outline" size="sm" onClick={() => setBatchSources(prev => [...prev, { batch_group_id: '', kg_used: 0 }])}>
               <Plus className="h-3 w-3 mr-1" />Add batch source
             </Button>
+            {kgPerPiece > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {pieceCount} pcs × {kgPerPiece} kg = <span className="font-medium text-foreground">{neededKg} kg</span> needed
+                {chosenIds.length > 0 && <> · assigned <span className={Math.abs(assignedKg - neededKg) > 0.001 ? 'font-medium text-destructive' : 'font-medium text-foreground'}>{Math.round(assignedKg * 1000) / 1000} kg</span></>}
+                . Split oldest batch first; edit any row to change it.
+              </p>
+            )}
           </div>
+          )}
 
           {/* Packaging preview */}
           {packagingPreview.length > 0 && (

@@ -10,6 +10,9 @@ export type Permission =
   | 'estimation.read' | 'estimation.write'
   | 'quality.read' | 'quality.write'
   | 'sales.read' | 'sales.write'
+  | 'products.read' | 'products.write'
+  | 'finishing.read' | 'finishing.write'
+  | 'finished_goods.read' | 'finished_goods.write'
   | 'users.read' | 'users.write'
   | 'suppliers.read' | 'suppliers.write'
   | 'customers.read' | 'customers.write'
@@ -134,6 +137,8 @@ export interface BatchGroup {
   piecesProduced?: number;
   leftoverQty?: number;
   leftoverUnit?: string;
+  usedKg?: number;
+  closedAt?: string | null;
   createdBy?: string;
   createdAt: string;
   batches?: Batch[];

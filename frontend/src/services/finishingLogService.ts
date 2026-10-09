@@ -28,6 +28,7 @@ export const finishingLogService = {
   create: (data: {
     finished_product_id: number;
     pieces_produced: number;
+    cartons?: number; // piece products: cartons to pack (default: the maximum)
     date: string;
     notes?: string;
     batch_sources: FinishingLogBatchSource[];

@@ -11,7 +11,9 @@ class BatchGroupController extends Controller
     public function index()
     {
         return response()->json(
-            BatchGroup::with(['batches.notes', 'batches.qualityControl'])->orderBy('created_at', 'desc')->get()
+            BatchGroup::with(['batches.notes', 'batches.qualityControl'])
+                ->withSum('finishingSources as used_kg', 'kg_used')
+                ->orderBy('created_at', 'desc')->get()
         );
     }
 
@@ -28,6 +30,34 @@ class BatchGroupController extends Controller
 
         $group = BatchGroup::create($validated);
         return response()->json($group, 201);
+    }
+
+    /** Record the leftover dough (kg) and mark the group done. Loss = expected - used - leftover (negative = gain). */
+    public function close(Request $request, BatchGroup $batchGroup)
+    {
+        $validated = $request->validate(['leftover_kg' => 'required|numeric|min:0']);
+        $leftover = (float) $validated['leftover_kg'];
+
+        if ($batchGroup->closed_at) {
+            return response()->json(['message' => 'This batch group is already done.'], 422);
+        }
+
+        $batchGroup->update(['leftover_qty' => $leftover, 'leftover_unit' => 'kg', 'closed_at' => now()]);
+
+        if ($leftover > 0) {
+            // min_stock 0 => never flagged "low", so no low-stock notification for leftover dough
+            InventoryItem::create([
+                'name'        => 'LO-' . now()->format('d-m-Y') . "-{$batchGroup->recipe_name}",
+                'type'        => 'leftover',
+                'quantity'    => $leftover,
+                'unit'        => 'kg',
+                'price'       => 0,
+                'min_stock'   => 0,
+                'supplier_id' => null,
+            ]);
+        }
+
+        return response()->json($batchGroup->loadSum('finishingSources as used_kg', 'kg_used'));
     }
 
     public function update(Request $request, BatchGroup $batchGroup)

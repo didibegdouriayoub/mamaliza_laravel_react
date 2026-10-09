@@ -45,8 +45,9 @@ class OrderController extends Controller
         unset($validated['items']);
 
         $stockWarnings = [];
+        $cartonsOpened = [];
 
-        $order = DB::transaction(function () use ($validated, $items, &$stockWarnings, $stockService) {
+        $order = DB::transaction(function () use ($validated, $items, &$stockWarnings, &$cartonsOpened, $stockService) {
             $order = Order::create($validated);
             $isDevis = ($validated['document_type'] ?? 'order') === 'devis';
 
@@ -57,10 +58,11 @@ class OrderController extends Controller
                 // Deduct from finished goods stock when a finished product is linked (not for devis)
                 if ($orderItem->finished_product_id && !$isDevis) {
                     $qty = (float) $orderItem->quantity;
-                    $taken = $stockService->deduct(
-                        $orderItem->finished_product_id, $qty, 'order', null, null,
-                        $order->id, $orderItem->id, true // allow oversell: total may go negative
-                    );
+                    // loose pieces first; sealed cartons are opened when the pieces are not enough
+                    [$taken, $opened] = $stockService->deductForOrder($orderItem->finished_product_id, $qty, $order->id, $orderItem->id);
+                    if ($opened > 0) {
+                        $cartonsOpened[] = ['finished_product_id' => $orderItem->finished_product_id, 'name' => $orderItem->product_name, 'cartons' => $opened];
+                    }
                     if ($taken < $qty) {
                         $stockWarnings[] = [
                             'finished_product_id' => $orderItem->finished_product_id,
@@ -113,7 +115,7 @@ class OrderController extends Controller
         });
 
         $response = $order->load('items');
-        return response()->json(array_merge($response->toArray(), ['stock_warnings' => $stockWarnings]), 201);
+        return response()->json(array_merge($response->toArray(), ['stock_warnings' => $stockWarnings, 'cartons_opened' => $cartonsOpened]), 201);
     }
 
     public function show(Order $order)

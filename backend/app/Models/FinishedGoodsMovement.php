@@ -10,7 +10,7 @@ class FinishedGoodsMovement extends Model
 
     protected $fillable = [
         'finished_product_id', 'finished_goods_lot_id', 'type', 'quantity', 'reason',
-        'order_id', 'order_item_id', 'user_id', 'created_at',
+        'order_id', 'order_item_id', 'finishing_log_id', 'user_id', 'created_at',
     ];
 
     protected $casts = ['quantity' => 'float', 'created_at' => 'datetime'];

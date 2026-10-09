@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { TableSkeleton, EmptyState } from '@/components/DataStates';
 import { finishedProductService, FinishedProduct, FinishedProductInput, FinishedProductMaterial, FinishedProductComponent } from '@/services/finishedProductService';
 import { inventoryService } from '@/services/inventoryService';
+import { recipeLabel } from '@/lib/recipeLabel';
 import { recipeService } from '@/services/recipeService';
 import { InventoryItem, Recipe } from '@/models/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,7 +29,7 @@ const emptyComponent = (): FinishedProductComponent => ({ component_id: '', qty_
 export default function Products() {
   const { hasPermission } = useAuth();
   const { toast } = useToast();
-  const canWrite = hasPermission('analytics.read');
+  const canWrite = hasPermission('products.write');
 
   const [products, setProducts] = useState<FinishedProduct[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -40,7 +41,7 @@ export default function Products() {
   // Form state
   const [name, setName] = useState('');
   const [type, setType] = useState<'piece' | 'box'>('piece');
-  const [unitPrice, setUnitPrice] = useState('');
+  const [unitPrice, setUnitPrice] = useState('0');
   const [notes, setNotes] = useState('');
   const [inputs, setInputs] = useState<FinishedProductInput[]>([emptyInput()]);
   const [materials, setMaterials] = useState<FinishedProductMaterial[]>([emptyMaterial()]);
@@ -68,7 +69,7 @@ export default function Products() {
 
   const openCreate = () => {
     setEditing(null);
-    setName(''); setType('piece'); setUnitPrice(''); setNotes('');
+    setName(''); setType('piece'); setUnitPrice('0'); setNotes('');
     setInputs([emptyInput()]); setMaterials([emptyMaterial()]); setComponents([emptyComponent()]);
     setFormOpen(true);
   };
@@ -230,12 +231,17 @@ export default function Products() {
                 <Label>Pâte Source (recipe)</Label>
                 {inputs.map((inp, i) => (
                   <div key={i} className="flex gap-2 items-center">
-                    <Select value={String(inp.recipe_id)} onValueChange={v => setInputs(prev => prev.map((x, j) => j === i ? { ...x, recipe_id: v, kg_per_piece: 0 } : x))}>
+                    <Select value={String(inp.recipe_id)} onValueChange={v => setInputs(prev => prev.map((x, j) => j === i ? { ...x, recipe_id: v } : x))}>
                       <SelectTrigger className="flex-1"><SelectValue placeholder="Select recipe" /></SelectTrigger>
                       <SelectContent>
-                        {recipes.map(r => <SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>)}
+                        {recipes.map(r => <SelectItem key={r.id} value={String(r.id)}>{recipeLabel(r)}</SelectItem>)}
                       </SelectContent>
                     </Select>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Input type="number" min="0" step="0.001" className="w-24" placeholder="kg" value={inp.kg_per_piece || ''}
+                        onChange={e => setInputs(prev => prev.map((x, j) => j === i ? { ...x, kg_per_piece: parseFloat(e.target.value) || 0 } : x))} />
+                      <span className="text-xs text-muted-foreground">kg/pc</span>
+                    </div>
                     <Button size="icon" variant="ghost" onClick={() => setInputs(prev => prev.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 ))}
@@ -255,7 +261,7 @@ export default function Products() {
                         {pieceProducts.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>)}
                       </SelectContent>
                     </Select>
-                    <Input type="number" min="1" className="w-24" placeholder="qty" value={comp.qty_per_box || ''} onChange={e => setComponents(prev => prev.map((x, j) => j === i ? { ...x, qty_per_box: parseFloat(e.target.value) || 1 } : x))} />
+                    <Input type="number" min="1" className="w-24" placeholder="qty" value={comp.qty_per_box} onChange={e => setComponents(prev => prev.map((x, j) => j === i ? { ...x, qty_per_box: parseFloat(e.target.value) || 1 } : x))} />
                     <Button size="icon" variant="ghost" onClick={() => setComponents(prev => prev.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 ))}
@@ -274,7 +280,7 @@ export default function Products() {
                       {packagingItems.map(item => <SelectItem key={item.id} value={String(item.id)}>{item.name} ({item.type})</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <Input type="number" min="0" step="0.001" className="w-24" placeholder="qty" value={mat.qty_per_piece || ''} onChange={e => setMaterials(prev => prev.map((x, j) => j === i ? { ...x, qty_per_piece: parseFloat(e.target.value) || 0 } : x))} />
+                  <Input type="number" min="0" step="0.001" className="w-24" placeholder="qty" value={mat.qty_per_piece} onChange={e => setMaterials(prev => prev.map((x, j) => j === i ? { ...x, qty_per_piece: parseFloat(e.target.value) || 0 } : x))} />
                   <Button size="icon" variant="ghost" onClick={() => setMaterials(prev => prev.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4" /></Button>
                 </div>
               ))}

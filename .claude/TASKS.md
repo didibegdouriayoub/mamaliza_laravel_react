@@ -396,6 +396,23 @@
 | T22.2 | Add-ingredient picker lists raw materials only, A→Z, showing lot and stock | 🟠 | ✅ (needs browser check) |
 | T22.3 | Select dropdown scrolls smoothly and fits on mobile (shared `select.tsx`) | 🟠 | ✅ (needs browser check) |
 | T22.4 | "Add ingredient" in batch step adds it to all batches with same amount; per-batch adjustable | 🟠 | ✅ (needs browser check) |
+| T22.5 | Finishing: batch-source select lists only dough batches made from the product's recipes (all if product has none); sources reset on product change | 🟠 | ✅ (needs browser check) |
+
+---
+
+## Phase 23 — Dough tracking: kg per piece, used / leftover / loss per batch group
+
+> Decisions (owner): dough weight does not change during finishing; kg per piece is fixed per product+recipe; leftover goes to inventory (type `leftover`) without low-stock alerts; a batch group is marked done when leftover is recorded; one finishing run may use several batch groups/recipes.
+> Formula per batch group: expected = target × batches; used = Σ kg used in finishing; leftover = recorded; loss = expected − used − leftover.
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T23.1 | Product form: add kg-per-piece input next to each recipe (Products page) | 🔴 | ✅ (needs browser check) |
+| T23.2 | Finishing: kg used auto = pieces × kg per piece, split across the chosen batch groups (editable); show the kg total | 🔴 | ✅ (needs browser check) |
+| T23.3 | Batch group summary: expected / used / left to use / loss; open vs done status (migration) | 🔴 | ✅ |
+| T23.4 | "Record leftover & close": leftover kg → inventory item type `leftover`, no low-stock notification; loss = remainder; batch group marked done | 🔴 | ✅ (backend tested locally) |
+| T23.5 | Batches page: show used, leftover, loss and loss % per group; filter open/done | 🟠 | ✅ (needs browser check) |
+| T23.6 | Test locally (backend + UI), then deploy | 🔴 | 🔄 (tested locally: backend + split logic; deploy pending) |
 
 ---
 

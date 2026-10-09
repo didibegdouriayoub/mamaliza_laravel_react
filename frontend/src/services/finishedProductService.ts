@@ -52,6 +52,10 @@ export const productImageSrc = (p: { image_url?: string | null }): string | null
 export const fridgeTotal = (p: FinishedProduct): number =>
   (p.available_lots ?? []).reduce((s, l) => s + Number(l.qty_remaining), 0);
 
+/** What an order can take: loose pieces plus the pieces inside sealed cartons (cartons are opened automatically). */
+export const sellableTotal = (p: FinishedProduct): number =>
+  fridgeTotal(p) + (p.carton ? p.carton.sealed * p.carton.qty_per_box : 0);
+
 export interface FinishedProduct {
   id: number;
   name: string;
@@ -63,6 +67,8 @@ export interface FinishedProduct {
   components: FinishedProductComponent[];
   stock?: { quantity: number } | null;
   image_url?: string | null;
+  /** piece products only: the carton (box product) they are packed into */
+  carton?: { box_id: number; box_name: string; qty_per_box: number; sealed: number } | null;
   available_lots?: FinishedGoodsLot[];
   created_at: string;
   updated_at: string;
@@ -83,6 +89,9 @@ export const finishedProductService = {
 
   delete: (id: number): Promise<void> =>
     apiClient.fetch(`/finished-products/${id}`, { method: 'DELETE' }, raw).then(() => undefined),
+
+  openBox: (id: number, count: number): Promise<FinishedProduct> =>
+    apiClient.fetch(`/finished-products/${id}/open-box`, { method: 'POST', body: JSON.stringify({ count }) }, raw),
 
   getStock: (id: number): Promise<FinishedStockDetail> =>
     apiClient.fetch(`/finished-products/${id}/stock`, { method: 'GET' }, raw),

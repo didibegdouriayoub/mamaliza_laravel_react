@@ -12,13 +12,14 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EmptyState, TableSkeleton } from '@/components/DataStates';
 import {
-  finishedProductService, FinishedProduct, FinishedStockDetail, productImageSrc, fridgeTotal,
+  finishedProductService, FinishedProduct, FinishedStockDetail, productImageSrc, fridgeTotal, sellableTotal,
 } from '@/services/finishedProductService';
 import { orderService } from '@/services/orderService';
 import { customerService } from '@/services/customerService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { formatDate } from '@/lib/formatDate';
+import { expandOrderLines, splitPieces, splitLabel } from '@/lib/orderSplit';
 
 const LOW_STOCK = 10;
 
@@ -28,7 +29,37 @@ const MOVEMENT_LABEL: Record<string, string> = {
   order: 'Order',
   return: 'Return',
   adjustment: 'Adjustment',
+  order_sealed: 'Order (sealed cartons)',
+  open_box: 'Carton opened',
+  unpack: 'Pieces from opened carton',
+  pack_used: 'Used for packing',
+  pack_restored: 'Packing deleted',
 };
+
+/** Headline number and sub line shown on a card / in the panel. */
+function stockSummary(p: FinishedProduct) {
+  const loose = fridgeTotal(p);
+  if (p.type === 'box') {
+    const first = p.components?.[0];
+    return {
+      total: loose,
+      unit: loose === 1 ? 'carton' : 'cartons',
+      sub: first ? `carton of ${first.qty_per_box} × ${first.component?.name ?? 'pieces'}` : 'carton',
+    };
+  }
+  if (p.carton && p.carton.sealed > 0) {
+    return {
+      total: loose + p.carton.sealed * p.carton.qty_per_box,
+      unit: 'pieces',
+      sub: `${p.carton.sealed} carton${p.carton.sealed === 1 ? '' : 's'} of ${p.carton.qty_per_box} + ${loose} loose`,
+    };
+  }
+  const lots = p.available_lots?.length ?? 0;
+  return { total: loose, unit: 'pieces', sub: `${lots} lot${lots === 1 ? '' : 's'} in fridge` };
+}
+
+/** Cartons an order of `qty` pieces would have to open (0 when loose pieces are enough). */
+const cartonsToOpen = (p: FinishedProduct, qty: number) => splitPieces(p, qty).opens;
 
 const daysOld = (date: string) => Math.max(0, Math.floor((Date.now() - new Date(date).getTime()) / 86_400_000));
 
@@ -46,7 +77,8 @@ export default function FinishedGoods() {
   const { hasPermission, user } = useAuth();
   const isAdmin = user?.role === 'admin';
   const { toast } = useToast();
-  const canWrite = hasPermission('sales.write') || hasPermission('batches.write');
+  const canWrite = hasPermission('finished_goods.write'); // photos
+  const canOrder = hasPermission('sales.write'); // orders are created through /orders
 
   const [products, setProducts] = useState<FinishedProduct[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
@@ -65,7 +97,7 @@ export default function FinishedGoods() {
   // Product panel
   const [panelId, setPanelId] = useState<number | null>(null);
   const [detail, setDetail] = useState<FinishedStockDetail | null>(null);
-  const [qty, setQty] = useState('');
+  const [qty, setQty] = useState('1');
   const [reason, setReason] = useState('');
   const [lotId, setLotId] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
@@ -89,7 +121,7 @@ export default function FinishedGoods() {
   const panelProduct = products.find(p => p.id === panelId) ?? null;
 
   const openPanel = async (p: FinishedProduct) => {
-    setPanelId(p.id); setDetail(null); setQty(''); setReason(''); setLotId(null);
+    setPanelId(p.id); setDetail(null); setQty('1'); setReason(''); setLotId(null);
     try { setDetail(await finishedProductService.getStock(p.id)); }
     catch (e: any) { toast({ title: 'Failed to load stock', description: e?.message, variant: 'destructive' }); }
   };
@@ -102,8 +134,22 @@ export default function FinishedGoods() {
     setBusy(true);
     try {
       const d = await finishedProductService.adjust(panelProduct.id, { direction, quantity: n, reason: reason.trim(), lot_id: direction === 'remove' ? lotId : null });
-      setDetail(d); setQty(''); setReason(''); setLotId(null);
+      setDetail(d); setQty('1'); setReason(''); setLotId(null);
       toast({ title: direction === 'add' ? `Added ${n}` : `Removed ${n}` });
+      load();
+    } catch (e: any) {
+      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    }
+    setBusy(false);
+  };
+
+  const openOneCarton = async () => {
+    if (!panelProduct) return;
+    setBusy(true);
+    try {
+      await finishedProductService.openBox(panelProduct.id, 1);
+      setDetail(await finishedProductService.getStock(panelProduct.id));
+      toast({ title: 'Carton opened', description: 'Its pieces are now loose in stock.' });
       load();
     } catch (e: any) {
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
@@ -131,17 +177,21 @@ export default function FinishedGoods() {
 
   // ── Cart ──
   const changeCart = (p: FinishedProduct, delta: number) => {
-    const max = fridgeTotal(p);
+    const max = sellableTotal(p);
     setCart(prev => {
       const next = Math.max(0, Math.min(max, (prev[p.id] ?? 0) + delta));
-      if (delta > 0 && (prev[p.id] ?? 0) >= max) toast({ title: `Only ${max} of "${p.name}" in the fridge`, variant: 'destructive' });
+      if (delta > 0 && (prev[p.id] ?? 0) >= max) toast({ title: `Only ${max} of "${p.name}" available`, variant: 'destructive' });
       const { [p.id]: _, ...rest } = prev;
       return next > 0 ? { ...rest, [p.id]: next } : rest;
     });
   };
 
   const cartLines = useMemo(
-    () => products.filter(p => cart[p.id] > 0).map(p => ({ product: p, quantity: cart[p.id], total: +(cart[p.id] * p.unit_price).toFixed(2) })),
+    () => products.filter(p => cart[p.id] > 0).map(p => {
+      const quantity = cart[p.id];
+      const items = expandOrderLines([{ product: p, quantity }], products); // cartons at carton price + loose at piece price
+      return { product: p, quantity, split: splitPieces(p, quantity), items, total: +items.reduce((s, i) => s + i.total, 0).toFixed(2) };
+    }),
     [products, cart],
   );
   const cartTotal = cartLines.reduce((s, l) => s + l.total, 0);
@@ -153,22 +203,21 @@ export default function FinishedGoods() {
     if (!custName.trim()) { toast({ title: 'Customer name required', variant: 'destructive' }); return; }
     setSavingOrder(true);
     try {
-      await orderService.create({
+      const res: any = await orderService.create({
         customerId: custId || undefined,
         customerName: custName.trim(),
         totalAmount: cartTotal,
         amountPaid: paidInFull ? cartTotal : 0,
         amountReturned: 0,
         status: paidInFull ? 'paid' : 'pending',
-        items: cartLines.map(l => ({
-          product_name: l.product.name,
-          finished_product_id: l.product.id,
-          quantity: l.quantity,
-          unit_price: l.product.unit_price,
-          total: l.total,
-        } as any)),
+        items: cartLines.flatMap(l => l.items) as any[],
       } as any);
-      toast({ title: 'Order recorded', description: `${cartCount} pieces · ${cartTotal.toFixed(2)} DH` });
+      const opened: any[] = res?.cartonsOpened ?? [];
+      toast({
+        title: 'Order recorded',
+        description: `${cartCount} pieces · ${cartTotal.toFixed(2)} DH` +
+          (opened.length ? ` · opened ${opened.map(o => `${o.cartons} carton(s) of ${o.name}`).join(', ')}` : ''),
+      });
       setOrderOpen(false); setCart({}); setCustId(''); setCustName(''); setPaidInFull(false);
       setOrderMode(false);
       load();
@@ -190,7 +239,7 @@ export default function FinishedGoods() {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input className="pl-8" placeholder="Search products" value={search} onChange={e => setSearch(e.target.value)} />
         </div>
-        {canWrite && (orderMode
+        {canOrder && (orderMode
           ? <Button variant="outline" onClick={exitOrderMode}><X className="h-4 w-4 mr-1" />Cancel order</Button>
           : <Button onClick={() => setOrderMode(true)}><ShoppingCart className="h-4 w-4 mr-1" />Record order</Button>)}
       </div>
@@ -202,9 +251,11 @@ export default function FinishedGoods() {
       ) : (
         <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {filtered.map(p => {
-            const total = fridgeTotal(p);
+            const summary = stockSummary(p);
+            const total = summary.total;
             const inCart = cart[p.id] ?? 0;
-            const disabled = orderMode && total <= 0;
+            const disabled = orderMode && sellableTotal(p) <= 0;
+            const opens = cartonsToOpen(p, inCart);
             return (
               <Card
                 key={p.id}
@@ -220,12 +271,12 @@ export default function FinishedGoods() {
                 <CardContent className="p-3 space-y-1">
                   <p className="font-medium leading-tight truncate" title={p.name}>{p.name}</p>
                   <div className="flex items-baseline justify-between">
-                    <span className={`text-2xl font-bold ${total <= 0 ? 'text-destructive' : total < LOW_STOCK ? 'text-amber-600' : 'text-green-600'}`}>{total}</span>
+                    <span className={`text-2xl font-bold ${total <= 0 ? 'text-destructive' : total < LOW_STOCK ? 'text-amber-600' : 'text-green-600'}`}>{total} <span className="text-xs font-normal text-muted-foreground">{summary.unit}</span></span>
                     <span className="text-xs text-muted-foreground">{p.unit_price.toFixed(2)} DH</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {(p.available_lots?.length ?? 0)} lot{(p.available_lots?.length ?? 0) === 1 ? '' : 's'} in fridge
-                  </p>
+                  <p className="text-xs text-muted-foreground">{summary.sub}</p>
+                  {inCart > 0 && splitLabel(splitPieces(p, inCart)) && <p className="text-xs font-medium text-primary">{splitLabel(splitPieces(p, inCart))}</p>}
+                  {opens > 0 && <p className="text-xs font-medium text-amber-600">Will open {opens} carton{opens === 1 ? '' : 's'}</p>}
                   {orderMode && inCart > 0 && (
                     <div className="flex items-center justify-between pt-1" onClick={e => e.stopPropagation()}>
                       <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => changeCart(p, -1)}><Minus className="h-4 w-4" /></Button>
@@ -264,9 +315,9 @@ export default function FinishedGoods() {
           <DialogHeader><DialogTitle>Record order</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="rounded-lg border divide-y text-sm">
-              {cartLines.map(l => (
-                <div key={l.product.id} className="flex justify-between px-3 py-2">
-                  <span>{l.quantity} × {l.product.name}</span><span className="font-medium">{l.total.toFixed(2)} DH</span>
+              {cartLines.flatMap(l => l.items).map((it, i) => (
+                <div key={i} className="flex justify-between px-3 py-2">
+                  <span>{it.quantity} × {it.product_name}</span><span className="font-medium">{it.total.toFixed(2)} DH</span>
                 </div>
               ))}
               <div className="flex justify-between px-3 py-2 font-semibold"><span>Total</span><span>{cartTotal.toFixed(2)} DH</span></div>
@@ -282,6 +333,11 @@ export default function FinishedGoods() {
             <label className="flex items-center gap-2 text-sm">
               <Checkbox checked={paidInFull} onCheckedChange={v => setPaidInFull(v === true)} /> Paid in full
             </label>
+            {cartLines.some(l => cartonsToOpen(l.product, l.quantity) > 0) && (
+              <p className="text-sm font-medium text-amber-600">
+                {cartLines.filter(l => cartonsToOpen(l.product, l.quantity) > 0).map(l => `${cartonsToOpen(l.product, l.quantity)} carton(s) of ${l.product.name} will be opened`).join(' · ')}
+              </p>
+            )}
             <p className="text-xs text-muted-foreground">Stock is taken from the oldest lots first.</p>
           </div>
           <DialogFooter>
@@ -311,8 +367,13 @@ export default function FinishedGoods() {
 
               <div className="flex items-baseline justify-between">
                 <span className="text-sm text-muted-foreground">In the fridge</span>
-                <span className="text-3xl font-bold">{fridgeTotal(panelProduct)}</span>
+                <span className="text-3xl font-bold">{stockSummary(panelProduct).total} <span className="text-sm font-normal text-muted-foreground">{stockSummary(panelProduct).unit}</span></span>
               </div>
+              <p className="-mt-3 text-sm text-muted-foreground">{stockSummary(panelProduct).sub}</p>
+
+              {panelProduct.type === 'box' && canWrite && fridgeTotal(panelProduct) > 0 && (
+                <Button variant="outline" size="sm" disabled={busy} onClick={openOneCarton}>Open 1 carton (becomes loose pieces)</Button>
+              )}
 
               <div>
                 <h3 className="text-sm font-semibold mb-2">Stock by batch date (oldest first)</h3>

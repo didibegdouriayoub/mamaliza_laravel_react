@@ -49,6 +49,10 @@ export default function Batches() {
   const [batchDrafts, setBatchDrafts] = useState<BatchDraft[]>([]);
   const [expandedBatch, setExpandedBatch] = useState<number | null>(0);
 
+  // Record leftover & close
+  const [closeGroup, setCloseGroup] = useState<BatchGroup | null>(null);
+  const [leftoverKg, setLeftoverKg] = useState('');
+
   // View group dialog
   const [viewGroup, setViewGroup] = useState<BatchGroup | null>(null);
 
@@ -239,6 +243,9 @@ export default function Batches() {
         targetWeight: Number(g.targetWeight ?? g.target_weight) || 0,
         pieceWeightValue: Number(g.pieceWeightValue ?? g.piece_weight_value) || 0,
         createdAt: g.createdAt ?? g.created_at ?? '',
+        usedKg: Number(g.usedKg ?? g.used_kg) || 0,
+        leftoverQty: Number(g.leftoverQty ?? g.leftover_qty) || 0,
+        closedAt: g.closedAt ?? g.closed_at ?? null,
         batches: (g.batches || []).map((b: any) => ({
           ...b,
           batchGroupId: String(g.id),
@@ -411,6 +418,18 @@ export default function Batches() {
     }
   };
 
+  const handleClose = async () => {
+    if (!closeGroup) return;
+    try {
+      await batchGroupService.close(closeGroup.id, Number(leftoverKg) || 0);
+      toast({ title: 'Batch group done', description: Number(leftoverKg) > 0 ? `${leftoverKg} kg leftover added to inventory.` : undefined });
+      setCloseGroup(null);
+      loadData();
+    } catch (err: any) {
+      toast({ title: 'Could not close', description: err.message, variant: 'destructive' });
+    }
+  };
+
   const toggleGroup = (id: string) => {
     setExpandedGroups(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   };
@@ -471,6 +490,7 @@ export default function Batches() {
                   <div className="flex items-center gap-3">
                     <div className="flex gap-1.5 text-xs">
                       <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200"><CheckCircle2 className="h-3 w-3 mr-1" />{completedCount}</Badge>
+                      <Badge variant="outline" className={group.closedAt ? 'bg-slate-100 text-slate-700' : 'bg-amber-50 text-amber-700 border-amber-200'}>{group.closedAt ? 'Done' : 'Open'}</Badge>
                       {failedCount > 0 && <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200"><XCircle className="h-3 w-3 mr-1" />{failedCount}</Badge>}
                     </div>
                     <div className="flex gap-1 print:hidden" onClick={e => e.stopPropagation()}>
@@ -564,9 +584,34 @@ export default function Batches() {
                       </TableBody>
                     </Table>
 
-                    <div className="px-4 py-3 bg-muted/30 border-t text-sm">
-                      Expected: <span className="font-medium">{expected.toLocaleString()} kg</span>
-                    </div>
+                    {(() => {
+                      const used = group.usedKg ?? 0;
+                      const leftover = group.leftoverQty ?? 0;
+                      const loss = expected - used - leftover;
+                      const r = (n: number) => Math.round(n * 100) / 100;
+                      return (
+                        <div className="px-4 py-3 bg-muted/30 border-t text-sm flex flex-wrap items-center gap-x-6 gap-y-1">
+                          <span>Expected: <span className="font-medium">{r(expected).toLocaleString()} kg</span></span>
+                          <span>Used in finishing: <span className="font-medium">{r(used)} kg</span></span>
+                          {group.closedAt ? (
+                            <>
+                              <span>Leftover: <span className="font-medium">{r(leftover)} kg</span></span>
+                              <span className={loss > 0 ? 'text-destructive' : 'text-green-600'}>
+                                {loss > 0 ? 'Loss' : 'Gain'}: <span className="font-medium">{r(Math.abs(loss))} kg{expected > 0 ? ` (${r(Math.abs(loss) / expected * 100)}%)` : ''}</span>
+                              </span>
+                            </>
+                          ) : (
+                            <span>Left to use: <span className="font-medium">{r(expected - used)} kg</span></span>
+                          )}
+                          {!group.closedAt && hasPermission('batches.write') && (
+                            <Button size="sm" variant="outline" className="h-7 text-xs ml-auto print:hidden"
+                              onClick={() => { setCloseGroup(group); setLeftoverKg(String(Math.max(0, r(expected - used)))); }}>
+                              Record leftover &amp; close
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </CardContent>
                 )}
               </Card>
@@ -667,6 +712,38 @@ export default function Batches() {
               <><Button variant="outline" onClick={() => setCreateStep(1)}>← Back</Button><Button onClick={handleCreate}>Create {batchDrafts.length} Batch{batchDrafts.length !== 1 ? 'es' : ''}</Button></>
             )}
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Record leftover & close */}
+      <Dialog open={!!closeGroup} onOpenChange={v => { if (!v) setCloseGroup(null); }}>
+        <DialogContent className="max-w-md">
+          {closeGroup && (() => {
+            const expected = closeGroup.targetWeight * closeGroup.batchCount;
+            const used = closeGroup.usedKg ?? 0;
+            const loss = expected - used - (Number(leftoverKg) || 0);
+            const r = (n: number) => Math.round(n * 100) / 100;
+            return (
+              <>
+                <DialogHeader><DialogTitle className="font-display">Close — {closeGroup.recipeName}</DialogTitle></DialogHeader>
+                <div className="space-y-3 py-2 text-sm">
+                  <p className="text-muted-foreground">Expected {r(expected)} kg · used in finishing {r(used)} kg.</p>
+                  <div className="space-y-1.5">
+                    <Label>Leftover dough (kg)</Label>
+                    <Input type="number" inputMode="decimal" min={0} step="0.001" value={leftoverKg} onChange={e => setLeftoverKg(e.target.value)} />
+                    <p className="text-xs text-muted-foreground">Added to inventory as a leftover item (no low-stock alert).</p>
+                  </div>
+                  <p className={loss > 0 ? 'text-destructive' : 'text-green-600'}>
+                    {loss > 0 ? 'Loss' : 'Gain'}: <span className="font-semibold">{r(Math.abs(loss))} kg</span>
+                  </p>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setCloseGroup(null)}>Cancel</Button>
+                  <Button onClick={handleClose}>Mark as done</Button>
+                </DialogFooter>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 

@@ -62,6 +62,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/batch-groups', [\App\Http\Controllers\BatchGroupController::class, 'index'])->middleware('permission:batches.read,pieces.read,leftover.read');
     Route::post('/batch-groups', [\App\Http\Controllers\BatchGroupController::class, 'store'])->middleware('permission:batches.write');
     Route::match(['put', 'patch'], '/batch-groups/{batchGroup}', [\App\Http\Controllers\BatchGroupController::class, 'update'])->middleware('permission:batches.write,pieces.write,leftover.write');
+    Route::post('/batch-groups/{batchGroup}/close', [\App\Http\Controllers\BatchGroupController::class, 'close'])->middleware('permission:batches.write,pieces.write,leftover.write');
     Route::delete('/batch-groups/{batchGroup}', [\App\Http\Controllers\BatchGroupController::class, 'destroy'])->middleware('permission:batches.write');
 
     // Quality Controls
@@ -103,20 +104,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/analytics/dashboard', [\App\Http\Controllers\AnalyticsController::class, 'dashboard'])->middleware('permission:analytics.read');
 
     // Finished Products catalog
-    Route::get('/finished-products', [\App\Http\Controllers\FinishedProductController::class, 'index'])->middleware('permission:sales.read,analytics.read,batches.read');
-    Route::post('/finished-products', [\App\Http\Controllers\FinishedProductController::class, 'store'])->middleware('permission:sales.write,batches.write');
-    Route::match(['put', 'patch'], '/finished-products/{finishedProduct}', [\App\Http\Controllers\FinishedProductController::class, 'update'])->middleware('permission:sales.write,batches.write');
-    Route::delete('/finished-products/{finishedProduct}', [\App\Http\Controllers\FinishedProductController::class, 'destroy'])->middleware('permission:sales.write,batches.write');
-    Route::post('/finished-products/{finishedProduct}/image', [\App\Http\Controllers\FinishedProductController::class, 'uploadImage'])->middleware('permission:sales.write,batches.write');
-    Route::delete('/finished-products/{finishedProduct}/image', [\App\Http\Controllers\FinishedProductController::class, 'deleteImage'])->middleware('permission:sales.write,batches.write');
+    Route::get('/finished-products', [\App\Http\Controllers\FinishedProductController::class, 'index'])->middleware('permission:products.read,finishing.read,finished_goods.read,sales.read');
+    Route::post('/finished-products', [\App\Http\Controllers\FinishedProductController::class, 'store'])->middleware('permission:products.write');
+    Route::match(['put', 'patch'], '/finished-products/{finishedProduct}', [\App\Http\Controllers\FinishedProductController::class, 'update'])->middleware('permission:products.write');
+    Route::delete('/finished-products/{finishedProduct}', [\App\Http\Controllers\FinishedProductController::class, 'destroy'])->middleware('permission:products.write');
+    Route::post('/finished-products/{finishedProduct}/image', [\App\Http\Controllers\FinishedProductController::class, 'uploadImage'])->middleware('permission:products.write,finished_goods.write');
+    Route::delete('/finished-products/{finishedProduct}/image', [\App\Http\Controllers\FinishedProductController::class, 'deleteImage'])->middleware('permission:products.write,finished_goods.write');
 
     // Finished goods stock by lot (production date)
-    Route::get('/finished-products/{finishedProduct}/stock', [\App\Http\Controllers\FinishedStockController::class, 'show'])->middleware('permission:sales.read,analytics.read,batches.read');
-    Route::post('/finished-products/{finishedProduct}/adjust', [\App\Http\Controllers\FinishedStockController::class, 'adjust'])->middleware('permission:sales.write,batches.write');
+    Route::get('/finished-products/{finishedProduct}/stock', [\App\Http\Controllers\FinishedStockController::class, 'show'])->middleware('permission:finished_goods.read');
+    Route::post('/finished-products/{finishedProduct}/open-box', [\App\Http\Controllers\FinishedProductController::class, 'openBox'])->middleware('permission:finished_goods.write');
+    Route::post('/finished-products/{finishedProduct}/adjust', [\App\Http\Controllers\FinishedStockController::class, 'adjust'])->middleware('permission:finished_goods.write');
 
     // Finishing / Assembly logs
-    Route::get('/finishing-logs', [\App\Http\Controllers\FinishingLogController::class, 'index'])->middleware('permission:sales.read,analytics.read,batches.read');
-    Route::post('/finishing-logs', [\App\Http\Controllers\FinishingLogController::class, 'store'])->middleware('permission:sales.write,batches.write');
-    Route::delete('/finishing-logs/{finishingLog}', [\App\Http\Controllers\FinishingLogController::class, 'destroy'])->middleware('permission:sales.write,batches.write');
+    Route::get('/finishing-logs', [\App\Http\Controllers\FinishingLogController::class, 'index'])->middleware('permission:finishing.read');
+    Route::post('/finishing-logs', [\App\Http\Controllers\FinishingLogController::class, 'store'])->middleware('permission:finishing.write');
+    Route::delete('/finishing-logs/{finishingLog}', [\App\Http\Controllers\FinishingLogController::class, 'destroy'])->middleware('permission:finishing.write');
 
 });

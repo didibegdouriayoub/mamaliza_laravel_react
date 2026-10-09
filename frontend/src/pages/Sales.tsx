@@ -10,6 +10,7 @@ import { OrderStatusBadge } from '@/components/StatusBadge';
 import { TableSkeleton, EmptyState } from '@/components/DataStates';
 import { orderService } from '@/services/orderService';
 import { customerService } from '@/services/customerService';
+import { expandOrderLines, splitPieces, splitLabel } from '@/lib/orderSplit';
 import { finishedProductService, FinishedProduct } from '@/services/finishedProductService';
 import { Order } from '@/models/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -95,7 +96,13 @@ export default function Sales() {
 
   const removeLine = (i: number) => setOrderLines(prev => prev.filter((_, j) => j !== i));
 
-  const orderTotal = orderLines.reduce((s, l) => s + l.total, 0);
+  // pieces → whole cartons (carton price) + loose pieces (piece price), the way stock will be deducted
+  const lineToItems = (l: OrderLine) => {
+    const product = finishedProducts.find(p => p.id === l.finished_product_id);
+    return product ? expandOrderLines([{ product, quantity: l.quantity }], finishedProducts) : [];
+  };
+  const expandedItems = orderLines.flatMap(lineToItems);
+  const orderTotal = expandedItems.reduce((s, i) => s + i.total, 0);
 
   const handleCreateOrder = async () => {
     if (!newOrderCustomerName.trim()) { toast({ title: 'Customer name required', variant: 'destructive' }); return; }
@@ -109,13 +116,7 @@ export default function Sales() {
         amountPaid: 0,
         amountReturned: 0,
         status: 'pending',
-        items: orderLines.map(l => ({
-          product_name: l.product_name,
-          finished_product_id: l.finished_product_id,
-          quantity: l.quantity,
-          unit_price: l.unit_price,
-          total: l.total,
-        } as any)),
+        items: expandedItems as any[],
       } as any);
       toast({ title: 'Order created' });
       setNewOrderOpen(false);
@@ -591,11 +592,19 @@ export default function Sales() {
                   <TableBody>
                     {orderLines.map((line, i) => (
                       <TableRow key={i}>
-                        <TableCell>{line.product_name}</TableCell>
+                        <TableCell>
+                          {line.product_name}
+                          {(() => {
+                            const prod = finishedProducts.find(p => p.id === line.finished_product_id);
+                            const sp = prod ? splitPieces(prod, line.quantity) : null;
+                            const label = sp ? splitLabel(sp) : null;
+                            return label ? <span className="block text-xs text-muted-foreground">{label}{sp!.opens > 0 ? ` · opens ${sp!.opens} carton${sp!.opens === 1 ? '' : 's'}` : ''}</span> : null;
+                          })()}
+                        </TableCell>
                         <TableCell>
                           <Input type="number" min="1" className="h-7 w-20" value={line.quantity} onChange={e => updateLine(i, Number(e.target.value) || 1)} />
                         </TableCell>
-                        <TableCell className="text-right font-medium">{line.total.toFixed(2)} DH</TableCell>
+                        <TableCell className="text-right font-medium">{lineToItems(line).reduce((t, i) => t + i.total, 0).toFixed(2)} DH</TableCell>
                         <TableCell>
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => removeLine(i)}><Trash2 className="h-3 w-3" /></Button>
                         </TableCell>

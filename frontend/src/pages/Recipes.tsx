@@ -33,7 +33,7 @@ export default function Recipes() {
   const [description, setDescription] = useState('');
   const [ingredients, setIngredients] = useState<RecipeIngredient[]>([{ ...emptyIng }]);
   const [steps, setSteps] = useState<string[]>(['']);
-  const [targetWeight, setTargetWeight] = useState('');
+  const [targetWeight, setTargetWeight] = useState('0');
   const [pieceWeight, setPieceWeight] = useState('');
   const { toast } = useToast();
 
@@ -79,7 +79,7 @@ export default function Recipes() {
     setEditingRecipe(null);
     setName(''); setDescription(''); setSteps(['']);
     setIngredients([{ ...emptyIng }]);
-    setTargetWeight(''); setPieceWeight('');
+    setTargetWeight('0'); setPieceWeight('');
     setFormOpen(true);
   };
 
@@ -88,7 +88,7 @@ export default function Recipes() {
     setName(r.name); setDescription(r.description);
     setIngredients(r.ingredients.map(i => ({ ...i })));
     setSteps([...r.steps]);
-    setTargetWeight(r.targetWeight ? String(r.targetWeight) : '');
+    setTargetWeight(r.targetWeight ? String(r.targetWeight) : '0');
     setPieceWeight(r.pieceWeight);
     setFormOpen(true);
     setSelected(null);
@@ -333,7 +333,7 @@ export default function Recipes() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Input type="number" placeholder="Qty" value={ing.quantity || ''} onChange={e => setIng(idx, { quantity: Number(e.target.value) })} />
+                  <Input type="number" placeholder="Qty" value={ing.quantity} onChange={e => setIng(idx, { quantity: Number(e.target.value) })} />
                   <span className="text-xs text-muted-foreground py-2">DH{(ing.quantity * ing.unitPrice).toFixed(2)}</span>
                   <Button type="button" variant="ghost" size="icon" onClick={() => setIngredients(p => p.filter((_, i) => i !== idx))}><Trash2 className="h-3 w-3" /></Button>
                 </div>

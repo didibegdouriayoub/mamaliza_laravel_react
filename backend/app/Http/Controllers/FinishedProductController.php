@@ -19,6 +19,8 @@ class FinishedProductController extends Controller
             'availableLots',
         ])->get();
 
+        $this->attachCartonInfo($products);
+
         return response()->json($products);
     }
 
@@ -116,13 +118,42 @@ class FinishedProductController extends Controller
 
     private function loadProduct(int $id): FinishedProduct
     {
-        return FinishedProduct::with([
+        $product = FinishedProduct::with([
             'inputs.recipe:id,name',
             'materials.inventoryItem:id,name,type,unit',
             'components.component:id,name,type',
             'stock',
             'availableLots',
         ])->findOrFail($id);
+
+        $this->attachCartonInfo(collect([$product]));
+
+        return $product;
+    }
+
+    /**
+     * For each piece product: the carton it is packed into ('carton' => size + sealed cartons in stock).
+     * Lets the screens show "10 cartons + 3 loose" and know an order can open a carton.
+     */
+    private function attachCartonInfo($products): void
+    {
+        $rows = \App\Models\FinishedProductComponent::whereIn('component_id', $products->pluck('id'))
+            ->orderBy('id')->get()->unique('component_id')->keyBy('component_id');
+        $boxes = FinishedProduct::whereIn('id', $rows->pluck('finished_product_id'))->get()->keyBy('id');
+        $sealed = \App\Models\FinishedGoodsLot::whereIn('finished_product_id', $boxes->keys())
+            ->selectRaw('finished_product_id, SUM(qty_remaining) as qty')->groupBy('finished_product_id')
+            ->pluck('qty', 'finished_product_id');
+
+        foreach ($products as $p) {
+            $row = $rows->get($p->id);
+            $box = $row ? $boxes->get($row->finished_product_id) : null;
+            $p->setAttribute('carton', $box ? [
+                'box_id'       => $box->id,
+                'box_name'     => $box->name,
+                'qty_per_box'  => (float) $row->qty_per_box,
+                'sealed'       => (float) ($sealed[$box->id] ?? 0),
+            ] : null);
+        }
     }
 
     public function uploadImage(Request $request, FinishedProduct $finishedProduct)
@@ -157,5 +188,21 @@ class FinishedProductController extends Controller
         return response()->file(Storage::disk('public')->path($finishedProduct->image_path), [
             'Cache-Control' => 'public, max-age=86400',
         ]);
+    }
+
+    // Manual "open carton": sealed cartons become loose pieces (keeping the cartons' dates).
+    public function openBox(Request $request, FinishedProduct $finishedProduct, \App\Services\FinishedStockService $stock)
+    {
+        abort_unless($finishedProduct->type === 'box', 422, 'Only a carton (box) product can be opened.');
+        $validated = $request->validate(['count' => 'required|integer|min:1|max:1000']);
+
+        $available = (int) floor($stock->available($finishedProduct->id));
+        if ($validated['count'] > $available) {
+            abort(422, "Only {$available} sealed carton(s) in stock.");
+        }
+
+        \Illuminate\Support\Facades\DB::transaction(fn () => $stock->openBox($finishedProduct, $validated['count'], null, 'Opened manually'));
+
+        return response()->json($this->loadProduct($finishedProduct->id));
     }
 }

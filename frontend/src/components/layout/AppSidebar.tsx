@@ -20,9 +20,9 @@ const navItems: { title: string; url: string; icon: typeof LayoutDashboard; perm
   { title: 'Quality', url: '/quality', icon: ShieldCheck, permission: 'quality.read' },
   { title: 'Estimation', url: '/estimation', icon: Calculator, permission: 'estimation.read' },
   // Finished goods
-  { title: 'Products', url: '/products', icon: Box, permission: 'analytics.read' },
-  { title: 'Finishing', url: '/finishing', icon: Layers, permission: 'analytics.read' },
-  { title: 'Finished Goods', url: '/finished-goods', icon: Warehouse, permission: 'analytics.read' },
+  { title: 'Products', url: '/products', icon: Box, permission: 'products.read' },
+  { title: 'Finishing', url: '/finishing', icon: Layers, permission: 'finishing.read' },
+  { title: 'Finished Goods', url: '/finished-goods', icon: Warehouse, permission: 'finished_goods.read' },
   { title: 'Devis & Facture', url: '/devis', icon: FileText, permission: 'sales.read' },
   // Sales & admin
   { title: 'Customers', url: '/customers', icon: Users, permission: 'customers.read' },

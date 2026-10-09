@@ -53,5 +53,6 @@ export const batchGroupService = {
     leftover_qty: stats.leftoverQty,
     leftover_unit: stats.leftoverUnit,
   }),
+  close: (id: string | number, leftoverKg: number) => apiClient.post(`/batch-groups/${id}/close`, { leftover_kg: leftoverKg }),
   delete: (id: string | number) => apiClient.delete(`/batch-groups/${id}`),
 };
