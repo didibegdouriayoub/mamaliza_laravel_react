@@ -350,6 +350,52 @@
 | T19.9 | **Bug:** confirming production on Finishing failed ("Expression could not be converted to string") — raw SQL in stock update; fixed in T19.2 | 🔴 | ✅ |
 | T19.10 | UI: show target weight in the Batches recipe select, and batch count + total kg in the Finishing batch-group select | 🟡 | ✅ (needs browser check) |
 | T19.11 | Manual stock adjustments: admin only + mandatory reason (backend 403/422, UI hidden for non-admins) | 🟠 | ✅ |
+| T19.12 | Permissions: new rows Products / Finishing / Finished Goods (types, Permissions + Users pages, route + sidebar gating, backend route middleware, data migration grants them to existing users) | 🟠 | ✅ |
+| T19.13 | Every recipe select (Batches, Estimation, Products) uses the same label: name — target X kg (`lib/recipeLabel.ts`) | 🟡 | ✅ |
+| T19.14 | Number inputs: pre-filled defaults (1 for quantities, 0 for prices/weights) and the value is selected on click (shared Input component) | 🟡 | ✅ (needs browser check) |
+
+---
+
+## Phase 20 — Cartons (box products): pack, open, sell loose pieces
+
+> A carton is a finished product of type `box` whose recipe = N × product X (component) + carton item + 0.001 kg tape (materials). Stock stays per product in lots: sealed cartons on the box product, loose pieces on product X.
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T20.1 | Migration: `finished_goods_movements.finishing_log_id` (link pack movements to their finishing log) | 🔴 | ✅ |
+| T20.2 | Service: pack cartons (consume N pieces FIFO + carton + tape, carton lot inherits the oldest piece date), open cartons (carton −1, loose +N with the carton's date), order deduction that opens cartons automatically | 🔴 | ✅ |
+| T20.3 | Finishing: packing a box product consumes its components (422 if not enough pieces); deleting a pack log restores pieces if cartons untouched | 🔴 | ✅ |
+| T20.4 | Orders: piece lines beyond loose stock open sealed cartons; response says how many were opened | 🔴 | ✅ |
+| T20.5 | API: product list returns carton info (carton size, sealed count); manual "open carton" endpoint | 🟠 | ✅ |
+| T20.6 | Frontend: cards show cartons + loose pieces; order mode cap = loose + cartons × size with "will open N carton" hint; panel "Open a carton" | 🔴 | ✅ (screens need your browser check) |
+| T20.7 | Frontend: Finishing page — packing form for box products (pieces needed vs available) | 🟠 | ✅ (screens need your browser check) |
+| T20.8 | Test locally end to end (pack, open via order, return, delete), then deploy | 🔴 | 🔄 (backend tested locally; deploy pending) |
+
+---
+
+## Phase 21 — Automatic cartons: auto-pack on production, whole-cartons-first on sales
+
+> Decisions (owner): each product has exactly one carton; typing pieces is enough. Production auto-packs the maximum cartons (editable). Sales split pieces into whole cartons (carton price) + loose pieces (piece price); the invoice shows both lines.
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T21.1 | Migration `finishing_logs.parent_id`; Finishing store auto-packs cartons for a piece product (default max, `cartons` overridable); deleting the piece log undoes its packing | 🔴 | ✅ |
+| T21.2 | Server order rule: whole sealed cartons first, remainder from loose pieces, open a carton only if loose is short; returns/delete keep working | 🔴 | ✅ |
+| T21.3 | Frontend helper `orderSplit`: pieces → cartons + loose (+ cartons to open) with carton/piece pricing; used by Finished Goods order mode and Sales New Order | 🔴 | ✅ (screens need your browser check) |
+| T21.4 | Finishing page: pieces → "N cartons of K + L loose" preview with editable carton count and packaging preview | 🟠 | ✅ (screens need your browser check) |
+| T21.5 | History labels for the new movement types | 🟡 | ✅ (screens need your browser check) |
+| T21.6 | Test locally end to end, then deploy | 🔴 | 🔄 (backend tested locally; deploy pending) |
+
+---
+
+## Phase 22 — Batch creation feedback (Ana, 2026-10-07)
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T22.1 | Number of batches input can be cleared and retyped (clamped 1–20 on blur/next) | 🟠 | ✅ (needs browser check) |
+| T22.2 | Add-ingredient picker lists raw materials only, A→Z, showing lot and stock | 🟠 | ✅ (needs browser check) |
+| T22.3 | Select dropdown scrolls smoothly and fits on mobile (shared `select.tsx`) | 🟠 | ✅ (needs browser check) |
+| T22.4 | "Add ingredient" in batch step adds it to all batches with same amount; per-batch adjustable | 🟠 | ✅ (needs browser check) |
 
 ---
 

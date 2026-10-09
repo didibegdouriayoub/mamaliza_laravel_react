@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { TableSkeleton } from '@/components/DataStates';
+import { recipeLabel } from '@/lib/recipeLabel';
 import { batchService, batchGroupService } from '@/services/batchService';
 import { inventoryService } from '@/services/inventoryService';
 import { qualityService } from '@/services/qualityService';
@@ -23,7 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/formatDate';
 
-type BatchDraftIngredient = { materialId: string; materialName: string; quantity: number; unit: string; unitPrice: number; lot?: string; };
+type BatchDraftIngredient = { materialId: string; materialName: string; quantity: number; unit: string; unitPrice: number; lot?: string; linkId?: string; linkSource?: number; custom?: boolean; };
 type BatchDraft = { startedAt: string; outputQty: number; note: string; ingredients: BatchDraftIngredient[]; };
 type PrintData = { recipe: Recipe; batches: Array<{ batchNum: number; lot: string; outputQty: number; ingredients: BatchDraftIngredient[] }>; groupId: string; };
 
@@ -44,7 +45,7 @@ export default function Batches() {
   const [formOpen, setFormOpen] = useState(false);
   const [createStep, setCreateStep] = useState<1 | 2>(1);
   const [recipeId, setRecipeId] = useState('');
-  const [batchCount, setBatchCount] = useState(1);
+  const [batchCount, setBatchCount] = useState('1');
   const [batchDrafts, setBatchDrafts] = useState<BatchDraft[]>([]);
   const [expandedBatch, setExpandedBatch] = useState<number | null>(0);
 
@@ -58,7 +59,7 @@ export default function Batches() {
   // recipe edit fields
   const [rName, setRName] = useState('');
   const [rDescription, setRDescription] = useState('');
-  const [rTargetWeight, setRTargetWeight] = useState('');
+  const [rTargetWeight, setRTargetWeight] = useState('0');
   const [rPieceWeight, setRPieceWeight] = useState('');
   const [rStatus, setRStatus] = useState<'semi_final' | 'final'>('semi_final');
   const [rSteps, setRSteps] = useState<string[]>([]);
@@ -278,7 +279,8 @@ export default function Batches() {
   const handleNextStep = () => {
     if (!selectedRecipe) return;
     const today = new Date().toISOString().slice(0, 10);
-    const drafts: BatchDraft[] = Array.from({ length: batchCount }, () => ({
+    const count = Math.max(1, Math.min(20, Math.floor(Number(batchCount)) || 1));
+    const drafts: BatchDraft[] = Array.from({ length: count }, () => ({
       startedAt: today,
       outputQty: selectedRecipe.targetWeight || 0,
       note: '',
@@ -295,16 +297,50 @@ export default function Batches() {
   const updateIngredient = (bIdx: number, iIdx: number, updates: Partial<BatchDraftIngredient>) =>
     setBatchDrafts(prev => prev.map((d, i) => i === bIdx ? { ...d, ingredients: d.ingredients.map((ing, j) => j === iIdx ? { ...ing, ...updates } : ing) } : d));
 
+  // Quantity edit on an added ingredient: the first batch edited drives all batches;
+  // adjusting any other batch makes that one independent.
+  const updateQuantity = (bIdx: number, iIdx: number, quantity: number) =>
+    setBatchDrafts(prev => {
+      const edited = prev[bIdx]?.ingredients[iIdx];
+      if (!edited) return prev;
+      const { linkId } = edited;
+      if (!linkId) return prev.map((d, i) => i !== bIdx ? d : { ...d, ingredients: d.ingredients.map((ing, j) => j === iIdx ? { ...ing, quantity } : ing) });
+      const source = edited.linkSource ?? bIdx;
+      return prev.map((d, i) => ({
+        ...d,
+        ingredients: d.ingredients.map((ing, j) => {
+          if (ing.linkId !== linkId) return ing;
+          const isEdited = i === bIdx && j === iIdx;
+          if (source === bIdx) return isEdited || !ing.custom ? { ...ing, quantity, linkSource: source } : { ...ing, linkSource: source };
+          return isEdited ? { ...ing, quantity, custom: true, linkSource: source } : { ...ing, linkSource: source };
+        }),
+      }));
+    });
+
   const removeIngredient = (bIdx: number, iIdx: number) =>
     setBatchDrafts(prev => prev.map((d, i) => i === bIdx ? { ...d, ingredients: d.ingredients.filter((_, j) => j !== iIdx) } : d));
 
-  const addIngredient = (bIdx: number) =>
-    setBatchDrafts(prev => prev.map((d, i) => i === bIdx ? { ...d, ingredients: [...d.ingredients, { materialId: '', materialName: '', quantity: 0, unit: '', unitPrice: 0 }] } : d));
+  // Add a blank ingredient to every batch (shared linkId)
+  const addIngredient = () => {
+    const linkId = `new-${Date.now()}`;
+    setBatchDrafts(prev => prev.map(d => ({ ...d, ingredients: [...d.ingredients, { materialId: '', materialName: '', quantity: 0, unit: '', unitPrice: 0, linkId }] })));
+  };
 
   const setDraftIngredientMaterial = (bIdx: number, iIdx: number, materialId: string) => {
     const mat = inventory.find(m => String(m.id) === String(materialId));
-    if (mat) updateIngredient(bIdx, iIdx, { materialId: String(mat.id), materialName: mat.name, unit: mat.unit, unitPrice: mat.price });
+    if (!mat) return;
+    const linkId = batchDrafts[bIdx]?.ingredients[iIdx]?.linkId;
+    const patch = { materialId: String(mat.id), materialName: mat.name, unit: mat.unit, unitPrice: mat.price };
+    setBatchDrafts(prev => prev.map((d, i) => ({
+      ...d,
+      ingredients: d.ingredients.map((ing, j) =>
+        (i === bIdx && j === iIdx) || (linkId && ing.linkId === linkId && !ing.materialId) ? { ...ing, ...patch } : ing),
+    })));
   };
+
+  const rawMaterials = [...inventory]
+    .filter(m => m.type === 'raw')
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }) || (a.lot || '').localeCompare(b.lot || ''));
 
   const handleCreate = async () => {
     const recipe = selectedRecipe;
@@ -328,7 +364,7 @@ export default function Batches() {
           recipeId: String(recipe.id), recipeName: recipe.name,
           status: 'completed' as BatchStatus,
           startedAt: draft.startedAt,
-          inputMaterials: draft.ingredients,
+          inputMaterials: draft.ingredients.map(({ linkId, linkSource, custom, ...ing }) => ing),
           outputQuantity: draft.outputQty || recipe.targetWeight,
           outputUnit: recipe.pieceWeight,
           operatorId: user?.id, operatorName: user?.name,
@@ -399,7 +435,7 @@ export default function Batches() {
             <Input className="pl-9 w-48" placeholder="Search by recipe..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
           {hasPermission('batches.write') && (
-            <Button onClick={() => { setCreateStep(1); setRecipeId(''); setBatchCount(1); setFormOpen(true); }}>
+            <Button onClick={() => { setCreateStep(1); setRecipeId(''); setBatchCount('1'); setFormOpen(true); }}>
               <Plus className="h-4 w-4 mr-1" /> New Batch
             </Button>
           )}
@@ -553,7 +589,7 @@ export default function Batches() {
                 <Label>Recipe</Label>
                 <Select value={recipeId} onValueChange={setRecipeId}>
                   <SelectTrigger><SelectValue placeholder="Select recipe" /></SelectTrigger>
-                  <SelectContent>{recipes.map(r => <SelectItem key={r.id} value={String(r.id)}>{r.name}{r.targetWeight ? ` — target ${r.targetWeight} kg` : ''}</SelectItem>)}</SelectContent>
+                  <SelectContent>{recipes.map(r => <SelectItem key={r.id} value={String(r.id)}>{recipeLabel(r)}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               {selectedRecipe && (
@@ -565,7 +601,9 @@ export default function Batches() {
               )}
               <div className="space-y-1.5">
                 <Label>Number of Batches</Label>
-                <Input type="number" min={1} max={20} value={batchCount} onChange={e => setBatchCount(Math.max(1, Math.min(20, Number(e.target.value))))} />
+                <Input type="number" inputMode="numeric" min={1} max={20} value={batchCount}
+                  onChange={e => setBatchCount(e.target.value)}
+                  onBlur={() => setBatchCount(String(Math.max(1, Math.min(20, Math.floor(Number(batchCount)) || 1))))} />
               </div>
             </div>
           )}
@@ -587,7 +625,7 @@ export default function Batches() {
                       <div className="px-4 pb-4 pt-3 space-y-3 border-t">
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1"><Label className="text-xs">Date</Label><Input type="date" className="h-8 text-sm" value={draft.startedAt} onChange={e => updateDraft(bIdx, { startedAt: e.target.value })} /></div>
-                          <div className="space-y-1"><Label className="text-xs">Output Qty</Label><Input type="number" className="h-8 text-sm" value={draft.outputQty || ''} onChange={e => updateDraft(bIdx, { outputQty: Number(e.target.value) })} /></div>
+                          <div className="space-y-1"><Label className="text-xs">Output Qty</Label><Input type="number" className="h-8 text-sm" value={draft.outputQty} onChange={e => updateDraft(bIdx, { outputQty: Number(e.target.value) })} /></div>
                         </div>
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Ingredients</p>
                         {draft.ingredients.map((ing, iIdx) => (
@@ -596,17 +634,21 @@ export default function Batches() {
                               ? <span className="text-sm truncate">{ing.materialName}</span>
                               : <Select value={ing.materialId} onValueChange={v => setDraftIngredientMaterial(bIdx, iIdx, v)}>
                                   <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select material" /></SelectTrigger>
-                                  <SelectContent>{inventory.map(m => <SelectItem key={m.id} value={String(m.id)}>{m.name} ({m.unit})</SelectItem>)}</SelectContent>
+                                  <SelectContent>{rawMaterials.map(m => (
+                                    <SelectItem key={m.id} value={String(m.id)}>
+                                      {m.name}{m.lot ? ` · Lot ${m.lot}` : ''} — {m.quantity} {m.unit} in stock
+                                    </SelectItem>
+                                  ))}</SelectContent>
                                 </Select>
                             }
                             <div className="flex items-center gap-1">
-                              <Input type="number" className="h-8 text-xs" value={ing.quantity || ''} onChange={e => updateIngredient(bIdx, iIdx, { quantity: Number(e.target.value) })} />
+                              <Input type="number" className="h-8 text-xs" value={ing.quantity} onChange={e => updateQuantity(bIdx, iIdx, Number(e.target.value))} />
                               <span className="text-xs text-muted-foreground w-8 shrink-0">{ing.unit}</span>
                             </div>
                             <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeIngredient(bIdx, iIdx)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
                           </div>
                         ))}
-                        <Button type="button" variant="ghost" size="sm" className="text-xs h-7" onClick={() => addIngredient(bIdx)}><Plus className="h-3 w-3 mr-1" /> Add ingredient</Button>
+                        <Button type="button" variant="ghost" size="sm" className="text-xs h-7" onClick={addIngredient}><Plus className="h-3 w-3 mr-1" /> Add ingredient (all batches)</Button>
                         <div className="space-y-1"><Label className="text-xs">Note</Label><Input className="h-8 text-sm" value={draft.note} onChange={e => updateDraft(bIdx, { note: e.target.value })} placeholder="Production notes..." /></div>
                         <p className="text-xs text-right text-muted-foreground">Cost: <span className="font-semibold text-foreground">DH{draftCost.toFixed(2)}</span></p>
                       </div>
@@ -780,7 +822,7 @@ export default function Batches() {
               if (!recipe) return;
               setRName(recipe.name);
               setRDescription(recipe.description || '');
-              setRTargetWeight(String(recipe.targetWeight || ''));
+              setRTargetWeight(String(recipe.targetWeight || '0'));
               setRPieceWeight(recipe.pieceWeight || '');
               setRStatus(recipe.recipeStatus || 'semi_final');
               setRSteps(recipe.steps.length ? [...recipe.steps] : ['']);
@@ -971,7 +1013,7 @@ export default function Batches() {
                       {rIngredients.map((ing, i) => (
                         <div key={i} className="grid grid-cols-[1fr_130px_70px_30px] gap-1.5 items-center">
                           <span className="text-sm truncate">{ing.materialName}</span>
-                          <Input type="number" className="h-8 text-xs" value={ing.quantity || ''} onChange={e => setRIngredients(prev => prev.map((x, j) => j === i ? { ...x, quantity: Number(e.target.value) } : x))} />
+                          <Input type="number" className="h-8 text-xs" value={ing.quantity} onChange={e => setRIngredients(prev => prev.map((x, j) => j === i ? { ...x, quantity: Number(e.target.value) } : x))} />
                           <span className="text-xs text-muted-foreground">{ing.unit}</span>
                           <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => setRIngredients(prev => prev.filter((_, j) => j !== i))}>
                             <Trash2 className="h-3 w-3 text-destructive" />
