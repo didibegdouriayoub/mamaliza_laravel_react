@@ -429,8 +429,8 @@
 | T24.2 | Finishing: suggested lot code (rule above), editable, format check, saved on the finishing run (+ its lot); source batch group required | 🔴 | ✅ (backend + suggestion logic tested; screen needs browser check) |
 | T24.3 | Cartons inherit the lot code of the pieces packed | 🟠 | ✅ (tested: carton lot carries the pieces' code) |
 | T24.4 | Backend lookup endpoint: code → product, production date, source batch groups (kg share), batches, ingredients (+ inventory lots), buyers via order movements | 🔴 | ✅ (tested in Docker: 2 source batches, ingredients + lots, buyer; extra digits ignored) |
-| T24.5 | Scan page: browser camera + Tesseract.js, regex extracts prefix + 6 digits + letters, confirm/edit step, manual entry | 🔴 | ☐ (needs sample box photos) |
-| T24.6 | Results screen: lot code, date, product, source batches with ingredients, buyers | 🟠 | ☐ |
+| T24.5 | Scan page: browser camera + Tesseract.js, regex extracts prefix + 6 digits + letters, confirm/edit step, manual entry | 🔴 | ✅ (OCR tested on a generated box image; needs real photos + phone camera check) |
+| T24.6 | Results screen: lot code, date, product, source batches with ingredients, buyers | 🟠 | ✅ (results screen tested with mock data) |
 | T24.7 | Test locally (backend + UI + OCR on real photos), then deploy | 🔴 | ☐ |
 
 ---
