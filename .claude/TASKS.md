@@ -397,6 +397,8 @@
 | T22.3 | Select dropdown scrolls smoothly and fits on mobile (shared `select.tsx`) | 🟠 | ✅ (needs browser check) |
 | T22.4 | "Add ingredient" in batch step adds it to all batches with same amount; per-batch adjustable | 🟠 | ✅ (needs browser check) |
 | T22.5 | Finishing: batch-source select lists only dough batches made from the product's recipes (all if product has none); sources reset on product change | 🟠 | ✅ (needs browser check) |
+| T22.6 | New batch: one date for the whole group (step 1); group created_at and batch started_at/lot follow it; backend accepts `date` | 🟠 | ✅ (backend tested; needs browser check) |
+| T22.7 | Production data fix: last three batch groups to 5, 6, 7 Oct (group + its batches) — run on server | 🟠 | ☐ (waiting for owner to confirm which groups) |
 
 ---
 
@@ -413,6 +415,23 @@
 | T23.4 | "Record leftover & close": leftover kg → inventory item type `leftover`, no low-stock notification; loss = remainder; batch group marked done | 🔴 | ✅ (backend tested locally) |
 | T23.5 | Batches page: show used, leftover, loss and loss % per group; filter open/done | 🟠 | ✅ (needs browser check) |
 | T23.6 | Test locally (backend + UI), then deploy | 🔴 | 🔄 (tested locally: backend + split logic; deploy pending) |
+
+---
+
+## Phase 24 — Lot code on boxes: generate at Finishing, scan with camera, trace batches / ingredients / buyers
+
+> Decisions (owner): code = prefix (e.g. TA) + YYMMDD + optional extra digits + 3-4 product letters (e.g. TA260806KRM); scanner reads only the first 6 digits after the prefix; code is printed by a machine; Finishing suggests it (1 source batch group → that group's date; 2-3 groups → today) and it is editable; at least one source batch group is required; cartons carry the same code as the pieces inside (oldest pieces if mixed).
+> Assumption to confirm: two runs of the same product on the same day share one code (lookup merges them).
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T24.1 | Product page: lot prefix + product letters (default from name, editable); migration | 🔴 | ✅ (backend tested; screen needs browser check) |
+| T24.2 | Finishing: suggested lot code (rule above), editable, format check, saved on the finishing run (+ its lot); source batch group required | 🔴 | ✅ (backend + suggestion logic tested; screen needs browser check) |
+| T24.3 | Cartons inherit the lot code of the pieces packed | 🟠 | ✅ (tested: carton lot carries the pieces' code) |
+| T24.4 | Backend lookup endpoint: code → product, production date, source batch groups (kg share), batches, ingredients (+ inventory lots), buyers via order movements | 🔴 | ☐ |
+| T24.5 | Scan page: browser camera + Tesseract.js, regex extracts prefix + 6 digits + letters, confirm/edit step, manual entry | 🔴 | ☐ (needs sample box photos) |
+| T24.6 | Results screen: lot code, date, product, source batches with ingredients, buyers | 🟠 | ☐ |
+| T24.7 | Test locally (backend + UI + OCR on real photos), then deploy | 🔴 | ☐ |
 
 ---
 

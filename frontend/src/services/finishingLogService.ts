@@ -11,6 +11,7 @@ export interface FinishingLog {
   pieces_produced: number;
   date: string;
   notes?: string | null;
+  lot_code?: string | null;
   operator_id?: number | null;
   product?: { id: number; name: string; type: string; unit_price: number };
   batch_sources?: { batch_group_id: number; kg_used: number; batch_group?: { id: number; recipe?: { name: string } } }[];
@@ -31,6 +32,7 @@ export const finishingLogService = {
     cartons?: number; // piece products: cartons to pack (default: the maximum)
     date: string;
     notes?: string;
+    lot_code?: string; // printed box code (piece products)
     batch_sources: FinishingLogBatchSource[];
   }): Promise<void> =>
     apiClient.fetch('/finishing-logs', { method: 'POST', body: JSON.stringify(data) }, raw).then(() => undefined),

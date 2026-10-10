@@ -27,24 +27,39 @@ class FinishingLogController extends Controller
 
     public function store(Request $request, FinishedStockService $stockService)
     {
+        $request->merge(['lot_code' => $request->filled('lot_code') ? strtoupper(preg_replace('/\s+/', '', $request->input('lot_code'))) : null]);
+
         $validated = $request->validate([
             'finished_product_id' => 'required|exists:finished_products,id',
             'pieces_produced'     => 'required|integer|min:1',
             'cartons'             => 'nullable|integer|min:0', // piece products: how many cartons to pack (default: the maximum)
             'date'                => 'required|date',
             'notes'               => 'nullable|string',
+            // printed box code: 2 letters + YYMMDD (+ more digits) + product letters
+            'lot_code'            => ['nullable', 'regex:/^[A-Z]{2}\d{6}\d*[A-Z]{2,6}$/'],
             'batch_sources'       => 'array',
             'batch_sources.*.batch_group_id' => 'required|exists:batch_groups,id',
             'batch_sources.*.kg_used'        => 'required|numeric|min:0',
         ]);
 
+        $product = FinishedProduct::findOrFail($validated['finished_product_id']);
+        if ($product->type === 'piece') {
+            // a piece lot must be traceable: its code and at least one source batch group
+            if (empty($validated['lot_code'])) {
+                throw ValidationException::withMessages(['lot_code' => 'Enter the lot code printed on the box.']);
+            }
+            if (empty($validated['batch_sources'])) {
+                throw ValidationException::withMessages(['batch_sources' => 'Select at least one source batch group.']);
+            }
+        }
+
         $cartonsPacked = 0;
 
-        DB::transaction(function () use ($validated, $stockService, &$cartonsPacked) {
+        DB::transaction(function () use ($validated, $stockService, $product, &$cartonsPacked) {
             $log = $this->createLog(
-                FinishedProduct::findOrFail($validated['finished_product_id']),
+                $product,
                 $validated['pieces_produced'], $validated['date'], $validated['notes'] ?? null,
-                $validated['batch_sources'] ?? [], null, $stockService
+                $validated['batch_sources'] ?? [], null, $stockService, $validated['lot_code'] ?? null
             );
 
             $product = $log->product;
@@ -81,9 +96,11 @@ class FinishingLogController extends Controller
     }
 
     /** One production / packing entry: log row, packaging items, and the stock (a lot, or packed cartons). */
-    private function createLog(FinishedProduct $product, int $pieces, string $date, ?string $notes, array $sources, ?int $parentId, FinishedStockService $stockService): FinishingLog
+    private function createLog(FinishedProduct $product, int $pieces, string $date, ?string $notes, array $sources, ?int $parentId, FinishedStockService $stockService, ?string $lotCode = null): FinishingLog
     {
+        // Cartons carry the lot code of the pieces inside (set per carton lot when packing)
         $log = FinishingLog::create([
+            'lot_code'            => $product->type === 'piece' ? $lotCode : null,
             'finished_product_id' => $product->id,
             'pieces_produced'     => $pieces,
             'date'                => $date,
@@ -112,7 +129,7 @@ class FinishingLogController extends Controller
             // Packing cartons: uses the pieces inside (422 when not enough), lots inherit the pieces' dates
             $stockService->pack($product, $pieces, $log->id);
         } else {
-            $stockService->receive($product->id, $pieces, $date, 'production', $log->id);
+            $stockService->receive($product->id, $pieces, $date, 'production', $log->id, null, null, null, false, $lotCode);
         }
 
         return $log->setRelation('product', $product);

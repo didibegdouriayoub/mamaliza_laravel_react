@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { DEFAULT_LOT_PREFIX, defaultLotLetters, suggestLotCode } from '@/lib/lotCode';
 import { motion } from 'framer-motion';
 import { Plus, Edit, Trash2, Package, Box } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -43,6 +44,9 @@ export default function Products() {
   const [type, setType] = useState<'piece' | 'box'>('piece');
   const [unitPrice, setUnitPrice] = useState('0');
   const [notes, setNotes] = useState('');
+  const [lotPrefix, setLotPrefix] = useState(DEFAULT_LOT_PREFIX);
+  const [lotLetters, setLotLetters] = useState('');
+  const [lettersEdited, setLettersEdited] = useState(false); // false: letters follow the product name
   const [inputs, setInputs] = useState<FinishedProductInput[]>([emptyInput()]);
   const [materials, setMaterials] = useState<FinishedProductMaterial[]>([emptyMaterial()]);
   const [components, setComponents] = useState<FinishedProductComponent[]>([emptyComponent()]);
@@ -70,6 +74,7 @@ export default function Products() {
   const openCreate = () => {
     setEditing(null);
     setName(''); setType('piece'); setUnitPrice('0'); setNotes('');
+    setLotPrefix(DEFAULT_LOT_PREFIX); setLotLetters(''); setLettersEdited(false);
     setInputs([emptyInput()]); setMaterials([emptyMaterial()]); setComponents([emptyComponent()]);
     setFormOpen(true);
   };
@@ -77,6 +82,7 @@ export default function Products() {
   const openEdit = (p: FinishedProduct) => {
     setEditing(p);
     setName(p.name); setType(p.type); setUnitPrice(String(p.unit_price)); setNotes(p.notes || '');
+    setLotPrefix(p.lot_prefix || DEFAULT_LOT_PREFIX); setLotLetters(p.lot_letters || defaultLotLetters(p.name)); setLettersEdited(true);
     setInputs(p.inputs.length ? p.inputs.map(i => ({ recipe_id: i.recipe_id, kg_per_piece: i.kg_per_piece })) : [emptyInput()]);
     setMaterials(p.materials.length ? p.materials.map(m => ({ inventory_item_id: m.inventory_item_id, qty_per_piece: m.qty_per_piece })) : [emptyMaterial()]);
     setComponents(p.components.length ? p.components.map(c => ({ component_id: c.component_id, qty_per_box: c.qty_per_box })) : [emptyComponent()]);
@@ -90,6 +96,8 @@ export default function Products() {
       type,
       unit_price: parseFloat(unitPrice) || 0,
       notes: notes.trim() || null,
+      lot_prefix: type === 'piece' ? (lotPrefix.trim().toUpperCase() || DEFAULT_LOT_PREFIX) : null,
+      lot_letters: type === 'piece' ? (lotLetters.trim().toUpperCase() || null) : null,
       inputs: type === 'piece' ? inputs.filter(i => i.recipe_id) : [],
       materials: materials.filter(m => m.inventory_item_id),
       components: type === 'box' ? components.filter(c => c.component_id) : [],
@@ -207,7 +215,7 @@ export default function Products() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Name</Label>
-                <Input value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Fromage Frais 1kg" />
+                <Input value={name} onChange={e => { setName(e.target.value); if (!lettersEdited) setLotLetters(defaultLotLetters(e.target.value)); }} placeholder="e.g. Fromage Frais 1kg" />
               </div>
               <div className="space-y-1.5">
                 <Label>Type</Label>
@@ -224,6 +232,23 @@ export default function Products() {
               <Label>Unit Price (DH)</Label>
               <Input type="number" min="0" step="0.01" value={unitPrice} onChange={e => setUnitPrice(e.target.value)} placeholder="0.00" />
             </div>
+
+            {/* Piece: lot code printed on the box */}
+            {type === 'piece' && (
+              <div className="space-y-1.5">
+                <Label>Lot code on the box</Label>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input className="w-20 uppercase" maxLength={2} placeholder="TA" value={lotPrefix}
+                    onChange={e => setLotPrefix(e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase())} />
+                  <span className="text-xs text-muted-foreground">+ date YYMMDD +</span>
+                  <Input className="w-28 uppercase" maxLength={6} placeholder="KRO" value={lotLetters}
+                    onChange={e => { setLotLetters(e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase()); setLettersEdited(true); }} />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Example: <span className="font-mono">{suggestLotCode(lotPrefix, new Date().toLocaleDateString('sv'), lotLetters || 'XXX')}</span>
+                </p>
+              </div>
+            )}
 
             {/* Piece: recipe inputs */}
             {type === 'piece' && (

@@ -40,7 +40,7 @@ class BatchController extends Controller
 
         // Auto-generate unique lot: {3-LETTERS}-{DDMMYYYY}-{NNN}
         $prefix = strtoupper(substr(preg_replace('/[^a-zA-Z]/', '', $validated['recipe_name']), 0, 3));
-        $date   = now()->format('dmY');
+        $date   = \Carbon\Carbon::parse($validated['started_at'])->format('dmY'); // lot carries the production date
         $base   = "{$prefix}-{$date}";
         $count  = Batch::where('lot', 'like', "{$base}-%")->count();
         $validated['lot'] = "{$base}-" . str_pad($count + 1, 3, '0', STR_PAD_LEFT);

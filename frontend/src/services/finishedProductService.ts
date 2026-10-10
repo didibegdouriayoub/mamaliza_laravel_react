@@ -62,6 +62,8 @@ export interface FinishedProduct {
   type: 'piece' | 'box';
   unit_price: number;
   notes?: string | null;
+  lot_prefix?: string | null;
+  lot_letters?: string | null;
   inputs: FinishedProductInput[];
   materials: FinishedProductMaterial[];
   components: FinishedProductComponent[];

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class FinishedProduct extends Model
 {
-    protected $fillable = ['name', 'type', 'unit_price', 'notes', 'image_path'];
+    protected $fillable = ['name', 'type', 'unit_price', 'notes', 'image_path', 'lot_prefix', 'lot_letters'];
 
     protected $appends = ['image_url'];
     protected $hidden = ['image_path'];

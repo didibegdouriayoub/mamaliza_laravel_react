@@ -46,6 +46,7 @@ export default function Batches() {
   const [createStep, setCreateStep] = useState<1 | 2>(1);
   const [recipeId, setRecipeId] = useState('');
   const [batchCount, setBatchCount] = useState('1');
+  const [groupDate, setGroupDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [batchDrafts, setBatchDrafts] = useState<BatchDraft[]>([]);
   const [expandedBatch, setExpandedBatch] = useState<number | null>(0);
 
@@ -285,10 +286,9 @@ export default function Batches() {
 
   const handleNextStep = () => {
     if (!selectedRecipe) return;
-    const today = new Date().toISOString().slice(0, 10);
     const count = Math.max(1, Math.min(20, Math.floor(Number(batchCount)) || 1));
     const drafts: BatchDraft[] = Array.from({ length: count }, () => ({
-      startedAt: today,
+      startedAt: groupDate,
       outputQty: selectedRecipe.targetWeight || 0,
       note: '',
       ingredients: selectedRecipe.ingredients.map(ing => ({ ...ing })),
@@ -361,6 +361,7 @@ export default function Batches() {
         targetWeight: recipe.targetWeight,
         pieceWeightValue: parsePieceWeight(recipe.pieceWeight),
         createdBy: user?.name,
+        date: groupDate,
       });
 
       // 2. Create each batch linked to the group
@@ -454,7 +455,7 @@ export default function Batches() {
             <Input className="pl-9 w-48" placeholder="Search by recipe..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
           {hasPermission('batches.write') && (
-            <Button onClick={() => { setCreateStep(1); setRecipeId(''); setBatchCount('1'); setFormOpen(true); }}>
+            <Button onClick={() => { setCreateStep(1); setRecipeId(''); setBatchCount('1'); setGroupDate(new Date().toISOString().slice(0, 10)); setFormOpen(true); }}>
               <Plus className="h-4 w-4 mr-1" /> New Batch
             </Button>
           )}
@@ -645,6 +646,10 @@ export default function Batches() {
                 </div>
               )}
               <div className="space-y-1.5">
+                <Label>Date (all batches)</Label>
+                <Input type="date" value={groupDate} onChange={e => setGroupDate(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
                 <Label>Number of Batches</Label>
                 <Input type="number" inputMode="numeric" min={1} max={20} value={batchCount}
                   onChange={e => setBatchCount(e.target.value)}
@@ -668,10 +673,7 @@ export default function Batches() {
                     </button>
                     {isOpen && (
                       <div className="px-4 pb-4 pt-3 space-y-3 border-t">
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1"><Label className="text-xs">Date</Label><Input type="date" className="h-8 text-sm" value={draft.startedAt} onChange={e => updateDraft(bIdx, { startedAt: e.target.value })} /></div>
-                          <div className="space-y-1"><Label className="text-xs">Output Qty</Label><Input type="number" className="h-8 text-sm" value={draft.outputQty} onChange={e => updateDraft(bIdx, { outputQty: Number(e.target.value) })} /></div>
-                        </div>
+                        <div className="space-y-1"><Label className="text-xs">Output Qty</Label><Input type="number" className="h-8 text-sm" value={draft.outputQty} onChange={e => updateDraft(bIdx, { outputQty: Number(e.target.value) })} /></div>
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Ingredients</p>
                         {draft.ingredients.map((ing, iIdx) => (
                           <div key={iIdx} className="grid grid-cols-[1fr_140px_32px] gap-1.5 items-center">

@@ -31,6 +31,8 @@ class FinishedProductController extends Controller
             'type'       => 'required|in:piece,box',
             'unit_price' => 'required|numeric|min:0',
             'notes'      => 'nullable|string',
+            'lot_prefix'  => 'nullable|alpha|size:2',
+            'lot_letters' => 'nullable|alpha|min:2|max:6',
             'inputs'     => 'array',
             'inputs.*.recipe_id'    => 'required|exists:recipes,id',
             'inputs.*.kg_per_piece' => 'required|numeric|min:0',
@@ -47,6 +49,8 @@ class FinishedProductController extends Controller
             'type'       => $validated['type'],
             'unit_price' => $validated['unit_price'],
             'notes'      => $validated['notes'] ?? null,
+            'lot_prefix'  => isset($validated['lot_prefix']) ? strtoupper($validated['lot_prefix']) : 'TA',
+            'lot_letters' => isset($validated['lot_letters']) ? strtoupper($validated['lot_letters']) : null,
         ]);
 
         foreach ($validated['inputs'] ?? [] as $input) {
@@ -75,6 +79,8 @@ class FinishedProductController extends Controller
             'type'       => 'sometimes|in:piece,box',
             'unit_price' => 'sometimes|numeric|min:0',
             'notes'      => 'nullable|string',
+            'lot_prefix'  => 'nullable|alpha|size:2',
+            'lot_letters' => 'nullable|alpha|min:2|max:6',
             'inputs'     => 'array',
             'inputs.*.recipe_id'    => 'required|exists:recipes,id',
             'inputs.*.kg_per_piece' => 'required|numeric|min:0',
@@ -86,7 +92,12 @@ class FinishedProductController extends Controller
             'components.*.qty_per_box'  => 'required|numeric|min:0',
         ]);
 
-        $finishedProduct->update(array_intersect_key($validated, array_flip(['name', 'type', 'unit_price', 'notes'])));
+        foreach (['lot_prefix', 'lot_letters'] as $k) {
+            if (isset($validated[$k])) {
+                $validated[$k] = strtoupper($validated[$k]);
+            }
+        }
+        $finishedProduct->update(array_intersect_key($validated, array_flip(['name', 'type', 'unit_price', 'notes', 'lot_prefix', 'lot_letters'])));
 
         if (array_key_exists('inputs', $validated)) {
             $finishedProduct->inputs()->delete();

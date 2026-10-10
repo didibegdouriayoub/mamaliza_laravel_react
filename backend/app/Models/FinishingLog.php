@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class FinishingLog extends Model
 {
-    protected $fillable = ['finished_product_id', 'pieces_produced', 'date', 'operator_id', 'notes', 'parent_id'];
+    protected $fillable = ['finished_product_id', 'pieces_produced', 'date', 'operator_id', 'notes', 'parent_id', 'lot_code'];
 
     protected $casts = ['pieces_produced' => 'integer'];
 

@@ -26,9 +26,15 @@ class BatchGroupController extends Controller
             'target_weight'     => 'nullable|numeric|min:0',
             'piece_weight_value'=> 'nullable|numeric|min:0',
             'created_by'        => 'nullable|string|max:255',
+            'date'              => 'nullable|date',
         ]);
 
-        $group = BatchGroup::create($validated);
+        $group = BatchGroup::create(collect($validated)->except('date')->all());
+        if (!empty($validated['date'])) {
+            // The group takes the production date chosen in the form
+            $group->created_at = $validated['date'];
+            $group->save();
+        }
         return response()->json($group, 201);
     }
 

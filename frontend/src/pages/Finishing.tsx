@@ -17,6 +17,7 @@ import { apiClient } from '@/lib/apiClient';
 import { useToast } from '@/hooks/use-toast';
 import { formatDate } from '@/lib/formatDate';
 import { splitKg } from '@/lib/doughSplit';
+import { defaultLotLetters, isValidLotCode, suggestLotCode } from '@/lib/lotCode';
 
 interface BatchGroupOption {
   id: number;
@@ -28,6 +29,7 @@ interface BatchGroupOption {
   createdAt: string;
   usedKg: number;
   closed: boolean;
+  date: string; // production date of the group (YYYY-MM-DD)
 }
 
 export default function Finishing() {
@@ -44,6 +46,8 @@ export default function Finishing() {
   const [notes, setNotes] = useState('');
   const [batchSources, setBatchSources] = useState<FinishingLogBatchSource[]>([{ batch_group_id: '', kg_used: 0 }]);
   const [saving, setSaving] = useState(false);
+  const [lotCode, setLotCode] = useState('');
+  const [lotEdited, setLotEdited] = useState(false); // false: the code follows the suggestion
   const [cartonsOverride, setCartonsOverride] = useState<string | null>(null); // null = pack the maximum
 
   const selectedProduct = products.find(p => String(p.id) === selectedProductId);
@@ -78,6 +82,18 @@ export default function Finishing() {
   })();
   const neededKg = Math.round(pieceCount * kgPerPiece * 1000) / 1000;
   const assignedKg = batchSources.reduce((s, x) => s + (x.batch_group_id ? x.kg_used : 0), 0);
+
+  // Suggested lot code: one source batch group -> that group's date, several -> today
+  const suggestedLot = (() => {
+    if (!selectedProduct || selectedProduct.type !== 'piece') return '';
+    const today = new Date().toLocaleDateString('sv');
+    const single = chosenIds.length === 1 ? batchGroups.find(bg => String(bg.id) === chosenIds[0]) : undefined;
+    const day = single?.date || today;
+    return suggestLotCode(selectedProduct.lot_prefix || 'TA', day, selectedProduct.lot_letters || defaultLotLetters(selectedProduct.name));
+  })();
+  useEffect(() => {
+    if (!lotEdited) setLotCode(suggestedLot);
+  }, [suggestedLot, lotEdited]);
 
   // Default split of the needed kg, oldest batch group first (still editable per row afterwards)
   useEffect(() => {
@@ -118,6 +134,7 @@ export default function Finishing() {
       createdAt: bg.createdAt,
       usedKg: Number(bg.usedKg ?? bg.used_kg) || 0,
       closed: !!(bg.closedAt ?? bg.closed_at),
+      date: String(bg.batches?.[0]?.startedAt ?? bg.batches?.[0]?.started_at ?? bg.createdAt ?? bg.created_at ?? '').slice(0, 10),
     })));
     setLoading(false);
   };
@@ -127,6 +144,10 @@ export default function Finishing() {
   const handleSubmit = async () => {
     if (!selectedProductId) { toast({ title: 'Select a product', variant: 'destructive' }); return; }
     if (!piecesProduced || parseInt(piecesProduced) < 1) { toast({ title: 'Enter pieces produced', variant: 'destructive' }); return; }
+    if (selectedProduct?.type === 'piece') {
+      if (!batchSources.some(s => s.batch_group_id)) { toast({ title: 'Select at least one source batch group', variant: 'destructive' }); return; }
+      if (!isValidLotCode(lotCode)) { toast({ title: 'Lot code is not valid', description: 'Format: 2 letters, 6 digits (YYMMDD), then the product letters.', variant: 'destructive' }); return; }
+    }
     setSaving(true);
     try {
       await finishingLogService.create({
@@ -135,11 +156,12 @@ export default function Finishing() {
         cartons: autoPack ? cartonsToPack : undefined,
         date,
         notes: notes.trim() || undefined,
-        batch_sources: batchSources.filter(s => s.batch_group_id && s.kg_used > 0),
+        lot_code: selectedProduct?.type === 'piece' ? lotCode.replace(/\s+/g, '').toUpperCase() : undefined,
+        batch_sources: batchSources.filter(s => s.batch_group_id),
       });
       toast({ title: `${piecesProduced} pieces of "${selectedProduct?.name}" produced`, description: autoPack ? `${cartonsToPack} carton(s) packed, ${pieceCount - cartonsToPack * autoPack.qty_per_box} loose` : undefined });
       setCartonsOverride(null);
-      setSelectedProductId(''); setPiecesProduced('1'); setNotes('');
+      setSelectedProductId(''); setPiecesProduced('1'); setNotes(''); setLotCode(''); setLotEdited(false);
       setBatchSources([{ batch_group_id: '', kg_used: 0 }]);
       load();
     } catch (e: any) {
@@ -209,6 +231,24 @@ export default function Finishing() {
               <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
             </div>
           </div>
+
+          {selectedProduct?.type === 'piece' && (
+            <div className="space-y-1.5">
+              <Label>Lot code (printed on the box)</Label>
+              <div className="flex flex-wrap items-center gap-2">
+                <Input className="w-56 font-mono uppercase" value={lotCode} placeholder="TA260806KRO"
+                  onChange={e => { setLotCode(e.target.value.toUpperCase()); setLotEdited(true); }} />
+                {lotEdited && lotCode !== suggestedLot && (
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setLotEdited(false)}>Use suggestion ({suggestedLot})</Button>
+                )}
+              </div>
+              <p className={`text-xs ${lotCode && !isValidLotCode(lotCode) ? 'text-destructive' : 'text-muted-foreground'}`}>
+                {lotCode && !isValidLotCode(lotCode)
+                  ? 'Not a valid code: 2 letters, 6 digits (YYMMDD), then the product letters.'
+                  : chosenIds.length > 1 ? 'Several source batches: suggested with today\'s date.' : 'Suggested from the source batch date; you can change it to match the label.'}
+              </p>
+            </div>
+          )}
 
           {autoPack && (
             <div className="rounded-lg border bg-accent/30 p-3 text-sm space-y-2">
@@ -323,7 +363,10 @@ export default function Finishing() {
                 {logs.map(log => (
                   <TableRow key={log.id}>
                     <TableCell>{formatDate(log.date)}</TableCell>
-                    <TableCell className="font-medium">{log.product?.name ?? '—'}</TableCell>
+                    <TableCell className="font-medium">
+                      {log.product?.name ?? '—'}
+                      {log.lot_code && <span className="block font-mono text-xs font-normal text-muted-foreground">{log.lot_code}</span>}
+                    </TableCell>
                     <TableCell>
                       <Badge variant="secondary">{log.product?.type ?? '—'}</Badge>
                     </TableCell>

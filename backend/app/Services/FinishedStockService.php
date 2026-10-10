@@ -26,11 +26,13 @@ class FinishedStockService
         ?int $orderId = null,
         ?int $orderItemId = null,
         bool $isOpening = false,
+        ?string $lotCode = null,
     ): FinishedGoodsLot {
         $lot = FinishedGoodsLot::create([
             'finished_product_id' => $productId,
             'finishing_log_id'    => $finishingLogId,
             'lot_date'            => $date,
+            'lot_code'            => $lotCode,
             'qty_produced'        => $qty,
             'qty_remaining'       => $qty,
             'is_opening'          => $isOpening,
@@ -129,6 +131,7 @@ class FinishedStockService
 
         // oldest piece date per carton, across components
         $cartonDates = array_fill(0, $cartons, null);
+        $cartonCodes = array_fill(0, $cartons, null); // lot code of those oldest pieces
         foreach ($components as $c) {
             $lots = FinishedGoodsLot::where('finished_product_id', $c->component_id)
                 ->where('qty_remaining', '>', 0)->orderBy('lot_date')->orderBy('id')->get();
@@ -142,6 +145,7 @@ class FinishedStockService
                         $d = $lot->lot_date->toDateString();
                         if ($cartonDates[$j] === null || $d < $cartonDates[$j]) {
                             $cartonDates[$j] = $d;
+                            $cartonCodes[$j] = $lot->lot_code;
                         }
                         break;
                     }
@@ -153,8 +157,15 @@ class FinishedStockService
             $this->deduct($c->component_id, $c->qty_per_box * $cartons, 'pack_used', "Packed into {$box->name}", null, null, null, false, $finishingLogId);
         }
 
-        foreach (array_count_values($cartonDates) as $date => $count) {
-            $this->receive($box->id, $count, (string) $date, 'production', $finishingLogId, 'Packed cartons');
+        // one carton lot per (date, code) pair
+        $groups = [];
+        foreach ($cartonDates as $j => $date) {
+            $key = $date . '|' . ($cartonCodes[$j] ?? '');
+            $groups[$key] = ($groups[$key] ?? 0) + 1;
+        }
+        foreach ($groups as $key => $count) {
+            [$date, $code] = explode('|', $key, 2);
+            $this->receive($box->id, $count, (string) $date, 'production', $finishingLogId, 'Packed cartons', null, null, false, $code !== '' ? $code : null);
         }
     }
 
@@ -207,7 +218,7 @@ class FinishedStockService
         $components = $box->components()->get();
         foreach ($taken as $t) {
             foreach ($components as $c) {
-                $this->receive($c->component_id, $t['qty'] * $c->qty_per_box, $t['lot']->lot_date->toDateString(), 'unpack', null, $reason ?? "Opened {$box->name}", $orderId);
+                $this->receive($c->component_id, $t['qty'] * $c->qty_per_box, $t['lot']->lot_date->toDateString(), 'unpack', null, $reason ?? "Opened {$box->name}", $orderId, null, false, $t['lot']->lot_code);
             }
         }
 
