@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\DB;
  *
  * Code = product prefix + YYMMDD of the lot + product letters (cartons use their pieces' code).
  * Lots that came from a finishing log keep that log; the others get a "[backfill]" trace log
- * (no stock or packaging effect) linked to the product's recipe batch group.
+ * (no stock or packaging effect) linked to the product's recipe batch group (0 kg used, so dough figures do not change).
  */
 class BackfillLotCodes extends Command
 {
@@ -159,8 +159,8 @@ class BackfillLotCodes extends Command
             return;
         }
 
-        $kgPerPiece = (float) optional($inputs->firstWhere('recipe_id', $group->recipe_id))->kg_per_piece;
-        $log->batchSources()->create(['batch_group_id' => $group->id, 'kg_used' => round($pieces * $kgPerPiece, 4)]);
+        // kg_used stays 0: this link is for tracing only and must not change the dough used / left figures
+        $log->batchSources()->create(['batch_group_id' => $group->id, 'kg_used' => 0]);
         $this->sources++;
     }
 }
