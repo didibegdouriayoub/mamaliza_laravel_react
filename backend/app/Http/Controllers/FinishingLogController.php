@@ -137,6 +137,13 @@ class FinishingLogController extends Controller
 
     private function deleteLog(FinishingLog $finishingLog, FinishedStockService $stockService): void
     {
+        // Trace-only logs made by lots:backfill-codes never touched stock: just remove the record
+        if (str_starts_with((string) $finishingLog->notes, \App\Console\Commands\BackfillLotCodes::MARKER)) {
+            $finishingLog->batchSources()->delete();
+            $finishingLog->delete();
+            return;
+        }
+
         // Cartons packed automatically from this production go first (their pieces return to stock)
         foreach (FinishingLog::where('parent_id', $finishingLog->id)->get() as $child) {
             $this->deleteLog($child, $stockService);
