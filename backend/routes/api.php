@@ -117,6 +117,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/finished-products/{finishedProduct}/adjust', [\App\Http\Controllers\FinishedStockController::class, 'adjust'])->middleware('permission:finished_goods.write');
 
     // Finishing / Assembly logs
+    Route::get('/lot-trace/{code}', [\App\Http\Controllers\LotTraceController::class, 'show'])->middleware('permission:finishing.read,finished_goods.read,sales.read,batches.read');
     Route::get('/finishing-logs', [\App\Http\Controllers\FinishingLogController::class, 'index'])->middleware('permission:finishing.read');
     Route::post('/finishing-logs', [\App\Http\Controllers\FinishingLogController::class, 'store'])->middleware('permission:finishing.write');
     Route::delete('/finishing-logs/{finishingLog}', [\App\Http\Controllers\FinishingLogController::class, 'destroy'])->middleware('permission:finishing.write');
