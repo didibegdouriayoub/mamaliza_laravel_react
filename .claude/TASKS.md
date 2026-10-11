@@ -486,6 +486,19 @@
 
 ---
 
+## Phase 28 — Unchangeable owner account
+
+> Rule (owner): one account is always admin, sees everything, and can never be demoted, edited (role / access / email) or deleted. Fixes the lock-out after a user demoted themselves.
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T28.1 | `users.is_owner` column; owner always reads as admin (model + accessor), cannot be deleted; API refuses role / access / email / delete changes (403) | 🔴 | ✅ (tested: through the app, the model and raw SQL) |
+| T28.2 | `php artisan user:make-owner <email>`: marks one account as owner and restores admin; lists accounts when the email is wrong | 🔴 | ✅ (tested locally) |
+| T28.3 | Users and Permissions pages show the owner as locked | 🟠 | ✅ (needs browser check) |
+| T28.4 | Deploy: pull, migrate, run `user:make-owner` with the owner's login email | 🔴 | ☐ |
+
+---
+
 ## Rules for this Project
 1. Take tasks ONE at a time.
 2. After completing a task, make a descriptive git commit immediately.

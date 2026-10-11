@@ -45,6 +45,7 @@ class User extends Authenticatable
         return [
             'password' => 'hashed',
             'permissions' => 'array',
+            'is_owner' => 'boolean',
         ];
     }
 
@@ -65,9 +66,32 @@ class User extends Authenticatable
         );
     }
 
+    protected static function booted(): void
+    {
+        // The owner account is always an admin and can never be deleted.
+        static::saving(function (User $user) {
+            if ($user->is_owner) {
+                $user->role = 'admin';
+            }
+        });
+        static::deleting(function (User $user) {
+            if ($user->is_owner) {
+                return false;
+            }
+        });
+    }
+
+    /** The owner always reads as admin, whatever the column holds. */
+    protected function role(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: fn ($value, array $attributes) => !empty($attributes['is_owner']) ? 'admin' : $value,
+        );
+    }
+
     public function hasPermission(string $permission): bool
     {
-        if ($this->role === 'admin') {
+        if ($this->is_owner || $this->role === 'admin') {
             return true;
         }
 

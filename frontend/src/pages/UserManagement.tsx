@@ -182,7 +182,10 @@ export default function UserManagement() {
                         <p className="text-xs text-muted-foreground">{u.email}</p>
                       </div>
                     </div>
-                    <Badge className={roleBadgeClass[u.role] || ''}>{u.role}</Badge>
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge className={roleBadgeClass[u.role] || ''}>{u.role}</Badge>
+                      {u.isOwner && <Badge variant="outline" className="text-[10px]">Owner</Badge>}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -191,7 +194,8 @@ export default function UserManagement() {
                       <Badge key={s} variant="outline" className="text-[10px]">{s}</Badge>
                     ))}
                   </div>
-                  {hasPermission('users.write') && (
+                  {u.isOwner && <p className="text-xs text-muted-foreground">Owner account: always admin, cannot be changed or deleted.</p>}
+                  {hasPermission('users.write') && !u.isOwner && (
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" className="flex-1" onClick={() => openEdit(u)}>
                         <Shield className="h-3 w-3 mr-1" /> Edit Access

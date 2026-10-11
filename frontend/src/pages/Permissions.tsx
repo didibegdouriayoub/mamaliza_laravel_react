@@ -100,6 +100,7 @@ export default function Permissions() {
 
   const selectedUser = users.find(u => String(u.id) === selectedUserId);
   const isAdmin = role === 'admin';
+  const locked = !!selectedUser?.isOwner; // the owner cannot be changed
 
   return (
     <div className="space-y-6">
@@ -133,7 +134,7 @@ export default function Permissions() {
             {selectedUser && (
               <div className="space-y-1.5">
                 <Label>Role</Label>
-                <Select value={role} onValueChange={v => setRole(v as UserRole)} disabled={!hasPermission('permissions.write')}>
+                <Select value={role} onValueChange={v => setRole(v as UserRole)} disabled={!hasPermission('permissions.write') || locked}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Admin (full access)</SelectItem>
@@ -168,7 +169,7 @@ export default function Permissions() {
                       <tbody>
                         {PAGE_PERMISSIONS.map((row, i) => {
                           const level = getLevel(perms, row);
-                          const canEdit = hasPermission('permissions.write');
+                          const canEdit = hasPermission('permissions.write') && !locked;
                           return (
                             <tr key={row.page} className={i % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
                               <td className="px-4 py-2.5 font-medium">{row.page}</td>
@@ -198,7 +199,8 @@ export default function Permissions() {
                 </div>
               )}
 
-              {hasPermission('permissions.write') && (
+              {locked && <p className="text-sm text-muted-foreground">This is the owner account: always admin with full access, and it cannot be changed.</p>}
+              {hasPermission('permissions.write') && !locked && (
                 <div className="flex justify-end">
                   <Button onClick={handleSave} disabled={saving}>
                     {saving ? 'Saving…' : `Save Access for ${selectedUser.name}`}

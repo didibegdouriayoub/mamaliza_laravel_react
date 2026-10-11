@@ -39,6 +39,14 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
+        // The owner account keeps its role, access and email: only the owner may change name or password.
+        if ($user->is_owner) {
+            abort_unless($request->user()?->id === $user->id, 403, 'The owner account cannot be changed.');
+            $request->request->remove('role');
+            $request->request->remove('permissions');
+            $request->request->remove('email');
+        }
+
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|string|email|max:255|unique:users,email,' . $user->id,
@@ -57,6 +65,8 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
+        abort_if($user->is_owner, 403, 'The owner account cannot be deleted.');
+
         $user->delete();
         return response()->json(null, 204);
     }

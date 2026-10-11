@@ -49,6 +49,7 @@ export interface User {
   name: string;
   email: string;
   role: UserRole;
+  isOwner?: boolean; // the owner is always admin and cannot be changed or deleted
   avatar?: string;
   permissions: Permission[];
 }
