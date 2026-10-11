@@ -22,6 +22,7 @@ export interface FinishedGoodsLot {
   id: number;
   finished_product_id: number;
   lot_date: string;
+  lot_code?: string | null;
   qty_produced: number;
   qty_remaining: number;
   is_opening: boolean;

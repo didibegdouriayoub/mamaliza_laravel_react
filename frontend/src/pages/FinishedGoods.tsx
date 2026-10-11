@@ -392,6 +392,7 @@ export default function FinishedGoods() {
                         <span className="flex-1">
                           {l.is_opening ? 'Opening stock' : formatDate(l.lot_date)}
                           <span className="text-xs text-muted-foreground ml-2">{daysOld(l.lot_date)}d old</span>
+                          {l.lot_code && <span className="block font-mono text-xs text-muted-foreground">{l.lot_code}</span>}
                         </span>
                         <span className="font-semibold">{l.qty_remaining}</span>
                         <span className="text-xs text-muted-foreground">of {l.qty_produced}</span>
