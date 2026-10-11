@@ -199,6 +199,9 @@ export interface Order {
   amountPaid: number;
   amountReturned: number;
   status: OrderStatus;
+  documentType?: 'facture' | 'devis' | 'order';
+  docNumber?: string | null;
+  convertedToId?: number | null;
   payments: Payment[];
   returns: ReturnItem[];
   createdAt: string;

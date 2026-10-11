@@ -350,7 +350,7 @@ export default function Sales() {
               <TableBody>
                 {paginated.map((order, idx) => (
                   <motion.tr key={order.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: idx * 0.04 }} className="border-b cursor-pointer hover:bg-accent/30" onClick={() => setSelected(order)}>
-                    <TableCell className="font-medium">#{order.id}</TableCell>
+                    <TableCell className="font-medium">{order.docNumber ?? `#${order.id}`}</TableCell>
                     <TableCell>{order.customerName}</TableCell>
                     <TableCell className="text-right font-medium">DH{order.totalAmount.toLocaleString()}</TableCell>
                     <TableCell className="text-right text-success hidden sm:table-cell">DH{order.amountPaid.toLocaleString()}</TableCell>
@@ -383,7 +383,7 @@ export default function Sales() {
             <>
               <DialogHeader>
                 <DialogTitle className="font-display flex items-center gap-3">
-                  Order #{selected.id} <OrderStatusBadge status={selected.status} />
+                  {selected.docNumber ?? `Order #${selected.id}`} <OrderStatusBadge status={selected.status} />
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4">

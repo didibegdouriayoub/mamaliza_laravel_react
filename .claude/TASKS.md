@@ -457,7 +457,7 @@
 
 | # | Task | Priority | Status |
 |---|---|---|---|
-| T26.1 | Separate sequential numbers: FA-YYYY-NNNN for factures, DV-YYYY-NNNN for devis (counter per type and year); existing "order" rows become factures numbered by date; migration | 🔴 | ☐ |
+| T26.1 | Separate sequential numbers: FA-YYYY-NNNN for factures, DV-YYYY-NNNN for devis (counter per type and year); existing "order" rows become factures numbered by date; migration | 🔴 | ✅ (tested locally: renumbered 3 old orders, sequence per type, failed save keeps the number; migration needed on server) |
 | T26.2 | Sales page with two tabs (Devis / Factures); devis hidden from the sales figures and the factures list | 🔴 | ☐ |
 | T26.3 | New document screen: product-card grid, customer, "Save" and "Save & print" (devis or facture) | 🟠 | ☐ |
 | T26.4 | "Convert to facture" on a devis: copies lines, checks stock, deducts, links devis -> facture, devis shows Accepted | 🔴 | ☐ |

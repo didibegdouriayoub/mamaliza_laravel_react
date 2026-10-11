@@ -24,8 +24,6 @@ interface Line {
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
-const devisNumber = () => `DV-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
-const factureNumber = () => `FA-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
 
 const fmtMAD = (n: number) =>
   n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' MAD';
@@ -175,7 +173,6 @@ export default function DevisFacture() {
   const [customerAddress, setCustomerAddress] = useState('');
 
   // Devis state
-  const [devisNum, setDevisNum] = useState(devisNumber());
   const [devisDate, setDevisDate] = useState(today());
   const [validUntil, setValidUntil] = useState(() => {
     const d = new Date(); d.setDate(d.getDate() + 30);
@@ -186,7 +183,6 @@ export default function DevisFacture() {
   const [savingDevis, setSavingDevis] = useState(false);
 
   // Facture state
-  const [factureNum, setFactureNum] = useState(factureNumber());
   const [factureDate, setFactureDate] = useState(today());
   const [factureLines, setFactureLines] = useState<Line[]>([]);
   const [savingFacture, setSavingFacture] = useState(false);
@@ -247,7 +243,7 @@ export default function DevisFacture() {
     setSavingDevis(true);
     try {
       const total = devisLines.reduce((s, l) => s + l.total, 0);
-      await orderService.create({
+      const saved: any = await orderService.create({
         customerId: customerId || undefined,
         customerName,
         totalAmount: total,
@@ -263,11 +259,11 @@ export default function DevisFacture() {
           total: l.total,
         } as any)),
       } as any);
-      const html = buildInvoiceHtml('DEVIS', devisNum, devisDate, validUntil, "Validité jusqu'au", customerName, customerAddress, devisLines);
-      printDocument(`Devis ${devisNum}`, html);
-      toast({ title: 'Devis saved & printed' });
+      const ref = saved?.docNumber ?? '';
+      const html = buildInvoiceHtml('DEVIS', ref, devisDate, validUntil, "Validité jusqu'au", customerName, customerAddress, devisLines);
+      printDocument(`Devis ${ref}`, html);
+      toast({ title: `Devis ${ref} saved & printed` });
       setDevisLines([]);
-      setDevisNum(devisNumber());
       load();
     } catch (e: any) {
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
@@ -308,11 +304,10 @@ export default function DevisFacture() {
       } else {
         toast({ title: 'Facture created', description: 'Stock deducted. Printing…' });
       }
-      const ref = `FA N°${new Date().getFullYear()}-${String((order as any)?.id ?? factureNum).padStart(3, '0')}`;
+      const ref: string = (order as any)?.docNumber ?? '';
       const html = buildInvoiceHtml('FACTURE', ref, factureDate, factureDate, "Date d'échéance", customerName, customerAddress, factureLines);
       printDocument(`Facture ${ref}`, html);
       setFactureLines([]);
-      setFactureNum(factureNumber());
       load();
     } catch (e: any) {
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
@@ -322,9 +317,7 @@ export default function DevisFacture() {
 
   const reprintDocument = (doc: any) => {
     const type = doc.documentType === 'devis' ? 'DEVIS' : 'FACTURE';
-    const ref = type === 'FACTURE'
-      ? `FA N°${new Date(doc.createdAt).getFullYear()}-${String(doc.id).padStart(3, '0')}`
-      : `DV N°${new Date(doc.createdAt).getFullYear()}-${String(doc.id).padStart(3, '0')}`;
+    const ref: string = doc.docNumber ?? `#${doc.id}`;
     const lines: Line[] = (doc.items || []).map((i: any) => ({
       finished_product_id: i.finishedProductId ?? 0,
       product_name: i.productName,
@@ -460,9 +453,7 @@ export default function DevisFacture() {
             </TableHeader>
             <TableBody>
               {docs.map(doc => {
-                const year = new Date(doc.createdAt).getFullYear();
-                const prefix = doc.documentType === 'facture' ? 'FA' : 'DV';
-                const ref = `${prefix} N°${year}-${String(doc.id).padStart(3, '0')}`;
+                const ref: string = doc.docNumber ?? `#${doc.id}`;
                 const ttc = (doc.totalAmount * 1.2).toFixed(2);
                 return (
                   <TableRow key={doc.id}>
@@ -507,7 +498,7 @@ export default function DevisFacture() {
                 <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label>Facture N°</Label>
-                    <Input value={factureNum} onChange={e => setFactureNum(e.target.value)} />
+                    <Input value="" placeholder="Assigned when saved" disabled />
                   </div>
                   <div className="space-y-1.5">
                     <Label>Date</Label>
@@ -542,7 +533,7 @@ export default function DevisFacture() {
                 <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="space-y-1.5">
                     <Label>Devis N°</Label>
-                    <Input value={devisNum} onChange={e => setDevisNum(e.target.value)} />
+                    <Input value="" placeholder="Assigned when saved" disabled />
                   </div>
                   <div className="space-y-1.5">
                     <Label>Date</Label>

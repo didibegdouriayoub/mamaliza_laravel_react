@@ -14,6 +14,8 @@ class Order extends Model
         'amount_returned',
         'status',
         'document_type',
+        'doc_number',
+        'converted_to_id',
         'paid_at'
     ];
 

@@ -7,6 +7,7 @@ use App\Models\InventoryItem;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\PackagingCarton;
+use App\Services\DocumentNumberService;
 use App\Services\FinishedStockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +19,7 @@ class OrderController extends Controller
         return response()->json(Order::with('items', 'returns', 'payments')->latest()->get());
     }
 
-    public function store(Request $request, FinishedStockService $stockService)
+    public function store(Request $request, FinishedStockService $stockService, DocumentNumberService $numbers)
     {
         $validated = $request->validate([
             'customer_id'     => 'nullable|exists:customers,id',
@@ -47,9 +48,13 @@ class OrderController extends Controller
         $stockWarnings = [];
         $cartonsOpened = [];
 
-        $order = DB::transaction(function () use ($validated, $items, &$stockWarnings, &$cartonsOpened, $stockService) {
+        // Only two documents exist: devis and facture (the old "order" is a facture)
+        $validated['document_type'] = ($validated['document_type'] ?? 'facture') === 'devis' ? 'devis' : 'facture';
+
+        $order = DB::transaction(function () use ($validated, $items, &$stockWarnings, &$cartonsOpened, $stockService, $numbers) {
+            $validated['doc_number'] = $numbers->next($validated['document_type']);
             $order = Order::create($validated);
-            $isDevis = ($validated['document_type'] ?? 'order') === 'devis';
+            $isDevis = $validated['document_type'] === 'devis';
 
             foreach ($items as $itemData) {
                 /** @var OrderItem $orderItem */
