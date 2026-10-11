@@ -450,6 +450,25 @@
 
 ---
 
+## Phase 26 — Sales workflow: one document (devis -> facture -> paid), sequential numbers, who owes me
+
+> Decisions (owner): printing is optional per sale; customers pay either on delivery or later (credit); add a delivery note (bon de livraison) as a print format of the facture.
+> Model: only two documents, devis and facture (the old "order" becomes a facture). Devis never touches stock. A facture deducts stock and records the lot (so lot scan still finds buyers).
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T26.1 | Separate sequential numbers: FA-YYYY-NNNN for factures, DV-YYYY-NNNN for devis (counter per type and year); existing "order" rows become factures numbered by date; migration | 🔴 | ☐ |
+| T26.2 | Sales page with two tabs (Devis / Factures); devis hidden from the sales figures and the factures list | 🔴 | ☐ |
+| T26.3 | New document screen: product-card grid, customer, "Save" and "Save & print" (devis or facture) | 🟠 | ☐ |
+| T26.4 | "Convert to facture" on a devis: copies lines, checks stock, deducts, links devis -> facture, devis shows Accepted | 🔴 | ☐ |
+| T26.5 | "Mark as paid" (full balance + method) on a facture; part payments and returns stay | 🟠 | ☐ |
+| T26.6 | "Who owes me": unpaid factures per customer with totals | 🟠 | ☐ |
+| T26.7 | Bon de livraison print (quantities, no prices, signature) from any facture | 🟡 | ☐ |
+| T26.8 | Finished Goods order mode creates a facture through the same flow | 🟡 | ☐ |
+| T26.9 | Test locally, then deploy (migration on server) | 🔴 | ☐ |
+
+---
+
 ## Rules for this Project
 1. Take tasks ONE at a time.
 2. After completing a task, make a descriptive git commit immediately.
