@@ -20,6 +20,7 @@ const PAGE_PERMISSIONS: { page: string; read: Permission; write: Permission | nu
   { page: 'Finishing',             read: 'finishing.read',    write: 'finishing.write' },
   { page: 'Finished Goods',        read: 'finished_goods.read', write: 'finished_goods.write' },
   { page: 'Sales',                 read: 'sales.read',        write: 'sales.write' },
+  { page: 'Scan Lot',             read: 'scan.read',         write: null },
   { page: 'See money (prices, costs, payments)', read: 'money.read', write: null },
   { page: 'Suppliers',             read: 'suppliers.read',    write: 'suppliers.write' },
   { page: 'Customers',             read: 'customers.read',    write: 'customers.write' },

@@ -14,6 +14,7 @@ export type Permission =
   | 'finishing.read' | 'finishing.write'
   | 'finished_goods.read' | 'finished_goods.write'
   | 'money.read'
+  | 'scan.read'
   | 'users.read' | 'users.write'
   | 'suppliers.read' | 'suppliers.write'
   | 'customers.read' | 'customers.write'

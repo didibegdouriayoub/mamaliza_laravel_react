@@ -105,7 +105,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/analytics/dashboard', [\App\Http\Controllers\AnalyticsController::class, 'dashboard'])->middleware('permission:analytics.read');
 
     // Finished Products catalog
-    Route::get('/finished-products', [\App\Http\Controllers\FinishedProductController::class, 'index'])->middleware('permission:products.read,finishing.read,finished_goods.read,sales.read');
+    Route::get('/finished-products', [\App\Http\Controllers\FinishedProductController::class, 'index'])->middleware('permission:products.read,finishing.read,finished_goods.read,sales.read,scan.read');
     Route::post('/finished-products', [\App\Http\Controllers\FinishedProductController::class, 'store'])->middleware('permission:products.write');
     Route::match(['put', 'patch'], '/finished-products/{finishedProduct}', [\App\Http\Controllers\FinishedProductController::class, 'update'])->middleware('permission:products.write');
     Route::delete('/finished-products/{finishedProduct}', [\App\Http\Controllers\FinishedProductController::class, 'destroy'])->middleware('permission:products.write');
@@ -118,7 +118,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/finished-products/{finishedProduct}/adjust', [\App\Http\Controllers\FinishedStockController::class, 'adjust'])->middleware('permission:finished_goods.write');
 
     // Finishing / Assembly logs
-    Route::get('/lot-trace/{code}', [\App\Http\Controllers\LotTraceController::class, 'show'])->middleware('permission:finishing.read,finished_goods.read,sales.read,batches.read');
+    Route::get('/lot-trace/{code}', [\App\Http\Controllers\LotTraceController::class, 'show'])->middleware('permission:finishing.read,finished_goods.read,sales.read,batches.read,scan.read');
     Route::get('/finishing-logs', [\App\Http\Controllers\FinishingLogController::class, 'index'])->middleware('permission:finishing.read');
     Route::post('/finishing-logs', [\App\Http\Controllers\FinishingLogController::class, 'store'])->middleware('permission:finishing.write');
     Route::delete('/finishing-logs/{finishingLog}', [\App\Http\Controllers\FinishingLogController::class, 'destroy'])->middleware('permission:finishing.write');

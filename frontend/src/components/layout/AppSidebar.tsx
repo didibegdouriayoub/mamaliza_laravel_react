@@ -23,7 +23,7 @@ const navItems: { title: string; url: string; icon: typeof LayoutDashboard; perm
   { title: 'Products', url: '/products', icon: Box, permission: 'products.read' },
   { title: 'Finishing', url: '/finishing', icon: Layers, permission: 'finishing.read' },
   { title: 'Finished Goods', url: '/finished-goods', icon: Warehouse, permission: 'finished_goods.read' },
-  { title: 'Scan Lot', url: '/scan', icon: ScanLine, permission: 'finished_goods.read' },
+  { title: 'Scan Lot', url: '/scan', icon: ScanLine, permission: 'scan.read' },
   // Sales & admin
   { title: 'Customers', url: '/customers', icon: Users, permission: 'customers.read' },
   { title: 'Suppliers', url: '/suppliers', icon: Truck, permission: 'suppliers.read' },

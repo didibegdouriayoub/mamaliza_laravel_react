@@ -433,6 +433,7 @@
 | T24.6 | Results screen: lot code, date, product, source batches with ingredients, buyers | 🟠 | ✅ (results screen tested with mock data) |
 | T24.7 | Test locally (backend + UI + OCR on real photos), then deploy | 🔴 | ☐ |
 | T24.8 | `php artisan lots:backfill-codes [--dry-run] [--all]`: lot code + source batch link for existing stock lots (cartons use their pieces' code); trace-only logs are marked `[backfill]` and never touch stock when deleted | 🔴 | 🔄 (tested locally; run on server after deploy) |
+| T24.9 | Scan Lot has its own permission `scan.read` (Permissions + Users pages, route, menu, API); migration gives it to users who had Finished Goods | 🟠 | ✅ (tested: scan-only user can scan, nothing else) |
 
 ---
 

@@ -46,7 +46,7 @@ function AppRoutes() {
         <Route path="/products" element={<ProtectedRoute permissions={['products.read']}><Products /></ProtectedRoute>} />
         <Route path="/finishing" element={<ProtectedRoute permissions={['finishing.read']}><Finishing /></ProtectedRoute>} />
         <Route path="/finished-goods" element={<ProtectedRoute permissions={['finished_goods.read']}><FinishedGoods /></ProtectedRoute>} />
-        <Route path="/scan" element={<ProtectedRoute permissions={['finished_goods.read']}><ScanLot /></ProtectedRoute>} />
+        <Route path="/scan" element={<ProtectedRoute permissions={['scan.read']}><ScanLot /></ProtectedRoute>} />
         <Route path="/devis" element={<Navigate to="/sales" replace />} />
         <Route path="/customers" element={<ProtectedRoute permissions={['customers.read']}><Customers /></ProtectedRoute>} />
         <Route path="/suppliers" element={<ProtectedRoute permissions={['suppliers.read']}><Suppliers /></ProtectedRoute>} />
