@@ -509,6 +509,21 @@
 
 ---
 
+## Phase 30 — Estimation by product ("how many of product X do I need")
+
+> Decisions (owner): start from the product and quantity (pieces or cartons), choose the recipe, get the summary. Whole batches only (surplus shown). Subtract finished stock already available. Keep the old "by recipe x batches" planner as a second tab.
+> Calculation: pieces to make = wanted - sellable stock; dough kg = pieces x kg per piece; batches = ceil(total dough per recipe / recipe target weight); ingredients = recipe x batches; packaging = product packaging per piece x pieces + carton packaging x cartons; compare with inventory; cost.
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T30.1 | Pure calculation `lib/estimationPlan.ts` + unit tests (stock subtraction, whole batches and surplus, shared recipes, packaging and cartons, shortages, cost, missing kg per piece) | 🔴 | ✅ (7 tests) |
+| T30.2 | "By product" tab: product + quantity (pieces / cartons) + recipe lines, stock toggle, summary, recipe plan, ingredients, packaging, procurement, cost, print | 🔴 | ✅ (component test: 450 pots -> 180 kg, 2 whole batches, 20 kg surplus, milk short 20 kg; needs browser check) |
+| T30.3 | Old planner kept as the "By recipe" tab | 🟠 | ✅ |
+| T30.4 | Estimation permission can load the product list (API) | 🟠 | ✅ (tested: estimation-only user loads products) |
+| T30.5 | Test and deploy | 🔴 | 🔄 (tested locally; no migration needed, frontend + one route change) |
+
+---
+
 ## Rules for this Project
 1. Take tasks ONE at a time.
 2. After completing a task, make a descriptive git commit immediately.

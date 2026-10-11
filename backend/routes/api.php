@@ -105,7 +105,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/analytics/dashboard', [\App\Http\Controllers\AnalyticsController::class, 'dashboard'])->middleware('permission:analytics.read');
 
     // Finished Products catalog
-    Route::get('/finished-products', [\App\Http\Controllers\FinishedProductController::class, 'index'])->middleware('permission:products.read,finishing.read,finished_goods.read,sales.read,scan.read');
+    Route::get('/finished-products', [\App\Http\Controllers\FinishedProductController::class, 'index'])->middleware('permission:products.read,finishing.read,finished_goods.read,sales.read,scan.read,estimation.read');
     Route::post('/finished-products', [\App\Http\Controllers\FinishedProductController::class, 'store'])->middleware('permission:products.write');
     Route::match(['put', 'patch'], '/finished-products/{finishedProduct}', [\App\Http\Controllers\FinishedProductController::class, 'update'])->middleware('permission:products.write');
     Route::delete('/finished-products/{finishedProduct}', [\App\Http\Controllers\FinishedProductController::class, 'destroy'])->middleware('permission:products.write');

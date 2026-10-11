@@ -15,13 +15,36 @@ import { inventoryService } from '@/services/inventoryService';
 import { Recipe, InventoryItem } from '@/models/types';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import ByProduct from '@/components/estimation/ByProduct';
 
 interface EstimationLine {
   recipeId: string;
   batchCount: number;
 }
 
+/** Page: plan by product (new) or by recipe and batch count (the original planner). */
 export default function Estimation() {
+  return (
+    <div className="space-y-6">
+      <div className="print:hidden">
+        <h1 className="text-2xl font-display font-bold flex items-center gap-2">
+          <Calculator className="h-6 w-6" /> Production Estimation
+        </h1>
+      </div>
+      <Tabs defaultValue="product">
+        <TabsList>
+          <TabsTrigger value="product">By product</TabsTrigger>
+          <TabsTrigger value="recipe">By recipe</TabsTrigger>
+        </TabsList>
+        <TabsContent value="product" className="mt-4"><ByProduct /></TabsContent>
+        <TabsContent value="recipe" className="mt-4"><EstimationByRecipe /></TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function EstimationByRecipe() {
   const { user } = useAuth();
   const [lines, setLines] = useState<EstimationLine[]>([{ recipeId: '', batchCount: 1 }]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -346,12 +369,7 @@ export default function Estimation() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between print:hidden">
-        <div>
-          <h1 className="text-2xl font-display font-bold flex items-center gap-2">
-            <Calculator className="h-6 w-6" /> Production Estimation
-          </h1>
-          <p className="text-sm text-muted-foreground">Plan batches, check stock and procurement needs</p>
-        </div>
+        <p className="text-sm text-muted-foreground">Already know the number of batches? Pick the recipes and see what they need</p>
         {hasEstimation && (
           <Button variant="outline" onClick={handlePrint}>
             <Printer className="h-4 w-4 mr-1" /> Print
