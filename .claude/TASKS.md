@@ -436,6 +436,20 @@
 
 ---
 
+## Phase 25 — Page permission covers everything the page loads
+
+> Rule (owner): if a user has a page's permission, everything on that page must work, including dropdowns and lookups that read data from other sections.
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T25.1 | Audit: every page -> the GET endpoints it loads; list endpoints that only accept another section's permission | 🔴 | ✅ (18 of 33 page lookups were blocked) |
+| T25.2 | Backend: lookup endpoints accept the permissions of every page that uses them (inventory, recipes, batches, batch-groups, quality-controls, customers, orders, suppliers, users) | 🔴 | ✅ (tested: 33/33 allowed, 10/10 unrelated still forbidden) |
+| T25.3 | Finished Goods quick order works with finished_goods.write (POST /orders accepts it; button shown) | 🟠 | ✅ |
+| T25.4 | Permissions page: route needs permissions.read (was users.read); users PUT accepts permissions.write | 🟠 | ✅ |
+| T25.5 | Deploy: git pull + `php artisan route:clear` on server | 🔴 | ☐ |
+
+---
+
 ## Rules for this Project
 1. Take tasks ONE at a time.
 2. After completing a task, make a descriptive git commit immediately.

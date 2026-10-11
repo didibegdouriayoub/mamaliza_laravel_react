@@ -78,7 +78,7 @@ export default function FinishedGoods() {
   const isAdmin = user?.role === 'admin';
   const { toast } = useToast();
   const canWrite = hasPermission('finished_goods.write'); // photos
-  const canOrder = hasPermission('sales.write'); // orders are created through /orders
+  const canOrder = hasPermission('sales.write') || hasPermission('finished_goods.write'); // the quick order mode is part of this page
 
   const [products, setProducts] = useState<FinishedProduct[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);

@@ -54,7 +54,7 @@ function AppRoutes() {
         <Route path="/sales" element={<ProtectedRoute permissions={['sales.read']}><Sales /></ProtectedRoute>} />
         <Route path="/analytics" element={<ProtectedRoute permissions={['analytics.read']}><Analytics /></ProtectedRoute>} />
         <Route path="/users" element={<ProtectedRoute permissions={['users.read']}><UserManagement /></ProtectedRoute>} />
-        <Route path="/permissions" element={<ProtectedRoute permissions={['users.read']}><Permissions /></ProtectedRoute>} />
+        <Route path="/permissions" element={<ProtectedRoute permissions={['permissions.read']}><Permissions /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AppLayout>
