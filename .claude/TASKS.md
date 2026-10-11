@@ -469,6 +469,22 @@
 
 ---
 
+## Phase 27 — "See money" permission
+
+> Rule (owner): a user sees prices, costs, totals, payments and anything about money only with the money permission (`money.read`); otherwise nothing money-related is shown or sent.
+> Money data: inventory price, recipe/batch ingredient unit_price, finished product unit_price, orders (total, paid, returned), order items, payments, refunds, inventory price history, revenue.
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T27.1 | Permission `money.read` on the Permissions page; migration grants it to existing users who use Sales / Analytics / Estimation so nobody loses their money pages by surprise | 🔴 | ✅ (Permissions + user form row; migration grants it to users with Sales / Analytics / Estimation) |
+| T27.2 | Backend never sends money fields to users without it (models, batch ingredient prices, price history, analytics revenue) | 🔴 | ✅ (tested: 0 money keys on 13 endpoints for a user without it; a user with it still gets 14000+) |
+| T27.3 | Users without it can still work: server fills prices from the catalog (orders, batch ingredients), ignores price edits, blocks payments | 🔴 | ✅ (tested: orders priced from catalog and unpaid, batch ingredient prices from inventory, price edits ignored, payments 403) |
+| T27.4 | Frontend hides every money value / column / field; Sales, Analytics, Estimation need the permission; no "DH0" or "NaN" leftovers | 🔴 | ✅ (Recipes / Products / Finished Goods tested; Inventory, Batches, Dashboard, Analytics typechecked; Sales + Estimation need the permission) |
+| T27.5 | Test: a user without it gets no money keys from any endpoint and no money on any screen | 🔴 | ✅ |
+| T27.6 | Deploy (migration on server) | 🔴 | ☐ |
+
+---
+
 ## Rules for this Project
 1. Take tasks ONE at a time.
 2. After completing a task, make a descriptive git commit immediately.

@@ -6,6 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class OrderItem extends Model
 {
+    use \App\Models\Concerns\HidesMoney;
+
+    /** Hidden from users without the money permission */
+    protected array $moneyFields = ['unit_price', 'total'];
+
     public $timestamps = false; // Add this since migration doesn't have timestamps()
 
     protected $casts = [

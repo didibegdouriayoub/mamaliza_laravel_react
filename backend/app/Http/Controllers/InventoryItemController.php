@@ -48,6 +48,9 @@ class InventoryItemController extends Controller
 
     public function store(Request $request)
     {
+        if (!\App\Support\Money::visible()) {
+            $request->merge(['price' => 0]);
+        }
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|in:raw,packaging,Box,Case,Vacbag,Label,Ticket,Wrap,Wax',
@@ -82,6 +85,9 @@ class InventoryItemController extends Controller
 
     public function update(Request $request, InventoryItem $inventory)
     {
+        if (!\App\Support\Money::visible()) {
+            $request->request->remove('price');
+        }
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'type' => 'sometimes|in:raw,packaging,Box,Case,Vacbag,Label,Ticket,Wrap,Wax',

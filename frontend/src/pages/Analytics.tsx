@@ -1,5 +1,6 @@
 ﻿import { motion } from 'framer-motion';
 import { BarChart3, TrendingUp, Factory, ShoppingCart } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { KpiCard } from '@/components/KpiCard';
 import { salesChartData, batchChartData } from '@/data/mockData';
@@ -12,6 +13,8 @@ import { recipeService } from '@/services/recipeService';
 const COLORS = ['hsl(152, 45%, 42%)', 'hsl(38, 92%, 50%)', 'hsl(210, 70%, 52%)', 'hsl(0, 72%, 51%)'];
 
 export default function Analytics() {
+  const { hasPermission } = useAuth();
+  const showMoney = hasPermission('money.read');
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [successRate, setSuccessRate] = useState(0);
   const [activeRecipes, setActiveRecipes] = useState(0);
@@ -50,12 +53,13 @@ export default function Analytics() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <KpiCard title="Total Revenue" value={`DH${totalRevenue}`} icon={ShoppingCart} index={0} />
+        {showMoney && (<KpiCard title="Total Revenue" value={`DH${totalRevenue}`} icon={ShoppingCart} index={0} />)}
         <KpiCard title="Batch Success Rate" value={`${successRate}%`} icon={Factory} index={1} />
         <KpiCard title="Active Recipes" value={activeRecipes} icon={TrendingUp} index={2} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {showMoney && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <Card className="shadow-card">
             <CardHeader className="pb-2"><CardTitle className="text-base font-display">Revenue Trend</CardTitle></CardHeader>
@@ -72,6 +76,7 @@ export default function Analytics() {
             </CardContent>
           </Card>
         </motion.div>
+        )}
 
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <Card className="shadow-card">

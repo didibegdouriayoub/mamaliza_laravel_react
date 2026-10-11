@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import {
   Package, Factory, ShoppingCart, AlertTriangle,
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { KpiCard } from '@/components/KpiCard';
 import { BatchStatusBadge } from '@/components/StatusBadge';
@@ -13,6 +14,8 @@ import { batchService } from '@/services/batchService';
 import { orderService } from '@/services/orderService';
 
 export default function Dashboard() {
+  const { hasPermission } = useAuth();
+  const showMoney = hasPermission('money.read');
   const [loading, setLoading] = useState(true);
   const [totalSales, setTotalSales] = useState(0);
   const [lowStockCount, setLowStockCount] = useState(0);
@@ -98,13 +101,14 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard title="Total Sales" value={`DH${totalSales.toLocaleString()}`} icon={ShoppingCart} trend={{ value: '12% vs last month', positive: true }} index={0} />
+        {showMoney && (<KpiCard title="Total Sales" value={`DH${totalSales.toLocaleString()}`} icon={ShoppingCart} trend={{ value: '12% vs last month', positive: true }} index={0} />)}
         <KpiCard title="Active Batches" value={activeBatchesCount} subtitle={`${completedBatches} completed this month`} icon={Factory} index={1} />
         <KpiCard title="Inventory Items" value={inventoryCount} icon={Package} index={2} />
         <KpiCard title="Low Stock Alerts" value={lowStockCount} subtitle="Items need restocking" icon={AlertTriangle} index={3} trend={lowStockCount > 0 ? { value: `${lowStockCount} items`, positive: false } : undefined} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {showMoney && (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <Card className="shadow-card">
             <CardHeader className="pb-2">
@@ -123,6 +127,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </motion.div>
+        )}
 
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
           <Card className="shadow-card">

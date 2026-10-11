@@ -6,6 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class InventoryItem extends Model
 {
+    use \App\Models\Concerns\HidesMoney;
+
+    /** Hidden from users without the money permission */
+    protected array $moneyFields = ['price'];
+
     protected $casts = [
         'quantity' => 'float',
         'price' => 'float',

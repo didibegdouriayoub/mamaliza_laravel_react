@@ -6,6 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class InventoryHistory extends Model
 {
+    protected static function booted(): void
+    {
+        static::addGlobalScope('money', function ($query) {
+            if (!\App\Support\Money::visible()) {
+                $query->where('field', '!=', 'price');
+            }
+        });
+    }
+
     protected $table = 'inventory_history';
 
     public const UPDATED_AT = null; // We only use changed_at, no updated_at column is needed.

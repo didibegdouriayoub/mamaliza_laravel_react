@@ -6,6 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class FinishedProduct extends Model
 {
+    use \App\Models\Concerns\HidesMoney;
+
+    /** Hidden from users without the money permission */
+    protected array $moneyFields = ['unit_price'];
+
     protected $fillable = ['name', 'type', 'unit_price', 'notes', 'image_path', 'lot_prefix', 'lot_letters'];
 
     protected $appends = ['image_url'];

@@ -71,6 +71,7 @@ export default function Batches() {
   const [rIngredients, setRIngredients] = useState<RecipeIngredient[]>([]);
 
   const { user, hasPermission } = useAuth();
+  const showMoney = hasPermission('money.read');
   const { toast } = useToast();
 
   // ── Batch Group print  (pivot: ingredients = rows, batches = columns) ───────
@@ -642,7 +643,7 @@ export default function Batches() {
                 <div className="p-3 bg-accent/40 rounded-lg border text-sm space-y-1">
                   <p><span className="text-muted-foreground">Target yield:</span> <span className="font-medium">{selectedRecipe.targetWeight} {selectedRecipe.pieceWeight}</span></p>
                   <p><span className="text-muted-foreground">Ingredients:</span> <span className="font-medium">{selectedRecipe.ingredients.length} materials</span></p>
-                  <p><span className="text-muted-foreground">Cost/batch:</span> <span className="font-medium">DH{selectedRecipe.ingredients.reduce((s, i) => s + i.quantity * i.unitPrice, 0).toFixed(2)}</span></p>
+                  {showMoney && (<p><span className="text-muted-foreground">Cost/batch:</span> <span className="font-medium">DH{selectedRecipe.ingredients.reduce((s, i) => s + i.quantity * i.unitPrice, 0).toFixed(2)}</span></p>)}
                 </div>
               )}
               <div className="space-y-1.5">
@@ -668,7 +669,7 @@ export default function Batches() {
                   <div key={bIdx} className="border rounded-lg overflow-hidden">
                     <button type="button" className="w-full flex items-center justify-between px-4 py-3 bg-accent/20 hover:bg-accent/40 transition-colors text-left" onClick={() => setExpandedBatch(isOpen ? null : bIdx)}>
                       <span className="font-medium text-sm">Batch #{bIdx + 1}</span>
-                      <span className="text-xs text-muted-foreground">{draft.ingredients.length} materials · DH{draftCost.toFixed(2)}</span>
+                      <span className="text-xs text-muted-foreground">{draft.ingredients.length} materials{showMoney ? ` · DH${draftCost.toFixed(2)}` : ''}</span>
                       <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', isOpen && 'rotate-180')} />
                     </button>
                     {isOpen && (
@@ -697,13 +698,13 @@ export default function Batches() {
                         ))}
                         <Button type="button" variant="ghost" size="sm" className="text-xs h-7" onClick={addIngredient}><Plus className="h-3 w-3 mr-1" /> Add ingredient (all batches)</Button>
                         <div className="space-y-1"><Label className="text-xs">Note</Label><Input className="h-8 text-sm" value={draft.note} onChange={e => updateDraft(bIdx, { note: e.target.value })} placeholder="Production notes..." /></div>
-                        <p className="text-xs text-right text-muted-foreground">Cost: <span className="font-semibold text-foreground">DH{draftCost.toFixed(2)}</span></p>
+                        {showMoney && (<p className="text-xs text-right text-muted-foreground">Cost: <span className="font-semibold text-foreground">DH{draftCost.toFixed(2)}</span></p>)}
                       </div>
                     )}
                   </div>
                 );
               })}
-              <p className="text-sm text-right text-muted-foreground">Total: <span className="font-semibold text-foreground">DH{batchDrafts.reduce((s, d) => s + d.ingredients.reduce((ss, i) => ss + i.quantity * i.unitPrice, 0), 0).toFixed(2)}</span></p>
+              {showMoney && (<p className="text-sm text-right text-muted-foreground">Total: <span className="font-semibold text-foreground">DH{batchDrafts.reduce((s, d) => s + d.ingredients.reduce((ss, i) => ss + i.quantity * i.unitPrice, 0), 0).toFixed(2)}</span></p>)}
             </div>
           )}
 
@@ -815,8 +816,8 @@ export default function Batches() {
                                     <TableHead>Material</TableHead>
                                     <TableHead className="text-right">Qty</TableHead>
                                     <TableHead>Unit</TableHead>
-                                    <TableHead className="text-right">Unit Price</TableHead>
-                                    <TableHead className="text-right">Cost</TableHead>
+                                    {showMoney && (<TableHead className="text-right">Unit Price</TableHead>)}
+                                    {showMoney && (<TableHead className="text-right">Cost</TableHead>)}
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -825,14 +826,16 @@ export default function Batches() {
                                       <TableCell className="font-medium py-1.5">{m.materialName}</TableCell>
                                       <TableCell className="text-right py-1.5">{m.quantity}</TableCell>
                                       <TableCell className="py-1.5">{m.unit}</TableCell>
-                                      <TableCell className="text-right py-1.5">DH{Number(m.unitPrice).toFixed(2)}</TableCell>
-                                      <TableCell className="text-right font-medium py-1.5">DH{(m.quantity * m.unitPrice).toFixed(2)}</TableCell>
+                                      {showMoney && (<TableCell className="text-right py-1.5">DH{Number(m.unitPrice).toFixed(2)}</TableCell>)}
+                                      {showMoney && (<TableCell className="text-right font-medium py-1.5">DH{(m.quantity * m.unitPrice).toFixed(2)}</TableCell>)}
                                     </TableRow>
                                   ))}
+                                  {showMoney && (
                                   <TableRow>
                                     <TableCell colSpan={4} className="text-right font-semibold text-xs">Batch cost</TableCell>
                                     <TableCell className="text-right font-bold text-sm">DH{b.inputMaterials.reduce((s, m) => s + m.quantity * m.unitPrice, 0).toFixed(2)}</TableCell>
                                   </TableRow>
+                                  )}
                                 </TableBody>
                               </Table>
                             </div>
@@ -994,8 +997,8 @@ export default function Batches() {
                               <TableHead>Material</TableHead>
                               <TableHead className="text-right">Qty</TableHead>
                               <TableHead>Unit</TableHead>
-                              <TableHead className="text-right">Unit Price</TableHead>
-                              <TableHead className="text-right">Cost</TableHead>
+                              {showMoney && (<TableHead className="text-right">Unit Price</TableHead>)}
+                              {showMoney && (<TableHead className="text-right">Cost</TableHead>)}
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -1004,16 +1007,18 @@ export default function Batches() {
                                 <TableCell className="font-medium">{m.materialName}</TableCell>
                                 <TableCell className="text-right">{m.quantity}</TableCell>
                                 <TableCell>{m.unit}</TableCell>
-                                <TableCell className="text-right">DH{Number(m.unitPrice).toFixed(2)}</TableCell>
-                                <TableCell className="text-right font-medium">DH{(m.quantity * m.unitPrice).toFixed(2)}</TableCell>
+                                {showMoney && (<TableCell className="text-right">DH{Number(m.unitPrice).toFixed(2)}</TableCell>)}
+                                {showMoney && (<TableCell className="text-right font-medium">DH{(m.quantity * m.unitPrice).toFixed(2)}</TableCell>)}
                               </TableRow>
                             ))}
+                            {showMoney && (
                             <TableRow>
                               <TableCell colSpan={4} className="text-right font-semibold">Total</TableCell>
                               <TableCell className="text-right font-bold">
                                 DH{viewBatch.inputMaterials.reduce((s, m) => s + m.quantity * m.unitPrice, 0).toFixed(2)}
                               </TableCell>
                             </TableRow>
+                            )}
                           </TableBody>
                         </Table>
                       </div>

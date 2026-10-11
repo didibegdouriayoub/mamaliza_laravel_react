@@ -48,6 +48,23 @@ class User extends Authenticatable
         ];
     }
 
+    /**
+     * Permissions are normally a JSON array, but some users were saved as a JSON string holding JSON
+     * (double-encoded). Read both as an array so permission checks never crash.
+     */
+    protected function permissions(): \Illuminate\Database\Eloquent\Casts\Attribute
+    {
+        return \Illuminate\Database\Eloquent\Casts\Attribute::make(
+            get: function ($value) {
+                for ($i = 0; $i < 3 && is_string($value) && $value !== ''; $i++) {
+                    $value = json_decode($value, true);
+                }
+
+                return is_array($value) ? $value : [];
+            },
+        );
+    }
+
     public function hasPermission(string $permission): bool
     {
         if ($this->role === 'admin') {

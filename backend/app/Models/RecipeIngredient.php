@@ -6,6 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class RecipeIngredient extends Model
 {
+    use \App\Models\Concerns\HidesMoney;
+
+    /** Hidden from users without the money permission */
+    protected array $moneyFields = ['unit_price'];
+
     public $timestamps = false;
 
     protected $fillable = [

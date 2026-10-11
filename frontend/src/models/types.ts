@@ -13,6 +13,7 @@ export type Permission =
   | 'products.read' | 'products.write'
   | 'finishing.read' | 'finishing.write'
   | 'finished_goods.read' | 'finished_goods.write'
+  | 'money.read'
   | 'users.read' | 'users.write'
   | 'suppliers.read' | 'suppliers.write'
   | 'customers.read' | 'customers.write'

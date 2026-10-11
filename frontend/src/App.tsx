@@ -42,7 +42,7 @@ function AppRoutes() {
         <Route path="/recipes" element={<ProtectedRoute permissions={['recipes.read']}><Recipes /></ProtectedRoute>} />
         <Route path="/batches" element={<ProtectedRoute permissions={['batches.read']}><Batches /></ProtectedRoute>} />
         <Route path="/quality" element={<ProtectedRoute permissions={['quality.read']}><Quality /></ProtectedRoute>} />
-        <Route path="/estimation" element={<ProtectedRoute permissions={['estimation.read']}><Estimation /></ProtectedRoute>} />
+        <Route path="/estimation" element={<ProtectedRoute permissions={['estimation.read', 'money.read']}><Estimation /></ProtectedRoute>} />
         <Route path="/products" element={<ProtectedRoute permissions={['products.read']}><Products /></ProtectedRoute>} />
         <Route path="/finishing" element={<ProtectedRoute permissions={['finishing.read']}><Finishing /></ProtectedRoute>} />
         <Route path="/finished-goods" element={<ProtectedRoute permissions={['finished_goods.read']}><FinishedGoods /></ProtectedRoute>} />
@@ -50,7 +50,7 @@ function AppRoutes() {
         <Route path="/devis" element={<Navigate to="/sales" replace />} />
         <Route path="/customers" element={<ProtectedRoute permissions={['customers.read']}><Customers /></ProtectedRoute>} />
         <Route path="/suppliers" element={<ProtectedRoute permissions={['suppliers.read']}><Suppliers /></ProtectedRoute>} />
-        <Route path="/sales" element={<ProtectedRoute permissions={['sales.read']}><Sales /></ProtectedRoute>} />
+        <Route path="/sales" element={<ProtectedRoute permissions={['sales.read', 'money.read']}><Sales /></ProtectedRoute>} />
         <Route path="/analytics" element={<ProtectedRoute permissions={['analytics.read']}><Analytics /></ProtectedRoute>} />
         <Route path="/users" element={<ProtectedRoute permissions={['users.read']}><UserManagement /></ProtectedRoute>} />
         <Route path="/permissions" element={<ProtectedRoute permissions={['permissions.read']}><Permissions /></ProtectedRoute>} />

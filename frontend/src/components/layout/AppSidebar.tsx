@@ -12,13 +12,13 @@ import {
 import type { Permission } from '@/models/types';
 import cheeseLogo from '@/assets/cheese-logo.png';
 
-const navItems: { title: string; url: string; icon: typeof LayoutDashboard; permission?: Permission; group?: string }[] = [
+const navItems: { title: string; url: string; icon: typeof LayoutDashboard; permission?: Permission | Permission[]; group?: string }[] = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard, permission: 'analytics.read' },
   { title: 'Inventory', url: '/inventory', icon: Package, permission: 'inventory.read' },
   { title: 'Recipes', url: '/recipes', icon: BookOpen, permission: 'recipes.read' },
   { title: 'Batches', url: '/batches', icon: Factory, permission: 'batches.read' },
   { title: 'Quality', url: '/quality', icon: ShieldCheck, permission: 'quality.read' },
-  { title: 'Estimation', url: '/estimation', icon: Calculator, permission: 'estimation.read' },
+  { title: 'Estimation', url: '/estimation', icon: Calculator, permission: ['estimation.read', 'money.read'] },
   // Finished goods
   { title: 'Products', url: '/products', icon: Box, permission: 'products.read' },
   { title: 'Finishing', url: '/finishing', icon: Layers, permission: 'finishing.read' },
@@ -27,7 +27,7 @@ const navItems: { title: string; url: string; icon: typeof LayoutDashboard; perm
   // Sales & admin
   { title: 'Customers', url: '/customers', icon: Users, permission: 'customers.read' },
   { title: 'Suppliers', url: '/suppliers', icon: Truck, permission: 'suppliers.read' },
-  { title: 'Sales', url: '/sales', icon: ShoppingCart, permission: 'sales.read' },
+  { title: 'Sales', url: '/sales', icon: ShoppingCart, permission: ['sales.read', 'money.read'] },
   { title: 'Analytics', url: '/analytics', icon: BarChart3, permission: 'analytics.read' },
   { title: 'Users', url: '/users', icon: Users, permission: 'users.read' },
   { title: 'Permissions', url: '/permissions', icon: ShieldCheck, permission: 'permissions.read' },
@@ -38,7 +38,7 @@ export function AppSidebar() {
   const collapsed = state === 'collapsed';
   const { hasPermission } = useAuth();
 
-  const visibleItems = navItems.filter(i => !i.permission || hasPermission(i.permission));
+  const visibleItems = navItems.filter(i => !i.permission || ([] as string[]).concat(i.permission).every(p => hasPermission(p as any)));
 
   return (
     <Sidebar collapsible="icon">

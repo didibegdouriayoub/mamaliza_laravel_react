@@ -23,12 +23,12 @@ class AnalyticsController extends Controller
         $recentOrders = Order::latest()->take(5)->get();
 
         return response()->json([
-            'metrics' => [
+            'metrics' => array_filter([
                 'total_orders' => $totalOrders,
-                'total_revenue' => $totalRevenue,
+                'total_revenue' => \App\Support\Money::visible() ? $totalRevenue : null,
                 'active_batches' => $activeBatches,
                 'total_customers' => $totalCustomers,
-            ],
+            ], fn ($v) => $v !== null),
             'low_stock_items' => $lowStockItems,
             'recent_orders' => $recentOrders,
         ]);

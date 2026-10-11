@@ -6,6 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Order extends Model
 {
+    use \App\Models\Concerns\HidesMoney;
+
+    /** Hidden from users without the money permission */
+    protected array $moneyFields = ['total_amount', 'amount_paid', 'amount_returned'];
+
     protected $fillable = [
         'customer_id',
         'customer_name',

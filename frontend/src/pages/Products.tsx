@@ -29,6 +29,7 @@ const emptyComponent = (): FinishedProductComponent => ({ component_id: '', qty_
 
 export default function Products() {
   const { hasPermission } = useAuth();
+  const showMoney = hasPermission('money.read');
   const { toast } = useToast();
   const canWrite = hasPermission('products.write');
 
@@ -147,7 +148,7 @@ export default function Products() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Type</TableHead>
-                  <TableHead>Unit Price</TableHead>
+                  {showMoney && <TableHead>Unit Price</TableHead>}
                   <TableHead>Stock</TableHead>
                   <TableHead>Inputs / Components</TableHead>
                   <TableHead>Packaging</TableHead>
@@ -163,7 +164,7 @@ export default function Products() {
                         {p.type === 'box' ? <><Box className="h-3 w-3 mr-1" />Box</> : <><Package className="h-3 w-3 mr-1" />Piece</>}
                       </Badge>
                     </TableCell>
-                    <TableCell>{p.unit_price.toFixed(2)} DH</TableCell>
+                    {showMoney && <TableCell>{p.unit_price.toFixed(2)} DH</TableCell>}
                     <TableCell>
                       <span className={`font-medium ${(p.stock?.quantity ?? 0) === 0 ? 'text-destructive' : 'text-green-600'}`}>
                         {p.stock?.quantity ?? 0} pcs
@@ -228,10 +229,12 @@ export default function Products() {
                 </Select>
               </div>
             </div>
+            {showMoney && (
             <div className="space-y-1.5">
               <Label>Unit Price (DH)</Label>
               <Input type="number" min="0" step="0.01" value={unitPrice} onChange={e => setUnitPrice(e.target.value)} placeholder="0.00" />
             </div>
+            )}
 
             {/* Piece: lot code printed on the box */}
             {type === 'piece' && (

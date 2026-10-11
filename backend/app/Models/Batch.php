@@ -24,6 +24,19 @@ class Batch extends Model
         'completed_at'
     ];
 
+    public function toArray()
+    {
+        $data = parent::toArray();
+        if (!\App\Support\Money::visible() && is_array($data['input_materials'] ?? null)) {
+            $data['input_materials'] = array_map(
+                fn ($m) => is_array($m) ? \Illuminate\Support\Arr::except($m, ['unit_price', 'unitPrice']) : $m,
+                $data['input_materials']
+            );
+        }
+
+        return $data;
+    }
+
     protected $casts = [
         'input_materials' => 'array',
         'started_at' => 'date',

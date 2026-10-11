@@ -6,6 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class Payment extends Model
 {
+    use \App\Models\Concerns\HidesMoney;
+
+    /** Hidden from users without the money permission */
+    protected array $moneyFields = ['amount'];
+
     public $timestamps = false;
     
     // Payments migration has created_at but not updated_at so we handle it this way

@@ -6,6 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 
 class OrderReturn extends Model
 {
+    use \App\Models\Concerns\HidesMoney;
+
+    /** Hidden from users without the money permission */
+    protected array $moneyFields = ['refund_amount'];
+
     public $timestamps = false;
 
     protected $fillable = [

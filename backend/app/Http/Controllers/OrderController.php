@@ -19,8 +19,36 @@ class OrderController extends Controller
         return response()->json(Order::with('items', 'returns', 'payments')->latest()->get());
     }
 
+    /**
+     * A user without the money permission cannot send prices or payments: price every line from the catalog
+     * (carton / piece / inventory item), and start the document unpaid.
+     */
+    private function priceFromCatalog(Request $request): void
+    {
+        if (\App\Support\Money::visible()) {
+            return;
+        }
+        $total = 0.0;
+        $items = array_map(function ($i) use (&$total) {
+            $price = 0.0;
+            if (!empty($i['finished_product_id'])) {
+                $price = (float) \App\Models\FinishedProduct::find($i['finished_product_id'])?->unit_price;
+            } elseif (!empty($i['inventory_item_id'])) {
+                $price = (float) \App\Models\InventoryItem::find($i['inventory_item_id'])?->price;
+            }
+            $i['unit_price'] = $price;
+            $i['total'] = round($price * (float) ($i['quantity'] ?? 0), 2);
+            $total += $i['total'];
+
+            return $i;
+        }, (array) $request->input('items', []));
+
+        $request->merge(['items' => $items, 'total_amount' => round($total, 2), 'amount_paid' => 0, 'amount_returned' => 0, 'status' => 'pending']);
+    }
+
     public function store(Request $request, FinishedStockService $stockService, DocumentNumberService $numbers)
     {
+        $this->priceFromCatalog($request);
         $validated = $request->validate([
             'customer_id'     => 'nullable|exists:customers,id',
             'customer_name'   => 'required|string|max:255',
@@ -169,6 +197,11 @@ class OrderController extends Controller
 
     public function update(Request $request, Order $order)
     {
+        if (!\App\Support\Money::visible()) {
+            $request->request->remove('total_amount');
+            $request->request->remove('amount_paid');
+            $request->request->remove('amount_returned');
+        }
         $validated = $request->validate([
             'customer_id'     => 'nullable|exists:customers,id',
             'customer_name'   => 'sometimes|string|max:255',
@@ -195,6 +228,7 @@ class OrderController extends Controller
     // T12.7.1: Record a payment and auto-update order status
     public function storePayment(Request $request, Order $order)
     {
+        abort_unless(\App\Support\Money::visible(), 403, 'Recording a payment needs the money permission.');
         $validated = $request->validate([
             'amount'  => 'required|numeric|min:0.01',
             // T12.7.3: accept both "Cash" and "cash" style, we normalise below
@@ -224,6 +258,9 @@ class OrderController extends Controller
     // T12.7.1: Record a return and update amount_returned
     public function storeReturn(Request $request, Order $order, FinishedStockService $stockService)
     {
+        if (!\App\Support\Money::visible()) {
+            $request->merge(['refund_amount' => 0]);
+        }
         $validated = $request->validate([
             'product_name'   => 'nullable|string|max:255',
             'order_item_id'  => 'nullable|exists:order_items,id',

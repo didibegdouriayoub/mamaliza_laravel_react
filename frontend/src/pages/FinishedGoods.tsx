@@ -77,6 +77,7 @@ function ProductImage({ product, className = '' }: { product: FinishedProduct; c
 
 export default function FinishedGoods() {
   const { hasPermission, user } = useAuth();
+  const showMoney = hasPermission('money.read');
   const isAdmin = user?.role === 'admin';
   const { toast } = useToast();
   const canWrite = hasPermission('finished_goods.write'); // photos
@@ -218,7 +219,7 @@ export default function FinishedGoods() {
       const opened: any[] = res?.cartonsOpened ?? [];
       toast({
         title: `Facture ${res?.docNumber ?? ''} recorded`,
-        description: `${cartCount} pieces · ${cartTotal.toFixed(2)} DH` +
+        description: `${cartCount} pieces${showMoney ? ` · ${cartTotal.toFixed(2)} DH` : ''}` +
           (opened.length ? ` · opened ${opened.map(o => `${o.cartons} carton(s) of ${o.name}`).join(', ')}` : ''),
       });
       if (print) printOrderDocument(res as Order, 'facture', customers.find((c: any) => String(c.id) === String(custId))?.address ?? '');
@@ -276,7 +277,7 @@ export default function FinishedGoods() {
                   <p className="font-medium leading-tight truncate" title={p.name}>{p.name}</p>
                   <div className="flex items-baseline justify-between">
                     <span className={`text-2xl font-bold ${total <= 0 ? 'text-destructive' : total < LOW_STOCK ? 'text-amber-600' : 'text-green-600'}`}>{total} <span className="text-xs font-normal text-muted-foreground">{summary.unit}</span></span>
-                    <span className="text-xs text-muted-foreground">{p.unit_price.toFixed(2)} DH</span>
+                    {showMoney && <span className="text-xs text-muted-foreground">{p.unit_price.toFixed(2)} DH</span>}
                   </div>
                   <p className="text-xs text-muted-foreground">{summary.sub}</p>
                   {inCart > 0 && splitLabel(splitPieces(p, inCart)) && <p className="text-xs font-medium text-primary">{splitLabel(splitPieces(p, inCart))}</p>}
@@ -295,7 +296,7 @@ export default function FinishedGoods() {
         </div>
       )}
 
-      {products.length > 0 && !orderMode && (
+      {showMoney && products.length > 0 && !orderMode && (
         <div className="text-right text-sm text-muted-foreground pr-1">
           Total stock value: <strong className="text-foreground text-base">{totalValue.toFixed(2)} DH</strong>
         </div>
@@ -306,7 +307,7 @@ export default function FinishedGoods() {
         <div className="fixed bottom-0 inset-x-0 z-40 border-t bg-background p-4 flex items-center gap-4 shadow-lg">
           <div className="flex-1">
             <p className="font-semibold">{cartCount} piece{cartCount === 1 ? '' : 's'} · {cartLines.length} product{cartLines.length === 1 ? '' : 's'}</p>
-            <p className="text-sm text-muted-foreground">Total {cartTotal.toFixed(2)} DH</p>
+            {showMoney && <p className="text-sm text-muted-foreground">Total {cartTotal.toFixed(2)} DH</p>}
           </div>
           <Button variant="ghost" disabled={cartCount === 0} onClick={() => setCart({})}>Clear</Button>
           <Button disabled={cartCount === 0} onClick={() => setOrderOpen(true)}>Continue</Button>
@@ -321,10 +322,10 @@ export default function FinishedGoods() {
             <div className="rounded-lg border divide-y text-sm">
               {cartLines.flatMap(l => l.items).map((it, i) => (
                 <div key={i} className="flex justify-between px-3 py-2">
-                  <span>{it.quantity} × {it.product_name}</span><span className="font-medium">{it.total.toFixed(2)} DH</span>
+                  <span>{it.quantity} × {it.product_name}</span>{showMoney && <span className="font-medium">{it.total.toFixed(2)} DH</span>}
                 </div>
               ))}
-              <div className="flex justify-between px-3 py-2 font-semibold"><span>Total</span><span>{cartTotal.toFixed(2)} DH</span></div>
+              {showMoney && <div className="flex justify-between px-3 py-2 font-semibold"><span>Total</span><span>{cartTotal.toFixed(2)} DH</span></div>}
             </div>
             <div className="space-y-1.5">
               <Label>Customer</Label>
@@ -334,9 +335,11 @@ export default function FinishedGoods() {
               </Select>
               <Input placeholder="Customer name" value={custName} onChange={e => { setCustName(e.target.value); setCustId(''); }} />
             </div>
+            {showMoney && (
             <label className="flex items-center gap-2 text-sm">
               <Checkbox checked={paidInFull} onCheckedChange={v => setPaidInFull(v === true)} /> Paid in full
             </label>
+            )}
             {cartLines.some(l => cartonsToOpen(l.product, l.quantity) > 0) && (
               <p className="text-sm font-medium text-amber-600">
                 {cartLines.filter(l => cartonsToOpen(l.product, l.quantity) > 0).map(l => `${cartonsToOpen(l.product, l.quantity)} carton(s) of ${l.product.name} will be opened`).join(' · ')}
@@ -347,7 +350,7 @@ export default function FinishedGoods() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setOrderOpen(false)}>Back</Button>
             <Button variant="outline" onClick={() => createOrder(false)} disabled={savingOrder}>{savingOrder ? 'Saving…' : 'Confirm'}</Button>
-            <Button onClick={() => createOrder(true)} disabled={savingOrder}>Confirm &amp; print</Button>
+            {showMoney && <Button onClick={() => createOrder(true)} disabled={savingOrder}>Confirm &amp; print</Button>}
           </DialogFooter>
         </DialogContent>
       </Dialog>

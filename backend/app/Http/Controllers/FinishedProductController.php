@@ -26,6 +26,9 @@ class FinishedProductController extends Controller
 
     public function store(Request $request)
     {
+        if (!\App\Support\Money::visible()) {
+            $request->merge(['unit_price' => 0]);
+        }
         $validated = $request->validate([
             'name'       => 'required|string|max:255',
             'type'       => 'required|in:piece,box',
@@ -74,6 +77,9 @@ class FinishedProductController extends Controller
 
     public function update(Request $request, FinishedProduct $finishedProduct)
     {
+        if (!\App\Support\Money::visible()) {
+            $request->request->remove('unit_price');
+        }
         $validated = $request->validate([
             'name'       => 'sometimes|string|max:255',
             'type'       => 'sometimes|in:piece,box',

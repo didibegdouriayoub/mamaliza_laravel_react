@@ -14,6 +14,7 @@ class BatchController extends Controller
 
     public function store(Request $request)
     {
+        $this->priceMaterialsFromCatalog($request);
         $validated = $request->validate([
             'recipe_id' => 'required|exists:recipes,id',
             'recipe_name' => 'required|string|max:255',
@@ -65,6 +66,20 @@ class BatchController extends Controller
         return response()->json($batch, 201);
     }
 
+    /** A user without the money permission cannot send prices: fill them from the inventory. */
+    private function priceMaterialsFromCatalog(Request $request): void
+    {
+        if (\App\Support\Money::visible() || !is_array($request->input('input_materials'))) {
+            return;
+        }
+        $request->merge(['input_materials' => array_map(function ($m) {
+            $id = $m['material_id'] ?? $m['materialId'] ?? null;
+            $m['unit_price'] = $id ? (float) (\App\Models\InventoryItem::find($id)?->price ?? 0) : 0;
+
+            return $m;
+        }, $request->input('input_materials'))]);
+    }
+
     public function show(Batch $batch)
     {
         return response()->json($batch->load(['notes', 'qualityControl']));
@@ -72,6 +87,7 @@ class BatchController extends Controller
 
     public function update(Request $request, Batch $batch)
     {
+        $this->priceMaterialsFromCatalog($request);
         $validated = $request->validate([
             'status' => 'sometimes|string|in:completed,failed',
             'lot' => 'nullable|string|max:100',
