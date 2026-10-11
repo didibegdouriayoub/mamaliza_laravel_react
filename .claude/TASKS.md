@@ -499,6 +499,16 @@
 
 ---
 
+## Phase 29 — Clean start for sales (fake test factures)
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T29.1 | `php artisan sales:reset [--include-devis] [--dry-run] [--force]`: deletes factures the app's way (finished stock restored, payments/returns removed, FA-/DV- numbering restarts at 0001) | 🔴 | ✅ (tested locally inside a rolled-back transaction) |
+| T29.2 | Lot scan ignores stock movements of deleted sales (no phantom "Unknown" buyer) | 🟠 | ✅ |
+| T29.3 | Run on the server: backup, dry run, then the real reset | 🔴 | ☐ |
+
+---
+
 ## Rules for this Project
 1. Take tasks ONE at a time.
 2. After completing a task, make a descriptive git commit immediately.

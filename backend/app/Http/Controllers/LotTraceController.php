@@ -99,6 +99,8 @@ class LotTraceController extends Controller
             ->where('type', 'order')->whereNotNull('order_id')->get();
         $orders = Order::with('customer:id,name,phone')->whereIn('id', $moves->pluck('order_id')->unique())->get()->keyBy('id');
         $productNames = $lots->pluck('product.name', 'finished_product_id');
+        // a deleted sale leaves its stock movements behind: do not show it as a buyer
+        $moves = $moves->filter(fn ($m) => $orders->has($m->order_id));
 
         $buyers = $moves->groupBy('order_id')->map(function ($rows, $orderId) use ($orders, $productNames) {
             $order = $orders[$orderId] ?? null;
