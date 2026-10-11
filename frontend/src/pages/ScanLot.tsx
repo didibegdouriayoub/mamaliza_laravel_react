@@ -220,7 +220,7 @@ export default function ScanLot() {
                   <div key={b.order_id} className="px-3 py-2 text-sm flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <p className="font-medium">{b.customer}{b.phone ? <span className="font-normal text-muted-foreground"> · {b.phone}</span> : null}</p>
-                      <p className="text-xs text-muted-foreground">Order #{b.order_id} · {fmtDay(b.date)}</p>
+                      <p className="text-xs text-muted-foreground">{b.doc_number ?? `Order #${b.order_id}`} · {fmtDay(b.date)}</p>
                     </div>
                     <p className="text-muted-foreground">{b.items.map(i => `${i.quantity} × ${i.product}`).join(', ')}</p>
                   </div>

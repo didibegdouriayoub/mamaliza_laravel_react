@@ -1,6 +1,8 @@
 ﻿import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingCart, Search, Plus, Undo2, CreditCard, Download, Trash2, Printer } from 'lucide-react';
+import { ShoppingCart, Search, Plus, Undo2, CreditCard, Download, Trash2, Printer, FileText, Truck, CheckCircle2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -18,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { printDocument, fmtDate, fmtEur } from '@/lib/printDocument';
+import { printOrderDocument, DocKind } from '@/lib/invoicePrint';
 
 interface OrderLine {
   finished_product_id: number;
@@ -38,6 +40,9 @@ export default function Sales() {
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [returnOpen, setReturnOpen] = useState(false);
   const [newOrderOpen, setNewOrderOpen] = useState(false);
+  const [tab, setTab] = useState<'facture' | 'devis' | 'owed'>('facture');
+  const [newDocType, setNewDocType] = useState<'facture' | 'devis'>('facture');
+  const [converting, setConverting] = useState(false);
   const [payAmount, setPayAmount] = useState(0);
   const [payMethod, setPayMethod] = useState('Cash');
   const [retProductName, setRetProductName] = useState('');
@@ -75,7 +80,8 @@ export default function Sales() {
 
   useEffect(() => { loadData(); }, []);
 
-  const openNewOrder = () => {
+  const openNew = (type: 'facture' | 'devis') => {
+    setNewDocType(type);
     setNewOrderCustomerId(''); setNewOrderCustomerName(''); setOrderLines([]);
     setNewOrderOpen(true);
   };
@@ -104,22 +110,33 @@ export default function Sales() {
   const expandedItems = orderLines.flatMap(lineToItems);
   const orderTotal = expandedItems.reduce((s, i) => s + i.total, 0);
 
-  const handleCreateOrder = async () => {
+  const addressOf = (customerId?: string | number | null) =>
+    customers.find((c: any) => String(c.id) === String(customerId ?? ''))?.address ?? '';
+
+  const handleCreateOrder = async (print: boolean) => {
     if (!newOrderCustomerName.trim()) { toast({ title: 'Customer name required', variant: 'destructive' }); return; }
     if (orderLines.length === 0) { toast({ title: 'Add at least one product', variant: 'destructive' }); return; }
     setSavingOrder(true);
     try {
-      await orderService.create({
+      const created: any = await orderService.create({
         customerId: newOrderCustomerId || undefined,
         customerName: newOrderCustomerName,
         totalAmount: orderTotal,
         amountPaid: 0,
         amountReturned: 0,
         status: 'pending',
+        document_type: newDocType,
         items: expandedItems as any[],
       } as any);
-      toast({ title: 'Order created' });
+      const warnings: any[] = created?.stockWarnings ?? [];
+      toast({
+        title: `${newDocType === 'devis' ? 'Devis' : 'Facture'} ${created?.docNumber ?? ''} saved`,
+        description: warnings.length ? warnings.map(w => `${w.name}: sold ${w.requested}, had ${w.available}`).join(' | ') : undefined,
+        variant: warnings.length ? 'destructive' : undefined,
+      });
       setNewOrderOpen(false);
+      setTab(newDocType);
+      if (print) printOrderDocument(created as Order, newDocType, addressOf(created?.customerId));
       loadData();
     } catch (e: any) {
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
@@ -128,9 +145,9 @@ export default function Sales() {
   };
 
   const handleExportCsv = () => {
-    const headers = ['Order #', 'Customer', 'Total (DH)', 'Paid (DH)', 'Returned (DH)', 'Balance (DH)', 'Status', 'Date'];
+    const headers = ['Number', 'Customer', 'Total (DH)', 'Paid (DH)', 'Returned (DH)', 'Balance (DH)', 'Status', 'Date'];
     const rows = filtered.map(o => [
-      o.id, o.customerName,
+      o.docNumber ?? o.id, o.customerName,
       o.totalAmount.toFixed(2), o.amountPaid.toFixed(2), o.amountReturned.toFixed(2),
       Math.max(0, o.totalAmount - o.amountPaid + o.amountReturned).toFixed(2),
       o.status, o.createdAt,
@@ -138,11 +155,15 @@ export default function Sales() {
     const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'orders.csv'; a.click();
+    const a = document.createElement('a'); a.href = url; a.download = tab === 'devis' ? 'devis.csv' : 'factures.csv'; a.click();
     URL.revokeObjectURL(url);
   };
 
-  const filtered = orders.filter(o => o.customerName.toLowerCase().includes(search.toLowerCase()));
+  const factures = orders.filter(o => o.documentType !== 'devis');
+  const devisList = orders.filter(o => o.documentType === 'devis');
+  const baseList = tab === 'devis' ? devisList : factures;
+  const filtered = baseList.filter(o =>
+    o.customerName.toLowerCase().includes(search.toLowerCase()) || (o.docNumber ?? '').toLowerCase().includes(search.toLowerCase()));
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
@@ -185,164 +206,156 @@ export default function Sales() {
 
   const balance = (o: Order) => o.totalAmount - o.amountPaid + o.amountReturned;
 
-  const printInvoice = (o: Order) => {
-    const fmtMAD = (n: number) => n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' MAD';
-    const year = new Date(o.createdAt || new Date()).getFullYear();
-    const refNum = `FA N°${year}-${String(o.id).padStart(3, '0')}`;
-    const totalHT = o.totalAmount;
-    const tva = +(totalHT * 0.2).toFixed(2);
-    const ttc = +(totalHT + tva).toFixed(2);
+  const canWrite = hasPermission('sales.write');
 
-    const itemRows = (o.items || []).map((item, i) => `
-      <tr>
-        <td>${item.productName}</td>
-        <td>L${String(i + 1).padStart(2, '0')}</td>
-        <td>${item.finished_product_id ? String(item.finished_product_id).padStart(3, '0') : '—'}</td>
-        <td class="c">${item.quantity}</td>
-        <td class="r">${fmtMAD(item.unitPrice ?? 0)}</td>
-        <td class="r" style="color:#D4162E;font-weight:700;">${fmtMAD(item.total)}</td>
-      </tr>`).join('');
+  const printFor = (o: Order, kind: DocKind) => printOrderDocument(o, kind, addressOf(o.customerId));
 
-    const html = `
-      <style>
-        .inv-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;}
-        .inv-title{font-size:38pt;font-weight:900;color:#D4162E;line-height:1;}
-        .inv-co-name{font-size:11pt;font-weight:700;margin-top:6px;}
-        .inv-co-info{font-size:7.5pt;color:#64748b;line-height:1.75;margin-top:3px;}
-        .inv-ref-box{background:#f1f5f9;padding:14px 18px;min-width:190px;border-radius:4px;text-align:left;}
-        .inv-ref-lbl{font-size:6.5pt;text-transform:uppercase;letter-spacing:.09em;color:#64748b;}
-        .inv-ref-num{font-size:12pt;font-weight:800;color:#D4162E;margin:2px 0 10px;}
-        .inv-ref-field{font-size:6.5pt;text-transform:uppercase;letter-spacing:.07em;color:#64748b;margin-top:7px;}
-        .inv-ref-val{font-size:9pt;font-weight:600;color:#1a1a1a;}
-        .inv-sep{border:none;border-top:1.5px solid #e2e8f0;margin:10px 0;}
-        .inv-sep-red{border:none;border-top:2px solid #D4162E;margin:12px 0;}
-        .inv-parties{display:flex;gap:10px;margin:14px 0;}
-        .inv-party{flex:1;background:#f8fafc;border:1px solid #e2e8f0;padding:11px 14px;border-radius:4px;}
-        .inv-party-lbl{font-size:6.5pt;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#D4162E;margin-bottom:5px;}
-        .inv-party-name{font-size:10pt;font-weight:700;}
-        .inv-party-info{font-size:7.5pt;color:#64748b;margin-top:3px;line-height:1.65;}
-        table.inv-tbl{width:100%;border-collapse:collapse;font-size:8pt;margin-top:14px;}
-        table.inv-tbl thead tr{background:#D4162E;}
-        table.inv-tbl th{color:#fff;padding:8px 10px;font-size:7pt;font-weight:700;text-align:left;letter-spacing:.04em;}
-        table.inv-tbl th.r{text-align:right;}
-        table.inv-tbl th.c{text-align:center;}
-        table.inv-tbl td{padding:8px 10px;border-bottom:1px solid #e2e8f0;color:#1a1a1a;}
-        table.inv-tbl td.r{text-align:right;}
-        table.inv-tbl td.c{text-align:center;}
-        table.inv-tbl tbody tr:last-child td{border-bottom:none;}
-        .inv-totals{margin-top:12px;display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
-        .inv-tot-row{display:flex;width:280px;justify-content:space-between;font-size:9pt;}
-        .inv-tot-row span:first-child{color:#64748b;}
-        .inv-tot-row span:last-child{font-weight:600;text-align:right;}
-        .inv-ttc{background:#D4162E;color:#fff;padding:8px 14px;border-radius:4px;margin-top:4px;display:flex;width:280px;justify-content:space-between;font-size:10pt;font-weight:700;}
-        .inv-thank{text-align:center;font-size:9pt;color:#64748b;margin-top:24px;}
-        .inv-footer-legal{text-align:center;font-size:6.5pt;color:#94a3b8;margin-top:6px;}
-      </style>
+  // who owes me: unpaid factures grouped by customer
+  const owedGroups = (() => {
+    const map = new Map<string, { name: string; total: number; orders: Order[] }>();
+    for (const o of factures) {
+      if (o.status === 'cancelled' || balance(o) <= 0.009) continue;
+      const key = o.customerId ? `id:${o.customerId}` : `name:${o.customerName.toLowerCase()}`;
+      const g = map.get(key) ?? { name: o.customerName, total: 0, orders: [] };
+      g.total += balance(o);
+      g.orders.push(o);
+      map.set(key, g);
+    }
+    return [...map.values()].sort((x, y) => y.total - x.total);
+  })();
+  const owedTotal = owedGroups.reduce((t, g) => t + g.total, 0);
+  const money = (n: number) => Math.round(n * 100) / 100;
 
-      <div class="inv-top">
-        <div>
-          <div class="inv-title">FACTURE</div>
-          <div class="inv-co-name">MAMALIA SARL</div>
-          <div class="inv-co-info">
-            Hay Al Majd Lot 139 N°1 - Tanger<br>
-            Tél : 0695070681<br>
-            IF : 52442341 | TP : 57124515<br>
-            RC : 126869 | ICE : 003064129000011<br>
-            CNSS : 5261335<br>
-            Email : mamalia12023@gmail.com
-          </div>
-        </div>
-        <div class="inv-ref-box">
-          <div class="inv-ref-lbl">Référence</div>
-          <div class="inv-ref-num">${refNum}</div>
-          <div class="inv-ref-field">Date d'émission</div>
-          <div class="inv-ref-val">${fmtDate(o.createdAt)}</div>
-          <div class="inv-ref-field">Date d'échéance</div>
-          <div class="inv-ref-val">${fmtDate(o.createdAt)}</div>
-        </div>
-      </div>
+  const refreshAfter = async (id?: string | number) => {
+    const updated = await orderService.getAll();
+    setOrders(updated);
+    setSelected(id !== undefined ? (updated.find((o: Order) => String(o.id) === String(id)) ?? null) : null);
+  };
 
-      <hr class="inv-sep">
+  // one click: the full balance, in cash
+  const quickPaid = async (o: Order) => {
+    try {
+      await orderService.addPayment(o.id, { amount: money(balance(o)), method: 'Cash', date: new Date().toISOString().split('T')[0] });
+      toast({ title: `${o.docNumber ?? 'Facture'} paid`, description: `DH${money(balance(o))} received in cash.` });
+      await refreshAfter(selected ? o.id : undefined);
+    } catch (e: any) {
+      toast({ title: 'Error', description: e?.message || 'Failed to record payment', variant: 'destructive' });
+    }
+  };
 
-      <div class="inv-parties">
-        <div class="inv-party">
-          <div class="inv-party-lbl">Émetteur</div>
-          <div class="inv-party-name">MAMALIA SARL</div>
-          <div class="inv-party-info">
-            Hay Al Majd Lot 139 N°1<br>
-            Tanger, Maroc<br>
-            ICE : 003064129000011
-          </div>
-        </div>
-        <div class="inv-party">
-          <div class="inv-party-lbl">Client</div>
-          <div class="inv-party-name">${o.customerName}</div>
-          <div class="inv-party-info">&nbsp;</div>
-        </div>
-      </div>
+  const convertDevis = async (o: Order) => {
+    if (!window.confirm(`Convert ${o.docNumber} to a facture? Stock will be deducted now.`)) return;
+    setConverting(true);
+    try {
+      const facture: any = await orderService.convert(o.id);
+      const warnings: any[] = facture?.stockWarnings ?? [];
+      toast({
+        title: `${o.docNumber} converted to ${facture?.docNumber}`,
+        description: warnings.length ? warnings.map(w => `${w.name}: sold ${w.requested}, had ${w.available}`).join(' | ') : 'Stock deducted.',
+        variant: warnings.length ? 'destructive' : undefined,
+      });
+      setTab('facture');
+      const updated = await orderService.getAll();
+      setOrders(updated);
+      setSelected(updated.find((x: Order) => String(x.id) === String(facture?.id)) ?? null);
+    } catch (e: any) {
+      toast({ title: 'Could not convert', description: e?.message, variant: 'destructive' });
+    }
+    setConverting(false);
+  };
 
-      <table class="inv-tbl">
-        <thead>
-          <tr>
-            <th>Désignation</th>
-            <th>Lot</th>
-            <th>Réf. Produit</th>
-            <th class="c">Qté</th>
-            <th class="r">P.U. HT (MAD)</th>
-            <th class="r">Total HT (MAD)</th>
-          </tr>
-        </thead>
-        <tbody>${itemRows}</tbody>
-      </table>
-
-      <div class="inv-totals">
-        <div class="inv-tot-row"><span>Total HT</span><span>${fmtMAD(totalHT)}</span></div>
-        <div class="inv-tot-row"><span>TVA (20%)</span><span>${fmtMAD(tva)}</span></div>
-        <div class="inv-ttc"><span>Total TTC</span><span>${fmtMAD(ttc)}</span></div>
-      </div>
-
-      <div class="inv-thank">Merci pour votre confiance</div>
-      <hr class="inv-sep-red">
-      <div class="inv-footer-legal">
-        MAMALIA SARL | IF : 52442341 | TP : 57124515 | RC : 126869 | ICE : 003064129000011 | CNSS : 5261335
-      </div>`;
-
-    printDocument(`Facture ${refNum}`, html);
+  const deleteDocument = async (o: Order) => {
+    const what = o.documentType === 'devis' ? 'devis' : 'facture (its stock goes back)';
+    if (!window.confirm(`Delete ${o.docNumber ?? 'this document'}? This removes the ${what}.`)) return;
+    try {
+      await orderService.delete(o.id);
+      toast({ title: 'Deleted', variant: 'destructive' });
+      await refreshAfter();
+    } catch (e: any) {
+      toast({ title: 'Error', description: e?.message, variant: 'destructive' });
+    }
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h1 className="text-2xl font-display font-bold flex items-center gap-2"><ShoppingCart className="h-6 w-6" /> Sales</h1>
-          <p className="text-sm text-muted-foreground">Manage orders, payments, and returns</p>
+          <p className="text-sm text-muted-foreground">Factures, devis, payments and returns</p>
         </div>
-        <div className="flex gap-2">
-          {hasPermission('sales.write') && <Button onClick={openNewOrder}><Plus className="h-4 w-4 mr-1" />New Order</Button>}
+        <div className="flex flex-wrap gap-2">
+          {canWrite && (
+            <>
+              <Button onClick={() => openNew('facture')}><Plus className="h-4 w-4 mr-1" />New Facture</Button>
+              <Button variant="outline" onClick={() => openNew('devis')}><FileText className="h-4 w-4 mr-1" />New Devis</Button>
+            </>
+          )}
           <Button variant="outline" onClick={handleExportCsv}><Download className="h-4 w-4 mr-1" /> CSV</Button>
         </div>
       </div>
 
+      <Tabs value={tab} onValueChange={v => { setTab(v as typeof tab); setPage(1); }}>
+        <TabsList>
+          <TabsTrigger value="facture">Factures ({factures.length})</TabsTrigger>
+          <TabsTrigger value="devis">Devis ({devisList.length})</TabsTrigger>
+          <TabsTrigger value="owed">Who owes me{owedTotal > 0 ? ` · DH${money(owedTotal).toLocaleString()}` : ''}</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {tab === 'owed' ? (
+        <Card className="shadow-card">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm text-muted-foreground">Unpaid factures, by customer</p>
+              <p className="font-semibold">Total owed: <span className="text-warning">DH{money(owedTotal).toLocaleString()}</span></p>
+            </div>
+            {loading ? <TableSkeleton /> : owedGroups.length === 0 ? (
+              <EmptyState title="Nobody owes you anything" description="Unpaid factures will be listed here." icon="✅" />
+            ) : owedGroups.map(g => (
+              <div key={g.name} className="rounded-lg border">
+                <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-accent/20">
+                  <span className="font-semibold">{g.name}</span>
+                  <span className="text-sm text-muted-foreground">{g.orders.length} unpaid · <span className="font-semibold text-foreground">DH{money(g.total).toLocaleString()}</span></span>
+                </div>
+                <div className="divide-y">
+                  {g.orders.map(o => (
+                    <div key={o.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
+                      <button type="button" className="text-left" onClick={() => setSelected(o)}>
+                        <span className="font-medium">{o.docNumber ?? `#${o.id}`}</span>
+                        <span className="text-muted-foreground"> · {String(o.createdAt).slice(0, 10)}</span>
+                      </button>
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-warning">DH{money(balance(o))}</span>
+                        {canWrite && <Button size="sm" variant="outline" onClick={() => quickPaid(o)}><CheckCircle2 className="h-3 w-3 mr-1" />Paid in full</Button>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      ) : (
       <Card className="shadow-card">
         <CardContent className="p-4">
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input className="pl-9" placeholder="Search orders..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
+            <Input className="pl-9" placeholder={tab === 'devis' ? 'Search devis...' : 'Search factures...'} value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} />
           </div>
 
           {loading ? <TableSkeleton /> : filtered.length === 0 ? (
-            <EmptyState title="No orders found" description="Orders will appear here." icon="🛒" />
+            <EmptyState title={tab === 'devis' ? 'No devis found' : 'No factures found'} description={tab === 'devis' ? 'Devis will appear here.' : 'Factures will appear here.'} icon="🛒" />
           ) : (
             <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Order</TableHead>
+                  <TableHead>{tab === 'devis' ? 'Devis' : 'Facture'}</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead className="text-right">Total</TableHead>
-                  <TableHead className="text-right hidden sm:table-cell">Paid</TableHead>
-                  <TableHead className="text-right hidden md:table-cell">Returned</TableHead>
-                  <TableHead className="text-right hidden sm:table-cell">Balance</TableHead>
+                  {tab === 'facture' && <TableHead className="text-right hidden sm:table-cell">Paid</TableHead>}
+                  {tab === 'facture' && <TableHead className="text-right hidden md:table-cell">Returned</TableHead>}
+                  {tab === 'facture' && <TableHead className="text-right hidden sm:table-cell">Balance</TableHead>}
                   <TableHead>Status</TableHead>
                   <TableHead className="hidden md:table-cell">Date</TableHead>
                 </TableRow>
@@ -353,10 +366,16 @@ export default function Sales() {
                     <TableCell className="font-medium">{order.docNumber ?? `#${order.id}`}</TableCell>
                     <TableCell>{order.customerName}</TableCell>
                     <TableCell className="text-right font-medium">DH{order.totalAmount.toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-success hidden sm:table-cell">DH{order.amountPaid.toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-destructive hidden md:table-cell">DH{order.amountReturned.toLocaleString()}</TableCell>
-                    <TableCell className="text-right font-semibold hidden sm:table-cell">{balance(order) > 0 ? <span className="text-warning">DH{balance(order)}</span> : <span className="text-success">DH0</span>}</TableCell>
-                    <TableCell><OrderStatusBadge status={order.status} /></TableCell>
+                    {tab === 'facture' && <TableCell className="text-right text-success hidden sm:table-cell">DH{order.amountPaid.toLocaleString()}</TableCell>}
+                    {tab === 'facture' && <TableCell className="text-right text-destructive hidden md:table-cell">DH{order.amountReturned.toLocaleString()}</TableCell>}
+                    {tab === 'facture' && <TableCell className="text-right font-semibold hidden sm:table-cell">{balance(order) > 0 ? <span className="text-warning">DH{money(balance(order))}</span> : <span className="text-success">DH0</span>}</TableCell>}
+                    <TableCell>
+                      {tab === 'devis'
+                        ? (order.convertedToId
+                            ? <Badge className="bg-success/10 text-success">Accepted</Badge>
+                            : <Badge variant="secondary">Open</Badge>)
+                        : <OrderStatusBadge status={order.status} />}
+                    </TableCell>
                     <TableCell className="text-muted-foreground hidden md:table-cell">{order.createdAt}</TableCell>
                   </motion.tr>
                 ))}
@@ -366,7 +385,7 @@ export default function Sales() {
           )}
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-3 text-sm text-muted-foreground">
-              <span>{filtered.length} orders · page {page} of {totalPages}</span>
+              <span>{filtered.length} {tab === 'devis' ? 'devis' : 'factures'} · page {page} of {totalPages}</span>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>Previous</Button>
                 <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next</Button>
@@ -375,6 +394,7 @@ export default function Sales() {
           )}
         </CardContent>
       </Card>
+      )}
 
       {/* Order detail dialog */}
       <Dialog open={!!selected} onOpenChange={() => setSelected(null)}>
@@ -383,7 +403,10 @@ export default function Sales() {
             <>
               <DialogHeader>
                 <DialogTitle className="font-display flex items-center gap-3">
-                  {selected.docNumber ?? `Order #${selected.id}`} <OrderStatusBadge status={selected.status} />
+                  {selected.docNumber ?? `Order #${selected.id}`}
+                  {selected.documentType === 'devis'
+                    ? (selected.convertedToId ? <Badge className="bg-success/10 text-success">Accepted</Badge> : <Badge variant="secondary">Open</Badge>)
+                    : <OrderStatusBadge status={selected.status} />}
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
@@ -397,12 +420,19 @@ export default function Sales() {
                     </div>
                   ))}
                 </div>
+                {selected.documentType === 'devis' ? (
+                  <div className="space-y-1 text-sm border-t pt-2">
+                    <div className="flex justify-between"><span>Total</span><span className="font-semibold">DH{selected.totalAmount}</span></div>
+                    <p className="text-xs text-muted-foreground">A devis does not touch stock. Convert it to a facture when the customer accepts.</p>
+                  </div>
+                ) : (
                 <div className="space-y-1 text-sm border-t pt-2">
                   <div className="flex justify-between"><span>Total</span><span className="font-semibold">DH{selected.totalAmount}</span></div>
                   <div className="flex justify-between text-success"><span>Paid</span><span>DH{selected.amountPaid}</span></div>
                   <div className="flex justify-between text-destructive"><span>Returned</span><span>DH{selected.amountReturned}</span></div>
-                  <div className="flex justify-between font-bold border-t pt-1"><span>Balance</span><span>{balance(selected) > 0 ? `DH${balance(selected)}` : 'DH0 (Settled)'}</span></div>
+                  <div className="flex justify-between font-bold border-t pt-1"><span>Balance</span><span>{balance(selected) > 0 ? `DH${money(balance(selected))}` : 'DH0 (Settled)'}</span></div>
                 </div>
+                )}
 
                 {/* Payments list */}
                 {selected.payments.length > 0 && (
@@ -433,13 +463,41 @@ export default function Sales() {
                   </div>
                 )}
 
+                {selected.documentType === 'devis' ? (
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" onClick={() => printFor(selected, 'devis')}>
+                      <Printer className="h-3 w-3 mr-1" /> Print Devis
+                    </Button>
+                    {canWrite && !selected.convertedToId && (
+                      <Button size="sm" onClick={() => convertDevis(selected)} disabled={converting}>
+                        <CheckCircle2 className="h-3 w-3 mr-1" /> {converting ? 'Converting…' : 'Convert to facture'}
+                      </Button>
+                    )}
+                    {selected.convertedToId && (
+                      <Button size="sm" variant="outline" onClick={() => { const f = orders.find(o => String(o.id) === String(selected.convertedToId)); if (f) { setTab('facture'); setSelected(f); } }}>
+                        View the facture
+                      </Button>
+                    )}
+                    {canWrite && !selected.convertedToId && (
+                      <Button size="sm" variant="ghost" onClick={() => deleteDocument(selected)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
+                    )}
+                  </div>
+                ) : (
                 <div className="flex flex-wrap gap-2">
-                  <Button size="sm" variant="outline" onClick={() => printInvoice(selected)}>
+                  <Button size="sm" variant="outline" onClick={() => printFor(selected, 'facture')}>
                     <Printer className="h-3 w-3 mr-1" /> Print Invoice
                   </Button>
-                  {hasPermission('sales.write') && (
+                  <Button size="sm" variant="outline" onClick={() => printFor(selected, 'bl')}>
+                    <Truck className="h-3 w-3 mr-1" /> Delivery note
+                  </Button>
+                  {canWrite && (
                     <>
-                      <Button size="sm" onClick={() => { setPayAmount(balance(selected)); setPaymentOpen(true); }}>
+                      {balance(selected) > 0.009 && selected.status !== 'cancelled' && (
+                        <Button size="sm" onClick={() => quickPaid(selected)}>
+                          <CheckCircle2 className="h-3 w-3 mr-1" /> Paid in full
+                        </Button>
+                      )}
+                      <Button size="sm" variant="outline" onClick={() => { setPayAmount(balance(selected)); setPaymentOpen(true); }}>
                         <CreditCard className="h-3 w-3 mr-1" /> Record Payment
                       </Button>
                       <Button size="sm" variant="outline" onClick={() => { setRetProductName(''); setRetFinishedProductId(null); setRetQty(1); setRetUnitPrice(0); setRetReason(''); setRetRefund(0); setRetDisposition('restock'); setReturnOpen(true); }}>
@@ -448,6 +506,7 @@ export default function Sales() {
                     </>
                   )}
                 </div>
+                )}
               </div>
             </>
           )}
@@ -544,7 +603,7 @@ export default function Sales() {
       {/* New Order dialog */}
       <Dialog open={newOrderOpen} onOpenChange={setNewOrderOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle className="font-display">New Order</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle className="font-display">New {newDocType === 'devis' ? 'Devis' : 'Facture'}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             {/* Customer */}
             <div className="space-y-1.5">
@@ -622,7 +681,8 @@ export default function Sales() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setNewOrderOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreateOrder} disabled={savingOrder}>{savingOrder ? 'Creating...' : 'Create Order'}</Button>
+            <Button variant="outline" onClick={() => handleCreateOrder(false)} disabled={savingOrder}>{savingOrder ? 'Saving...' : 'Save'}</Button>
+            <Button onClick={() => handleCreateOrder(true)} disabled={savingOrder}><Printer className="h-4 w-4 mr-1" />Save &amp; print</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

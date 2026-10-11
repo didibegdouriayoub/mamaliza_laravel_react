@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,7 +24,6 @@ import Products from "./pages/Products";
 import Finishing from "./pages/Finishing";
 import FinishedGoods from "./pages/FinishedGoods";
 import ScanLot from "./pages/ScanLot";
-import Devis from "./pages/Devis";
 
 const queryClient = new QueryClient();
 
@@ -48,7 +47,7 @@ function AppRoutes() {
         <Route path="/finishing" element={<ProtectedRoute permissions={['finishing.read']}><Finishing /></ProtectedRoute>} />
         <Route path="/finished-goods" element={<ProtectedRoute permissions={['finished_goods.read']}><FinishedGoods /></ProtectedRoute>} />
         <Route path="/scan" element={<ProtectedRoute permissions={['finished_goods.read']}><ScanLot /></ProtectedRoute>} />
-        <Route path="/devis" element={<ProtectedRoute permissions={['sales.read']}><Devis /></ProtectedRoute>} />
+        <Route path="/devis" element={<Navigate to="/sales" replace />} />
         <Route path="/customers" element={<ProtectedRoute permissions={['customers.read']}><Customers /></ProtectedRoute>} />
         <Route path="/suppliers" element={<ProtectedRoute permissions={['suppliers.read']}><Suppliers /></ProtectedRoute>} />
         <Route path="/sales" element={<ProtectedRoute permissions={['sales.read']}><Sales /></ProtectedRoute>} />

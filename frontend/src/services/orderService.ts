@@ -36,5 +36,6 @@ export const orderService = {
       refund_amount: ret.refundAmount,
       disposition: ret.disposition ?? null,
     }),
+  convert: (id: string | number) => apiClient.post(`/orders/${id}/convert`, {}),
   patchStatus: (id: string | number, status: string) => apiClient.patch(`/orders/${id}/status`, { status }),
 };

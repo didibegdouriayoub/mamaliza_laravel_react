@@ -458,14 +458,14 @@
 | # | Task | Priority | Status |
 |---|---|---|---|
 | T26.1 | Separate sequential numbers: FA-YYYY-NNNN for factures, DV-YYYY-NNNN for devis (counter per type and year); existing "order" rows become factures numbered by date; migration | 🔴 | ✅ (tested locally: renumbered 3 old orders, sequence per type, failed save keeps the number; migration needed on server) |
-| T26.2 | Sales page with two tabs (Devis / Factures); devis hidden from the sales figures and the factures list | 🔴 | ☐ |
-| T26.3 | New document screen: product-card grid, customer, "Save" and "Save & print" (devis or facture) | 🟠 | ☐ |
-| T26.4 | "Convert to facture" on a devis: copies lines, checks stock, deducts, links devis -> facture, devis shows Accepted | 🔴 | ☐ |
-| T26.5 | "Mark as paid" (full balance + method) on a facture; part payments and returns stay | 🟠 | ☐ |
-| T26.6 | "Who owes me": unpaid factures per customer with totals | 🟠 | ☐ |
-| T26.7 | Bon de livraison print (quantities, no prices, signature) from any facture | 🟡 | ☐ |
-| T26.8 | Finished Goods order mode creates a facture through the same flow | 🟡 | ☐ |
-| T26.9 | Test locally, then deploy (migration on server) | 🔴 | ☐ |
+| T26.2 | Sales page with two tabs (Devis / Factures); devis hidden from the sales figures and the factures list | 🔴 | ✅ (Factures / Devis / Who owes me tabs; tested) |
+| T26.3 | New document screen: product-card grid, customer, "Save" and "Save & print" (devis or facture) | 🟠 | ✅ (New Facture / New Devis, Save and Save & print; needs browser check) |
+| T26.4 | "Convert to facture" on a devis: copies lines, checks stock, deducts, links devis -> facture, devis shows Accepted | 🔴 | ✅ (backend + UI tested: stock deducted on convert, linked, no double convert) |
+| T26.5 | "Mark as paid" (full balance + method) on a facture; part payments and returns stay | 🟠 | ✅ (Paid in full in one click, tested) |
+| T26.6 | "Who owes me": unpaid factures per customer with totals | 🟠 | ✅ (tested) |
+| T26.7 | Bon de livraison print (quantities, no prices, signature) from any facture | 🟡 | ✅ (Delivery note prints without prices, tested) |
+| T26.8 | Finished Goods order mode creates a facture through the same flow | 🟡 | ✅ (Finished Goods order = facture, Confirm & print; needs browser check) |
+| T26.9 | Test locally, then deploy (migration on server) | 🔴 | 🔄 (tested locally; migration + deploy pending) |
 
 ---
 

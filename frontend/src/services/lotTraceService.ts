@@ -32,6 +32,7 @@ export interface LotTraceRun {
 
 export interface LotTraceBuyer {
   order_id: number;
+  doc_number?: string | null;
   date: string | null;
   customer: string;
   phone: string | null;

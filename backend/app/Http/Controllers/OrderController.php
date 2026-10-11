@@ -123,6 +123,45 @@ class OrderController extends Controller
         return response()->json(array_merge($response->toArray(), ['stock_warnings' => $stockWarnings, 'cartons_opened' => $cartonsOpened]), 201);
     }
 
+    /** Turn a devis into a facture: same lines, stock is deducted now, and the devis points to the facture. */
+    public function convert(Order $order, FinishedStockService $stockService, DocumentNumberService $numbers)
+    {
+        if ($order->document_type !== 'devis') {
+            return response()->json(['message' => 'Only a devis can be converted to a facture.'], 422);
+        }
+        if ($order->converted_to_id) {
+            return response()->json(['message' => 'This devis was already converted to a facture.'], 422);
+        }
+
+        $order->load('items');
+        $payload = [
+            'customer_id'     => $order->customer_id,
+            'customer_name'   => $order->customer_name,
+            'total_amount'    => $order->total_amount,
+            'amount_paid'     => 0,
+            'amount_returned' => 0,
+            'status'          => 'pending',
+            'document_type'   => 'facture',
+            'items'           => $order->items->map(fn ($i) => [
+                'product_name'        => $i->product_name,
+                'quantity'            => $i->quantity,
+                'unit'                => $i->unit,
+                'carton_id'           => $i->carton_id,
+                'inventory_item_id'   => $i->inventory_item_id,
+                'finished_product_id' => $i->finished_product_id,
+                'unit_price'          => $i->unit_price,
+                'total'               => $i->total,
+            ])->all(),
+        ];
+
+        return DB::transaction(function () use ($order, $payload, $stockService, $numbers) {
+            $response = $this->store(new Request($payload), $stockService, $numbers);
+            $order->update(['converted_to_id' => $response->getData(true)['id']]);
+
+            return $response;
+        });
+    }
+
     public function show(Order $order)
     {
         return response()->json($order->load(['items', 'returns', 'payments']));

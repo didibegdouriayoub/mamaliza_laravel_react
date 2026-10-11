@@ -105,6 +105,7 @@ class LotTraceController extends Controller
 
             return [
                 'order_id' => (int) $orderId,
+                'doc_number' => $order?->doc_number,
                 'date'     => $order?->created_at?->toDateString(),
                 'customer' => $order?->customer?->name ?? $order?->customer_name ?? 'Unknown',
                 'phone'    => $order?->customer?->phone,

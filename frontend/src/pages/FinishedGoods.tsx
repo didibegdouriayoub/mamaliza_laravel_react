@@ -15,6 +15,8 @@ import {
   finishedProductService, FinishedProduct, FinishedStockDetail, productImageSrc, fridgeTotal, sellableTotal,
 } from '@/services/finishedProductService';
 import { orderService } from '@/services/orderService';
+import { printOrderDocument } from '@/lib/invoicePrint';
+import { Order } from '@/models/types';
 import { customerService } from '@/services/customerService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -199,7 +201,7 @@ export default function FinishedGoods() {
 
   const exitOrderMode = () => { setOrderMode(false); setCart({}); };
 
-  const createOrder = async () => {
+  const createOrder = async (print = false) => {
     if (!custName.trim()) { toast({ title: 'Customer name required', variant: 'destructive' }); return; }
     setSavingOrder(true);
     try {
@@ -210,14 +212,16 @@ export default function FinishedGoods() {
         amountPaid: paidInFull ? cartTotal : 0,
         amountReturned: 0,
         status: paidInFull ? 'paid' : 'pending',
+        document_type: 'facture',
         items: cartLines.flatMap(l => l.items) as any[],
       } as any);
       const opened: any[] = res?.cartonsOpened ?? [];
       toast({
-        title: 'Order recorded',
+        title: `Facture ${res?.docNumber ?? ''} recorded`,
         description: `${cartCount} pieces · ${cartTotal.toFixed(2)} DH` +
           (opened.length ? ` · opened ${opened.map(o => `${o.cartons} carton(s) of ${o.name}`).join(', ')}` : ''),
       });
+      if (print) printOrderDocument(res as Order, 'facture', customers.find((c: any) => String(c.id) === String(custId))?.address ?? '');
       setOrderOpen(false); setCart({}); setCustId(''); setCustName(''); setPaidInFull(false);
       setOrderMode(false);
       load();
@@ -312,7 +316,7 @@ export default function FinishedGoods() {
       {/* Confirm order */}
       <Dialog open={orderOpen} onOpenChange={setOrderOpen}>
         <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Record order</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Record facture</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="rounded-lg border divide-y text-sm">
               {cartLines.flatMap(l => l.items).map((it, i) => (
@@ -342,7 +346,8 @@ export default function FinishedGoods() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOrderOpen(false)}>Back</Button>
-            <Button onClick={createOrder} disabled={savingOrder}>{savingOrder ? 'Saving…' : 'Confirm order'}</Button>
+            <Button variant="outline" onClick={() => createOrder(false)} disabled={savingOrder}>{savingOrder ? 'Saving…' : 'Confirm'}</Button>
+            <Button onClick={() => createOrder(true)} disabled={savingOrder}>Confirm &amp; print</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
