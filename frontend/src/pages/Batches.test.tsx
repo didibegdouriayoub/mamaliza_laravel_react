@@ -42,7 +42,7 @@ it('batch creation flow', async () => {
   fireEvent.click(await screen.findByRole('option', { name: /Cheese/ }));
 
   // T22.1: clear and retype
-  const count = screen.getByRole('spinbutton') as HTMLInputElement;
+  const count = screen.getByDisplayValue('1') as HTMLInputElement;
   fireEvent.change(count, { target: { value: '' } });
   expect(count.value).toBe('');
   fireEvent.change(count, { target: { value: '3' } });

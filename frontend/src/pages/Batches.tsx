@@ -46,6 +46,8 @@ export default function Batches() {
   const [createStep, setCreateStep] = useState<1 | 2>(1);
   const [recipeId, setRecipeId] = useState('');
   const [batchCount, setBatchCount] = useState('1');
+  const [groupTarget, setGroupTarget] = useState(''); // kg per batch for this group ('' = recipe's target)
+  const [groupLeftover, setGroupLeftover] = useState(''); // leftover scraped from the machines (kg)
   const [groupDate, setGroupDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [batchDrafts, setBatchDrafts] = useState<BatchDraft[]>([]);
   const [expandedBatch, setExpandedBatch] = useState<number | null>(0);
@@ -284,13 +286,14 @@ export default function Batches() {
   useEffect(() => { loadData(); }, []);
 
   const selectedRecipe = recipes.find(r => String(r.id) === String(recipeId));
+  const effectiveTarget = Number(groupTarget) > 0 ? Number(groupTarget) : (selectedRecipe?.targetWeight || 0);
 
   const handleNextStep = () => {
     if (!selectedRecipe) return;
     const count = Math.max(1, Math.min(20, Math.floor(Number(batchCount)) || 1));
     const drafts: BatchDraft[] = Array.from({ length: count }, () => ({
       startedAt: groupDate,
-      outputQty: selectedRecipe.targetWeight || 0,
+      outputQty: effectiveTarget,
       note: '',
       ingredients: selectedRecipe.ingredients.map(ing => ({ ...ing })),
     }));
@@ -359,10 +362,11 @@ export default function Batches() {
         recipeId: String(recipe.id),
         recipeName: recipe.name,
         batchCount: batchDrafts.length,
-        targetWeight: recipe.targetWeight,
+        targetWeight: effectiveTarget,
         pieceWeightValue: parsePieceWeight(recipe.pieceWeight),
         createdBy: user?.name,
         date: groupDate,
+        leftoverKg: Number(groupLeftover) || 0,
       });
 
       // 2. Create each batch linked to the group
@@ -374,7 +378,7 @@ export default function Batches() {
           status: 'completed' as BatchStatus,
           startedAt: draft.startedAt,
           inputMaterials: draft.ingredients.map(({ linkId, linkSource, custom, ...ing }) => ing),
-          outputQuantity: draft.outputQty || recipe.targetWeight,
+          outputQuantity: draft.outputQty || effectiveTarget,
           outputUnit: recipe.pieceWeight,
           operatorId: user?.id, operatorName: user?.name,
           batchGroupId: String(group.id),
@@ -423,8 +427,8 @@ export default function Batches() {
   const handleClose = async () => {
     if (!closeGroup) return;
     try {
-      await batchGroupService.close(closeGroup.id, Number(leftoverKg) || 0);
-      toast({ title: 'Batch group done', description: Number(leftoverKg) > 0 ? `${leftoverKg} kg leftover added to inventory.` : undefined });
+      await batchGroupService.close(closeGroup.id, closeGroup.leftoverQty > 0 ? 0 : Number(leftoverKg) || 0);
+      toast({ title: 'Batch group done', description: closeGroup.leftoverQty <= 0 && Number(leftoverKg) > 0 ? `${leftoverKg} kg leftover added to inventory.` : undefined });
       setCloseGroup(null);
       loadData();
     } catch (err: any) {
@@ -456,7 +460,7 @@ export default function Batches() {
             <Input className="pl-9 w-48" placeholder="Search by recipe..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
           {hasPermission('batches.write') && (
-            <Button onClick={() => { setCreateStep(1); setRecipeId(''); setBatchCount('1'); setGroupDate(new Date().toISOString().slice(0, 10)); setFormOpen(true); }}>
+            <Button onClick={() => { setCreateStep(1); setRecipeId(''); setBatchCount('1'); setGroupTarget(''); setGroupLeftover(''); setGroupDate(new Date().toISOString().slice(0, 10)); setFormOpen(true); }}>
               <Plus className="h-4 w-4 mr-1" /> New Batch
             </Button>
           )}
@@ -607,7 +611,7 @@ export default function Batches() {
                           )}
                           {!group.closedAt && hasPermission('batches.write') && (
                             <Button size="sm" variant="outline" className="h-7 text-xs ml-auto print:hidden"
-                              onClick={() => { setCloseGroup(group); setLeftoverKg(String(Math.max(0, r(expected - used)))); }}>
+                              onClick={() => { setCloseGroup(group); setLeftoverKg(String(group.leftoverQty > 0 ? group.leftoverQty : Math.max(0, r(expected - used)))); }}>
                               Record leftover &amp; close
                             </Button>
                           )}
@@ -634,7 +638,7 @@ export default function Batches() {
               <p className="text-sm text-muted-foreground">Select the recipe and number of batches to create together.</p>
               <div className="space-y-1.5">
                 <Label>Recipe</Label>
-                <Select value={recipeId} onValueChange={setRecipeId}>
+                <Select value={recipeId} onValueChange={v => { setRecipeId(v); setGroupTarget(''); }}>
                   <SelectTrigger><SelectValue placeholder="Select recipe" /></SelectTrigger>
                   <SelectContent>{recipes.map(r => <SelectItem key={r.id} value={String(r.id)}>{recipeLabel(r)}</SelectItem>)}</SelectContent>
                 </Select>
@@ -650,11 +654,25 @@ export default function Batches() {
                 <Label>Date (all batches)</Label>
                 <Input type="date" value={groupDate} onChange={e => setGroupDate(e.target.value)} />
               </div>
+              {selectedRecipe && (
+                <div className="space-y-1.5">
+                  <Label>Target weight per batch (kg)</Label>
+                  <Input type="number" inputMode="decimal" min={0} step="0.001" value={groupTarget}
+                    placeholder={String(selectedRecipe.targetWeight || 0)} onChange={e => setGroupTarget(e.target.value)} />
+                  <p className="text-xs text-muted-foreground">Leave empty to use the recipe's {selectedRecipe.targetWeight} kg. Only changes this group.</p>
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label>Number of Batches</Label>
                 <Input type="number" inputMode="numeric" min={1} max={20} value={batchCount}
                   onChange={e => setBatchCount(e.target.value)}
                   onBlur={() => setBatchCount(String(Math.max(1, Math.min(20, Math.floor(Number(batchCount)) || 1))))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Leftover from the machines (kg)</Label>
+                <Input type="number" inputMode="decimal" min={0} step="0.001" value={groupLeftover} placeholder="0"
+                  onChange={e => setGroupLeftover(e.target.value)} />
+                <p className="text-xs text-muted-foreground">Dough scraped and weighed at the end of the day. Enter it once for the day; it is added to inventory as a leftover item.</p>
               </div>
             </div>
           )}
@@ -733,8 +751,8 @@ export default function Batches() {
                   <p className="text-muted-foreground">Expected {r(expected)} kg · used in finishing {r(used)} kg.</p>
                   <div className="space-y-1.5">
                     <Label>Leftover dough (kg)</Label>
-                    <Input type="number" inputMode="decimal" min={0} step="0.001" value={leftoverKg} onChange={e => setLeftoverKg(e.target.value)} />
-                    <p className="text-xs text-muted-foreground">Added to inventory as a leftover item (no low-stock alert).</p>
+                    <Input type="number" inputMode="decimal" min={0} step="0.001" value={leftoverKg} disabled={closeGroup.leftoverQty > 0} onChange={e => setLeftoverKg(e.target.value)} />
+                    <p className="text-xs text-muted-foreground">{closeGroup.leftoverQty > 0 ? 'Already recorded when the batches were made.' : 'Added to inventory as a leftover item (no low-stock alert).'}</p>
                   </div>
                   <p className={loss > 0 ? 'text-destructive' : 'text-green-600'}>
                     {loss > 0 ? 'Loss' : 'Gain'}: <span className="font-semibold">{r(Math.abs(loss))} kg</span>

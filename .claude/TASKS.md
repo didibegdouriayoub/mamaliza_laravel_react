@@ -524,6 +524,19 @@
 
 ---
 
+## Phase 31 — Pick lots per sale line + leftover and target weight when creating a batch group
+
+> Decisions (owner): every product can pick how many to take from each lot (e.g. 5 from one, 3 from another); default stays oldest first. Leftover is the existing leftover field (no new scrap field), recorded when the batch group is created; target weight editable per group.
+
+| # | Task | Priority | Status |
+|---|---|---|---|
+| T31.1 | Backend: optional `lot_allocations` per order item (validated against lot remaining), default FIFO | 🔴 | ✅ (code reviewed; PHP 8 not available locally, so not run) |
+| T31.2 | Sales dialog: per-line lot picker (qty per lot, oldest-first default) | 🔴 | ✅ (type-checked; needs browser check) |
+| T31.3 | Batch group form: editable target weight + leftover kg (saved on create, leftover to inventory; closing no longer adds it twice) | 🔴 | ✅ (frontend test passes; backend not run locally) |
+| T31.4 | Tests and deploy | 🔴 | 🔄 (no migration; backend + frontend deploy) |
+
+---
+
 ## Rules for this Project
 1. Take tasks ONE at a time.
 2. After completing a task, make a descriptive git commit immediately.

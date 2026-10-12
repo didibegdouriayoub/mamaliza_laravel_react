@@ -37,7 +37,7 @@ export const batchGroupService = {
   getAll: () => apiClient.get('/batch-groups'),
   create: (group: {
     recipeId: string; recipeName: string; batchCount: number;
-    targetWeight: number; pieceWeightValue: number; createdBy?: string; date?: string;
+    targetWeight: number; pieceWeightValue: number; createdBy?: string; date?: string; leftoverKg?: number;
   }) => apiClient.post('/batch-groups', {
     recipe_id: group.recipeId,       // fix: was missing → group.recipeId always '' → print silently exits
     recipe_name: group.recipeName,
@@ -46,6 +46,7 @@ export const batchGroupService = {
     piece_weight_value: group.pieceWeightValue,
     created_by: group.createdBy,
     date: group.date,
+    leftover_kg: group.leftoverKg,
   }),
   updateStats: (id: string | number, stats: {
     piecesProduced?: number; leftoverQty?: number; leftoverUnit?: string;
