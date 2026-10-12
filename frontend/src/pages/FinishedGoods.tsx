@@ -14,6 +14,7 @@ import { EmptyState, TableSkeleton } from '@/components/DataStates';
 import {
   finishedProductService, FinishedProduct, FinishedStockDetail, productImageSrc, fridgeTotal, sellableTotal,
 } from '@/services/finishedProductService';
+import { LotPicker } from '@/components/LotPicker';
 import { orderService } from '@/services/orderService';
 import { printOrderDocument } from '@/lib/invoicePrint';
 import { Order } from '@/models/types';
@@ -91,6 +92,8 @@ export default function FinishedGoods() {
   // Order mode: tapping a card adds it to the cart instead of opening the panel
   const [orderMode, setOrderMode] = useState(false);
   const [cart, setCart] = useState<Record<number, number>>({});
+  // lots picked by hand per product (product id -> lot id -> quantity); a product without an entry is taken oldest first
+  const [picks, setPicks] = useState<Record<number, Record<number, number>>>({});
   const [orderOpen, setOrderOpen] = useState(false);
   const [custId, setCustId] = useState('');
   const [custName, setCustName] = useState('');
@@ -191,19 +194,34 @@ export default function FinishedGoods() {
 
   const cartLines = useMemo(
     () => products.filter(p => cart[p.id] > 0).map(p => {
+      const picked = picks[p.id];
+      if (picked) {
+        // lots chosen by hand: one line with exactly those lots, no automatic carton split
+        const lot_allocations = Object.entries(picked).filter(([, q]) => q > 0).map(([id, qty]) => ({ lot_id: Number(id), qty }));
+        const quantity = lot_allocations.reduce((s, a) => s + a.qty, 0);
+        const total = +(quantity * p.unit_price).toFixed(2);
+        const items = quantity > 0 ? [{ product_name: p.name, finished_product_id: p.id, quantity, unit_price: p.unit_price, total, lot_allocations }] : [];
+        return { product: p, quantity, split: splitPieces(p, 0), items, total, picked: true };
+      }
       const quantity = cart[p.id];
       const items = expandOrderLines([{ product: p, quantity }], products); // cartons at carton price + loose at piece price
-      return { product: p, quantity, split: splitPieces(p, quantity), items, total: +items.reduce((s, i) => s + i.total, 0).toFixed(2) };
+      return { product: p, quantity, split: splitPieces(p, quantity), items, total: +items.reduce((s, i) => s + i.total, 0).toFixed(2), picked: false };
     }),
-    [products, cart],
+    [products, cart, picks],
   );
   const cartTotal = cartLines.reduce((s, l) => s + l.total, 0);
   const cartCount = cartLines.reduce((s, l) => s + l.quantity, 0);
 
-  const exitOrderMode = () => { setOrderMode(false); setCart({}); };
+  const exitOrderMode = () => { setOrderMode(false); setCart({}); setPicks({}); };
+
+  const togglePicking = (productId: number) => setPicks(prev => {
+    if (prev[productId]) { const { [productId]: _, ...rest } = prev; return rest; }
+    return { ...prev, [productId]: {} };
+  });
 
   const createOrder = async (print = false) => {
     if (!custName.trim()) { toast({ title: 'Customer name required', variant: 'destructive' }); return; }
+    if (cartLines.some(l => l.picked && l.quantity <= 0)) { toast({ title: 'Pick a quantity from at least one lot', variant: 'destructive' }); return; }
     setSavingOrder(true);
     try {
       const res: any = await orderService.create({
@@ -223,7 +241,7 @@ export default function FinishedGoods() {
           (opened.length ? ` · opened ${opened.map(o => `${o.cartons} carton(s) of ${o.name}`).join(', ')}` : ''),
       });
       if (print) printOrderDocument(res as Order, 'facture', customers.find((c: any) => String(c.id) === String(custId))?.address ?? '');
-      setOrderOpen(false); setCart({}); setCustId(''); setCustName(''); setPaidInFull(false);
+      setOrderOpen(false); setCart({}); setPicks({}); setCustId(''); setCustName(''); setPaidInFull(false);
       setOrderMode(false);
       load();
     } catch (e: any) {
@@ -320,9 +338,24 @@ export default function FinishedGoods() {
           <DialogHeader><DialogTitle>Record facture</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="rounded-lg border divide-y text-sm">
-              {cartLines.flatMap(l => l.items).map((it, i) => (
-                <div key={i} className="flex justify-between px-3 py-2">
-                  <span>{it.quantity} × {it.product_name}</span>{showMoney && <span className="font-medium">{it.total.toFixed(2)} DH</span>}
+              {cartLines.map(l => (
+                <div key={l.product.id} className="px-3 py-2">
+                  {l.picked
+                    ? <div className="flex justify-between"><span>{l.quantity} × {l.product.name}</span>{showMoney && <span className="font-medium">{l.total.toFixed(2)} DH</span>}</div>
+                    : l.items.map((it, i) => (
+                      <div key={i} className="flex justify-between">
+                        <span>{it.quantity} × {it.product_name}</span>{showMoney && <span className="font-medium">{it.total.toFixed(2)} DH</span>}
+                      </div>
+                    ))}
+                  <button type="button" className="text-xs text-primary hover:underline" onClick={() => togglePicking(l.product.id)}>
+                    {l.picked ? 'Back to automatic (oldest first)' : 'Choose lots'}
+                  </button>
+                  {l.picked && (
+                    <div className="mt-1 rounded bg-accent/20 p-2">
+                      <LotPicker lots={l.product.available_lots ?? []} picks={picks[l.product.id] ?? {}}
+                        onChange={(lotId, qty) => setPicks(prev => ({ ...prev, [l.product.id]: { ...prev[l.product.id], [lotId]: qty } }))} />
+                    </div>
+                  )}
                 </div>
               ))}
               {showMoney && <div className="flex justify-between px-3 py-2 font-semibold"><span>Total</span><span>{cartTotal.toFixed(2)} DH</span></div>}
@@ -345,7 +378,7 @@ export default function FinishedGoods() {
                 {cartLines.filter(l => cartonsToOpen(l.product, l.quantity) > 0).map(l => `${cartonsToOpen(l.product, l.quantity)} carton(s) of ${l.product.name} will be opened`).join(' · ')}
               </p>
             )}
-            <p className="text-xs text-muted-foreground">Stock is taken from the oldest lots first.</p>
+            <p className="text-xs text-muted-foreground">Stock is taken from the oldest lots first, unless you choose the lots.</p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOrderOpen(false)}>Back</Button>

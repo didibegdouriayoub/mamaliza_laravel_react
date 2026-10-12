@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { LotPicker } from '@/components/LotPicker';
 import { OrderStatusBadge } from '@/components/StatusBadge';
 import { TableSkeleton, EmptyState } from '@/components/DataStates';
 import { orderService } from '@/services/orderService';
@@ -108,8 +109,7 @@ export default function Sales() {
     return { ...l, allocations: {}, quantity: 0, total: 0 };
   }));
 
-  const setAllocation = (i: number, lotId: number, max: number, raw: string) => {
-    const qty = Math.min(max, Math.max(0, Number(raw) || 0));
+  const setAllocation = (i: number, lotId: number, qty: number) => {
     setOrderLines(prev => prev.map((l, j) => {
       if (j !== i) return l;
       const allocations = { ...(l.allocations ?? {}), [lotId]: qty };
@@ -704,16 +704,8 @@ export default function Sales() {
                       {line.allocations && (
                         <TableRow>
                           <TableCell colSpan={4} className="bg-accent/20">
-                            <p className="text-xs text-muted-foreground mb-2">How many to take from each lot:</p>
-                            {(finishedProducts.find(p => p.id === line.finished_product_id)?.available_lots ?? []).length === 0
-                              ? <p className="text-xs text-destructive">No lots in stock for this product.</p>
-                              : (finishedProducts.find(p => p.id === line.finished_product_id)?.available_lots ?? []).map(lot => (
-                                <div key={lot.id} className="flex items-center justify-between gap-3 py-1 text-sm">
-                                  <span>{lot.lot_code || '—'} <span className="text-muted-foreground">· {lot.lot_date} · {Number(lot.qty_remaining)} left</span></span>
-                                  <Input type="number" min="0" max={Number(lot.qty_remaining)} className="h-7 w-24" placeholder="0"
-                                    value={line.allocations?.[lot.id] || ''} onChange={e => setAllocation(i, lot.id, Number(lot.qty_remaining), e.target.value)} />
-                                </div>
-                              ))}
+                            <LotPicker lots={finishedProducts.find(p => p.id === line.finished_product_id)?.available_lots ?? []}
+                              picks={line.allocations ?? {}} onChange={(lotId, qty) => setAllocation(i, lotId, qty)} />
                           </TableCell>
                         </TableRow>
                       )}

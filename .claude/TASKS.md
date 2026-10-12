@@ -533,6 +533,7 @@
 | T31.1 | Backend: optional `lot_allocations` per order item (validated against lot remaining), default FIFO | 🔴 | ✅ (tested in Docker: pick 3+2, mismatch and overdraw refused, FIFO default) |
 | T31.2 | Sales dialog: per-line lot picker (qty per lot, oldest-first default) | 🔴 | ✅ (type-checked; needs browser check) |
 | T31.3 | Batch group form: editable target weight + leftover kg (saved on create, leftover to inventory; closing no longer adds it twice) | 🔴 | ✅ (tested in Docker: target saved, leftover recorded once, close does not duplicate) |
+| T31.5 | Finished Goods "Record order": same lot picker in the confirm dialog (shared `LotPicker` component, also used by Sales) | 🔴 | ✅ (type-checked, tests pass; needs browser check) |
 | T31.4 | Tests and deploy | 🔴 | 🔄 (no migration; backend + frontend deploy) |
 
 ---
