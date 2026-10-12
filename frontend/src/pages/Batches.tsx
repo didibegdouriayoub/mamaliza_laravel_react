@@ -656,7 +656,7 @@ export default function Batches() {
               </div>
               {selectedRecipe && (
                 <div className="space-y-1.5">
-                  <Label>Target weight per batch (kg)</Label>
+                  <Label>Output quantity per batch (kg)</Label>
                   <Input type="number" inputMode="decimal" min={0} step="0.001" value={groupTarget}
                     placeholder={String(selectedRecipe.targetWeight || 0)} onChange={e => setGroupTarget(e.target.value)} />
                   <p className="text-xs text-muted-foreground">Leave empty to use the recipe's {selectedRecipe.targetWeight} kg. Only changes this group.</p>
@@ -679,7 +679,7 @@ export default function Batches() {
 
           {createStep === 2 && (
             <div className="space-y-3 py-2">
-              <p className="text-sm text-muted-foreground">Edit ingredients and output qty per batch. Batches start as <strong>Completed</strong>.</p>
+              <p className="text-sm text-muted-foreground">Edit ingredients per batch. Batches start as <strong>Completed</strong>.</p>
               {batchDrafts.map((draft, bIdx) => {
                 const isOpen = expandedBatch === bIdx;
                 const draftCost = draft.ingredients.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
@@ -692,7 +692,6 @@ export default function Batches() {
                     </button>
                     {isOpen && (
                       <div className="px-4 pb-4 pt-3 space-y-3 border-t">
-                        <div className="space-y-1"><Label className="text-xs">Output Qty</Label><Input type="number" className="h-8 text-sm" value={draft.outputQty} onChange={e => updateDraft(bIdx, { outputQty: Number(e.target.value) })} /></div>
                         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Ingredients</p>
                         {draft.ingredients.map((ing, iIdx) => (
                           <div key={iIdx} className="grid grid-cols-[1fr_140px_32px] gap-1.5 items-center">
