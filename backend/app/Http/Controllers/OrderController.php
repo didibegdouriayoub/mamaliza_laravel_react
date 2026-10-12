@@ -11,6 +11,7 @@ use App\Services\DocumentNumberService;
 use App\Services\FinishedStockService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
