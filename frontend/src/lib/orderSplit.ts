@@ -30,6 +30,7 @@ export interface OrderItemPayload {
   quantity: number;
   unit_price: number;
   total: number;
+  lot_allocations?: { lot_id: number; qty: number }[]; // lots picked by the seller (otherwise oldest first)
 }
 
 const money = (n: number) => Math.round(n * 100) / 100;

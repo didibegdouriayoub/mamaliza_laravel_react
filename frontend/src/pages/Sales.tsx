@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+﻿import { useState, useEffect, Fragment } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingCart, Search, Plus, Undo2, CreditCard, Download, Trash2, Printer, FileText, Truck, CheckCircle2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +28,7 @@ interface OrderLine {
   unit_price: number;
   quantity: number;
   total: number;
+  allocations?: Record<number, number>; // set when the seller picks lots: lot id -> quantity (quantity = their sum)
 }
 
 export default function Sales() {
@@ -100,11 +101,36 @@ export default function Sales() {
     setOrderLines(prev => prev.map((l, j) => j === i ? { ...l, quantity: qty, total: +(l.unit_price * qty).toFixed(2) } : l));
   };
 
+  // switch a line between automatic (oldest first) and hand-picked lots
+  const togglePicking = (i: number) => setOrderLines(prev => prev.map((l, j) => {
+    if (j !== i) return l;
+    if (l.allocations) { const { allocations, ...rest } = l; return rest; }
+    return { ...l, allocations: {}, quantity: 0, total: 0 };
+  }));
+
+  const setAllocation = (i: number, lotId: number, max: number, raw: string) => {
+    const qty = Math.min(max, Math.max(0, Number(raw) || 0));
+    setOrderLines(prev => prev.map((l, j) => {
+      if (j !== i) return l;
+      const allocations = { ...(l.allocations ?? {}), [lotId]: qty };
+      const quantity = Object.values(allocations).reduce((s, q) => s + q, 0);
+      return { ...l, allocations, quantity, total: +(l.unit_price * quantity).toFixed(2) };
+    }));
+  };
+
   const removeLine = (i: number) => setOrderLines(prev => prev.filter((_, j) => j !== i));
 
   // pieces → whole cartons (carton price) + loose pieces (piece price), the way stock will be deducted
   const lineToItems = (l: OrderLine) => {
     const product = finishedProducts.find(p => p.id === l.finished_product_id);
+    if (l.allocations) {
+      // lots picked by hand: one line, exactly those lots (no automatic carton split)
+      const lot_allocations = Object.entries(l.allocations).filter(([, q]) => q > 0).map(([id, qty]) => ({ lot_id: Number(id), qty }));
+      return lot_allocations.length && product ? [{
+        product_name: l.product_name, finished_product_id: l.finished_product_id, quantity: l.quantity,
+        unit_price: l.unit_price, total: +(l.unit_price * l.quantity).toFixed(2), lot_allocations,
+      }] : [];
+    }
     return product ? expandOrderLines([{ product, quantity: l.quantity }], finishedProducts) : [];
   };
   const expandedItems = orderLines.flatMap(lineToItems);
@@ -116,6 +142,7 @@ export default function Sales() {
   const handleCreateOrder = async (print: boolean) => {
     if (!newOrderCustomerName.trim()) { toast({ title: 'Customer name required', variant: 'destructive' }); return; }
     if (orderLines.length === 0) { toast({ title: 'Add at least one product', variant: 'destructive' }); return; }
+    if (orderLines.some(l => l.allocations && l.quantity <= 0)) { toast({ title: 'Pick a quantity from at least one lot', variant: 'destructive' }); return; }
     setSavingOrder(true);
     try {
       const created: any = await orderService.create({
@@ -650,24 +677,47 @@ export default function Sales() {
                   </TableHeader>
                   <TableBody>
                     {orderLines.map((line, i) => (
-                      <TableRow key={i}>
+                      <Fragment key={i}>
+                      <TableRow>
                         <TableCell>
                           {line.product_name}
                           {(() => {
                             const prod = finishedProducts.find(p => p.id === line.finished_product_id);
                             const sp = prod ? splitPieces(prod, line.quantity) : null;
                             const label = sp ? splitLabel(sp) : null;
-                            return label ? <span className="block text-xs text-muted-foreground">{label}{sp!.opens > 0 ? ` · opens ${sp!.opens} carton${sp!.opens === 1 ? '' : 's'}` : ''}</span> : null;
+                            return !line.allocations && label ? <span className="block text-xs text-muted-foreground">{label}{sp!.opens > 0 ? ` · opens ${sp!.opens} carton${sp!.opens === 1 ? '' : 's'}` : ''}</span> : null;
                           })()}
+                          <button type="button" className="block text-xs text-primary hover:underline" onClick={() => togglePicking(i)}>
+                            {line.allocations ? 'Back to automatic (oldest first)' : 'Choose lots'}
+                          </button>
                         </TableCell>
                         <TableCell>
-                          <Input type="number" min="1" className="h-7 w-20" value={line.quantity} onChange={e => updateLine(i, Number(e.target.value) || 1)} />
+                          {line.allocations
+                            ? <span className="font-medium">{line.quantity}</span>
+                            : <Input type="number" min="1" className="h-7 w-20" value={line.quantity} onChange={e => updateLine(i, Number(e.target.value) || 1)} />}
                         </TableCell>
                         <TableCell className="text-right font-medium">{lineToItems(line).reduce((t, i) => t + i.total, 0).toFixed(2)} DH</TableCell>
                         <TableCell>
                           <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => removeLine(i)}><Trash2 className="h-3 w-3" /></Button>
                         </TableCell>
                       </TableRow>
+                      {line.allocations && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="bg-accent/20">
+                            <p className="text-xs text-muted-foreground mb-2">How many to take from each lot:</p>
+                            {(finishedProducts.find(p => p.id === line.finished_product_id)?.available_lots ?? []).length === 0
+                              ? <p className="text-xs text-destructive">No lots in stock for this product.</p>
+                              : (finishedProducts.find(p => p.id === line.finished_product_id)?.available_lots ?? []).map(lot => (
+                                <div key={lot.id} className="flex items-center justify-between gap-3 py-1 text-sm">
+                                  <span>{lot.lot_code || '—'} <span className="text-muted-foreground">· {lot.lot_date} · {Number(lot.qty_remaining)} left</span></span>
+                                  <Input type="number" min="0" max={Number(lot.qty_remaining)} className="h-7 w-24" placeholder="0"
+                                    value={line.allocations?.[lot.id] || ''} onChange={e => setAllocation(i, lot.id, Number(lot.qty_remaining), e.target.value)} />
+                                </div>
+                              ))}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      </Fragment>
                     ))}
                     <TableRow>
                       <TableCell colSpan={2} className="font-bold">Total</TableCell>

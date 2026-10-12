@@ -71,6 +71,42 @@ class FinishedStockService
     }
 
     /**
+     * Sale from lots the seller picked: [['lot_id' => 3, 'qty' => 5], ...]. All or nothing:
+     * every lot must belong to the product and hold enough, otherwise nothing is taken.
+     * Returns the quantity taken.
+     */
+    public function deductFromChosenLots(int $productId, array $allocations, int $orderId, int $orderItemId): float
+    {
+        $wanted = [];
+        foreach ($allocations as $a) {
+            $wanted[(int) $a['lot_id']] = ($wanted[(int) $a['lot_id']] ?? 0) + (float) $a['qty'];
+        }
+
+        $lots = FinishedGoodsLot::where('finished_product_id', $productId)
+            ->whereIn('id', array_keys($wanted))->lockForUpdate()->get()->keyBy('id');
+
+        foreach ($wanted as $lotId => $qty) {
+            $lot = $lots->get($lotId);
+            if (!$lot) {
+                throw ValidationException::withMessages(['items' => 'A chosen lot does not belong to this product.']);
+            }
+            if ($qty > $lot->qty_remaining + 1e-9) {
+                throw ValidationException::withMessages(['items' => "Lot {$lot->lot_code} only has {$lot->qty_remaining} left, {$qty} requested."]);
+            }
+        }
+
+        $total = 0.0;
+        foreach ($wanted as $lotId => $qty) {
+            $total += array_sum(array_column(
+                $this->takeFromLots($productId, $qty, 'order', null, $lotId, $orderId, $orderItemId), 'qty'
+            ));
+        }
+        $this->adjustTotal($productId, -$total);
+
+        return $total;
+    }
+
+    /**
      * Lowers the lots only (not the product total). Returns [['lot' => FinishedGoodsLot, 'qty' => taken], ...] oldest first.
      */
     private function takeFromLots(

@@ -68,6 +68,9 @@ class OrderController extends Controller
             'items.*.finished_product_id'  => 'nullable|exists:finished_products,id',
             'items.*.unit_price'           => 'required_with:items|numeric|min:0',
             'items.*.total'                => 'required_with:items|numeric|min:0',
+            'items.*.lot_allocations'          => 'nullable|array',
+            'items.*.lot_allocations.*.lot_id' => 'required|integer|exists:finished_goods_lots,id',
+            'items.*.lot_allocations.*.qty'    => 'required|numeric|gt:0',
         ]);
 
         $items = $validated['items'] ?? [];
@@ -85,8 +88,21 @@ class OrderController extends Controller
             $isDevis = $validated['document_type'] === 'devis';
 
             foreach ($items as $itemData) {
+                $allocations = $itemData['lot_allocations'] ?? [];
+                unset($itemData['lot_allocations']);
+
                 /** @var OrderItem $orderItem */
                 $orderItem = $order->items()->create($itemData);
+
+                // Lots chosen by the seller: take exactly those (the quantity must match)
+                if ($allocations && $orderItem->finished_product_id && !$isDevis) {
+                    $sum = array_sum(array_column($allocations, 'qty'));
+                    if (abs($sum - (float) $orderItem->quantity) > 1e-6) {
+                        throw ValidationException::withMessages(['items' => "{$orderItem->product_name}: the lots add up to {$sum}, not {$orderItem->quantity}."]);
+                    }
+                    $stockService->deductFromChosenLots($orderItem->finished_product_id, $allocations, $order->id, $orderItem->id);
+                    continue;
+                }
 
                 // Deduct from finished goods stock when a finished product is linked (not for devis)
                 if ($orderItem->finished_product_id && !$isDevis) {
