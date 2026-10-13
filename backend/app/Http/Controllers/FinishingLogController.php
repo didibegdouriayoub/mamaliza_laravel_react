@@ -53,6 +53,13 @@ class FinishingLogController extends Controller
             }
         }
 
+        // Dough used = pieces x kg per piece. When the form sent no kg (rate missing on screen, stale page),
+        // work it out here so the batch groups' dough left is always reduced.
+        if ($product->type === 'piece' && !empty($validated['batch_sources'])
+            && collect($validated['batch_sources'])->sum('kg_used') <= 0) {
+            $validated['batch_sources'] = $this->autoSplitDough($product, $validated['pieces_produced'], $validated['batch_sources']);
+        }
+
         $cartonsPacked = 0;
 
         DB::transaction(function () use ($validated, $stockService, $product, &$cartonsPacked) {
@@ -86,6 +93,32 @@ class FinishingLogController extends Controller
         });
 
         return response()->json(['message' => 'Finishing log saved.', 'cartons_packed' => $cartonsPacked], 201);
+    }
+
+    /** Spread pieces x kg-per-piece over the chosen batch groups, oldest first, each up to its dough left. */
+    private function autoSplitDough(FinishedProduct $product, int $pieces, array $sources): array
+    {
+        $groups = \App\Models\BatchGroup::withSum('finishingSources as used_kg', 'kg_used')
+            ->whereIn('id', collect($sources)->pluck('batch_group_id'))->orderBy('created_at')->get();
+        if ($groups->isEmpty()) {
+            return $sources;
+        }
+
+        $inputs = $product->inputs()->get();
+        $match = $inputs->firstWhere('recipe_id', $groups->first()->recipe_id) ?: $inputs->first(fn ($i) => $i->kg_per_piece > 0);
+        $remaining = round($pieces * ($match ? (float) $match->kg_per_piece : 0), 4);
+        if ($remaining <= 0) {
+            return $sources;
+        }
+
+        $out = [];
+        foreach ($groups as $i => $g) {
+            $left = max(0, $g->target_weight * $g->batch_count - (float) $g->used_kg);
+            $take = $i === $groups->count() - 1 ? $remaining : min($remaining, $left);
+            $out[] = ['batch_group_id' => $g->id, 'kg_used' => round($take, 4)];
+            $remaining -= $take;
+        }
+        return $out;
     }
 
     public function destroy(FinishingLog $finishingLog, FinishedStockService $stockService)

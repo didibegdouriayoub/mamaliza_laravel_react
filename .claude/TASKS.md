@@ -534,6 +534,7 @@
 | T31.2 | Sales dialog: per-line lot picker (qty per lot, oldest-first default) | 🔴 | ✅ (type-checked; needs browser check) |
 | T31.3 | Batch group form: editable target weight + leftover kg (saved on create, leftover to inventory; closing no longer adds it twice) | 🔴 | ✅ (tested in Docker: target saved, leftover recorded once, close does not duplicate) |
 | T31.5 | Finished Goods "Record order": same lot picker in the confirm dialog (shared `LotPicker` component, also used by Sales) | 🔴 | ✅ (type-checked, tests pass; needs browser check) |
+| T31.6 | Finishing: dough used (pieces × kg/piece) is now computed by the backend when the form sends 0; piece products can no longer be saved without a kg/piece rate | 🔴 | ✅ (tested in Docker: 10 pcs × 0.4 = 4 kg deducted; rate-less product refused; deploy backend) |
 | T31.4 | Tests and deploy | 🔴 | 🔄 (no migration; backend + frontend deploy) |
 
 ---

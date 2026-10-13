@@ -47,6 +47,8 @@ class FinishedProductController extends Controller
             'components.*.qty_per_box'  => 'required|numeric|min:0',
         ]);
 
+        $this->requireDoughRate($validated['type'], $validated['inputs'] ?? []);
+
         $product = FinishedProduct::create([
             'name'       => $validated['name'],
             'type'       => $validated['type'],
@@ -75,6 +77,16 @@ class FinishedProductController extends Controller
         return response()->json($this->loadProduct($product->id), 201);
     }
 
+    /** A piece product must say how much dough one piece uses, or production cannot deduct it. */
+    private function requireDoughRate(string $type, array $inputs): void
+    {
+        if ($type === 'piece' && !collect($inputs)->contains(fn ($i) => (float) $i['kg_per_piece'] > 0)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'inputs' => 'Set the kg of dough per piece (a recipe with kg/piece above 0).',
+            ]);
+        }
+    }
+
     public function update(Request $request, FinishedProduct $finishedProduct)
     {
         if (!\App\Support\Money::visible()) {
@@ -97,6 +109,10 @@ class FinishedProductController extends Controller
             'components.*.component_id' => 'required|exists:finished_products,id',
             'components.*.qty_per_box'  => 'required|numeric|min:0',
         ]);
+
+        if (array_key_exists('inputs', $validated)) {
+            $this->requireDoughRate($validated['type'] ?? $finishedProduct->type, $validated['inputs']);
+        }
 
         foreach (['lot_prefix', 'lot_letters'] as $k) {
             if (isset($validated[$k])) {
