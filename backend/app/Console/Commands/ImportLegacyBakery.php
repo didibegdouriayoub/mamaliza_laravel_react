@@ -247,7 +247,6 @@ class ImportLegacyBakery extends Command
             $code = trim((string) $row->code_plat);
             $fields = [
                 'target_weight' => (float) ($row->batch_target_weight ?? 0),
-                'piece_weight'  => $this->formatWeight($row->piece_weight),
                 'recipe_status' => $row->product_type === 'final' ? 'final' : 'semi_final',
             ];
 
@@ -257,7 +256,6 @@ class ImportLegacyBakery extends Command
             if ($existing) {
                 $recipeId = $existing->id;
                 $changed = (float) $existing->target_weight !== $fields['target_weight']
-                    || $existing->piece_weight !== $fields['piece_weight']
                     || $existing->recipe_status !== $fields['recipe_status'];
                 if ($changed) {
                     DB::table('recipes')->where('id', $recipeId)->update($fields + ['updated_at' => now()]);
@@ -302,13 +300,6 @@ class ImportLegacyBakery extends Command
         $this->report['Recipes updated'] = $updated;
         $this->report['Recipe ingredient lists replaced'] = $linesReplaced;
         return $map;
-    }
-
-    /** 1.800 → "1.8kg" (same format the Recipes page writes) */
-    private function formatWeight($kg): string
-    {
-        $kg = (float) $kg;
-        return rtrim(rtrim(number_format($kg, 3, '.', ''), '0'), '.') . 'kg';
     }
 
     // ── Batches → batch_groups + batches ─────────────────────────────────────

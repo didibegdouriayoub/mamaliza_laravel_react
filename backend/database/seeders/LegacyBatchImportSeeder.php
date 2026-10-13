@@ -202,9 +202,6 @@ class LegacyBatchImportSeeder extends Seeder
                     'recipe_id'          => $newRecipeId,
                     'batch_count'        => (int) $lb->batch_count,
                     'target_weight'      => $recipe ? (float) $recipe->target_weight : 0,
-                    'piece_weight_value' => $recipe
-                        ? (float) preg_replace('/[^0-9.]/', '', $recipe->piece_weight)
-                        : 0,
                     'pieces_produced'    => $lb->pieces_produced,
                     'leftover_qty'       => $lb->leftovers_kg > 0 ? (float) $lb->leftovers_kg : null,
                     'leftover_unit'      => 'kg',

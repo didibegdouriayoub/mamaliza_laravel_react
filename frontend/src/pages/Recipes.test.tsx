@@ -5,7 +5,7 @@ import Recipes from './Recipes';
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: '1', name: 'T' }, hasPermission: () => true }) }));
 vi.mock('@/services/recipeService', () => ({
   recipeService: { getAll: vi.fn().mockResolvedValue([{
-    id: 1, name: 'Kroom', target_weight: 100, piece_weight: '1.8kg', description: '', steps: [''],
+    id: 1, name: 'Kroom', target_weight: 100, description: '', steps: [''],
     // API returns numeric ids; one material is not a raw item
     ingredients: [
       { materialId: 7, materialName: 'Salt', quantity: 1, unit: 'kg', unitPrice: 2 },

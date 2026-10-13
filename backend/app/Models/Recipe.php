@@ -14,7 +14,6 @@ class Recipe extends Model
         'description',
         'steps',
         'target_weight',
-        'piece_weight',
         'recipe_status',
         'packages',
         'version'

@@ -21,7 +21,6 @@ class RecipeController extends Controller
             'description'                  => 'nullable|string',
             'steps'                        => 'nullable|array',
             'target_weight'                => 'nullable|numeric|min:0',
-            'piece_weight'                 => 'nullable|string|max:50',
             'recipe_status'                => 'nullable|string|in:semi_final,final',
             'packages'                     => 'nullable|array',
             'version'                      => 'nullable|integer|min:1',
@@ -63,7 +62,6 @@ class RecipeController extends Controller
             'description' => 'nullable|string',
             'steps' => 'nullable|array',
             'target_weight' => 'sometimes|numeric|min:0',
-            'piece_weight' => 'sometimes|string|max:50',
             'recipe_status' => 'sometimes|string|in:semi_final,final',
             'packages' => 'sometimes|array',
             'ingredients' => 'sometimes|array',
@@ -72,7 +70,7 @@ class RecipeController extends Controller
         ]);
 
         // Record history for main fields (including steps array)
-        foreach (['name', 'description', 'target_weight', 'piece_weight', 'recipe_status', 'packages', 'steps'] as $field) {
+        foreach (['name', 'description', 'target_weight', 'recipe_status', 'packages', 'steps'] as $field) {
             if (isset($validated[$field])) {
                 $oldVal = $recipe->$field;
                 $newVal = $validated[$field];

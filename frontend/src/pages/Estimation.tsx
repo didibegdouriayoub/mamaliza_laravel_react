@@ -60,7 +60,6 @@ function EstimationByRecipe() {
         const rData = (recipeData || []).map((r: any) => ({
           ...r,
           targetWeight: Number(r.target_weight ?? r.targetWeight) || 0,
-          pieceWeight: r.piece_weight ?? r.pieceWeight ?? '',
           recipeStatus: r.recipe_status ?? r.recipeStatus ?? 'semi_final',
           packages: (r.packages || []).map((p: any) => ({
             id: String(p.id),
@@ -646,9 +645,9 @@ function EstimationByRecipe() {
                       <TableRow key={i}>
                         <TableCell className="font-medium">{recipe.name}</TableCell>
                         <TableCell className="text-right">{line.batchCount}</TableCell>
-                        <TableCell className="text-right">{recipe.targetWeight} {recipe.pieceWeight}</TableCell>
+                        <TableCell className="text-right">{recipe.targetWeight} kg</TableCell>
                         <TableCell className="text-right font-semibold">
-                          {(recipe.targetWeight * line.batchCount).toLocaleString()} {recipe.pieceWeight}
+                          {(recipe.targetWeight * line.batchCount).toLocaleString()} kg
                         </TableCell>
                         <TableCell className="text-right">DH{batchCost.toFixed(2)}</TableCell>
                         <TableCell className="text-right font-semibold">DH{(batchCost * line.batchCount).toFixed(2)}</TableCell>

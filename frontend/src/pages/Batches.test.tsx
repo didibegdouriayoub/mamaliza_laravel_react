@@ -12,7 +12,7 @@ vi.mock('@/services/batchService', () => ({
 vi.mock('@/services/qualityService', () => ({ qualityService: { getAll: vi.fn().mockResolvedValue([]) } }));
 vi.mock('@/services/recipeService', () => ({
   recipeService: { getAll: vi.fn().mockResolvedValue([{
-    id: 1, name: 'Cheese', target_weight: 10, piece_weight: '500g', recipeStatus: 'final', version: 1, steps: [],
+    id: 1, name: 'Cheese', target_weight: 10, recipeStatus: 'final', version: 1, steps: [],
     ingredients: [{ materialId: '1', materialName: 'Milk', quantity: 5, unit: 'kg', unitPrice: 1 }],
   }]) },
 }));

@@ -17,7 +17,7 @@ vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }));
 
 vi.mock('@/services/recipeService', () => ({
   recipeService: { getAll: vi.fn().mockResolvedValue([{
-    id: 1, name: 'Kroom 100', target_weight: 100, piece_weight: '1kg', description: '', steps: [''], version: 1,
+    id: 1, name: 'Kroom 100', target_weight: 100, description: '', steps: [''], version: 1,
     ingredients: [{ materialId: 7, materialName: 'Milk', quantity: 50, unit: 'kg', unitPrice: 2 }],
   }]) },
 }));

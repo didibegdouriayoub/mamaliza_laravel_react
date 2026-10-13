@@ -187,18 +187,12 @@ class LegacyImportSeeder extends Seeder
         $rows = DB::table('_leg_recipes')->get();
 
         foreach ($rows as $row) {
-            // Convert decimal piece_weight (e.g. 1.800) to string "1.8kg"
-            $pw = $row->piece_weight
-                ? rtrim(rtrim(number_format((float)$row->piece_weight, 3), '0'), '.') . 'kg'
-                : '1kg';
-
             $status = $row->product_type === 'final' ? 'final' : 'semi_final';
 
             $recipe = \App\Models\Recipe::firstOrCreate(
                 ['name' => trim($row->name), 'description' => $row->code_plat],
                 [
                     'target_weight' => (float) ($row->batch_target_weight ?? 0),
-                    'piece_weight'  => $pw,
                     'recipe_status' => $status,
                     'steps'         => [],
                     'version'       => 1,
@@ -271,9 +265,6 @@ class LegacyImportSeeder extends Seeder
                     'recipe_id'          => $newRecipeId,
                     'batch_count'        => (int) $lb->batch_count,
                     'target_weight'      => $recipe ? (float) $recipe->target_weight : 0,
-                    'piece_weight_value' => $recipe
-                        ? (float) preg_replace('/[^0-9.]/', '', $recipe->piece_weight)
-                        : 0,
                     'pieces_produced'    => $lb->pieces_produced,
                     'leftover_qty'       => $lb->leftovers_kg > 0 ? (float) $lb->leftovers_kg : null,
                     'leftover_unit'      => $lb->leftovers_kg > 0 ? 'kg' : null,

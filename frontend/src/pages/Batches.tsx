@@ -28,11 +28,6 @@ type BatchDraftIngredient = { materialId: string; materialName: string; quantity
 type BatchDraft = { startedAt: string; outputQty: number; note: string; ingredients: BatchDraftIngredient[]; };
 type PrintData = { recipe: Recipe; batches: Array<{ batchNum: number; lot: string; outputQty: number; ingredients: BatchDraftIngredient[] }>; groupId: string; };
 
-const parsePieceWeight = (str: string): number => {
-  const m = str?.match(/[\d.]+/);
-  return m ? Number(m[0]) : 0;
-};
-
 export default function Batches() {
   const [groups, setGroups] = useState<BatchGroup[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -67,7 +62,6 @@ export default function Batches() {
   const [rName, setRName] = useState('');
   const [rDescription, setRDescription] = useState('');
   const [rTargetWeight, setRTargetWeight] = useState('0');
-  const [rPieceWeight, setRPieceWeight] = useState('');
   const [rStatus, setRStatus] = useState<'semi_final' | 'final'>('semi_final');
   const [rSteps, setRSteps] = useState<string[]>([]);
   const [rIngredients, setRIngredients] = useState<RecipeIngredient[]>([]);
@@ -188,7 +182,7 @@ export default function Batches() {
         <div class="card">
           <div class="card-label">Batches</div>
           <div class="card-value">${data.batches.length}</div>
-          <div class="card-desc">piece weight: ${data.recipe.pieceWeight}</div>
+          <div class="card-desc">in this group</div>
         </div>
       </div>
 
@@ -245,7 +239,7 @@ export default function Batches() {
         recipeName: g.recipeName ?? g.recipe_name ?? '',
         batchCount: Number(g.batchCount ?? g.batch_count) || 0,
         targetWeight: Number(g.targetWeight ?? g.target_weight) || 0,
-        pieceWeightValue: Number(g.pieceWeightValue ?? g.piece_weight_value) || 0,
+        pieceWeightValue: 0,
         createdAt: g.createdAt ?? g.created_at ?? '',
         usedKg: Number(g.usedKg ?? g.used_kg) || 0,
         leftoverQty: Number(g.leftoverQty ?? g.leftover_qty) || 0,
@@ -274,7 +268,6 @@ export default function Batches() {
       const rData = (recipeData || []).map((r: any) => ({
         ...r,
         targetWeight: Number(r.target_weight ?? r.targetWeight) || 0,
-        pieceWeight: r.piece_weight ?? r.pieceWeight ?? '',
         ingredients: (r.ingredients || []).map((i: any) => ({ ...i, quantity: Number(i.quantity) || 0, unitPrice: Number(i.unitPrice ?? i.unit_price) || 0 })),
       }));
       setRecipes(rData);
@@ -363,7 +356,7 @@ export default function Batches() {
         recipeName: recipe.name,
         batchCount: batchDrafts.length,
         targetWeight: effectiveTarget,
-        pieceWeightValue: parsePieceWeight(recipe.pieceWeight),
+        pieceWeightValue: 0,
         createdBy: user?.name,
         date: groupDate,
         leftoverKg: Number(groupLeftover) || 0,
@@ -379,7 +372,7 @@ export default function Batches() {
           startedAt: draft.startedAt,
           inputMaterials: draft.ingredients.map(({ linkId, linkSource, custom, ...ing }) => ing),
           outputQuantity: draft.outputQty || effectiveTarget,
-          outputUnit: recipe.pieceWeight,
+          outputUnit: 'kg',
           operatorId: user?.id, operatorName: user?.name,
           batchGroupId: String(group.id),
         } as any);
@@ -645,7 +638,7 @@ export default function Batches() {
               </div>
               {selectedRecipe && (
                 <div className="p-3 bg-accent/40 rounded-lg border text-sm space-y-1">
-                  <p><span className="text-muted-foreground">Target yield:</span> <span className="font-medium">{selectedRecipe.targetWeight} {selectedRecipe.pieceWeight}</span></p>
+                  <p><span className="text-muted-foreground">Target yield:</span> <span className="font-medium">{selectedRecipe.targetWeight} kg</span></p>
                   <p><span className="text-muted-foreground">Ingredients:</span> <span className="font-medium">{selectedRecipe.ingredients.length} materials</span></p>
                   {showMoney && (<p><span className="text-muted-foreground">Cost/batch:</span> <span className="font-medium">DH{selectedRecipe.ingredients.reduce((s, i) => s + i.quantity * i.unitPrice, 0).toFixed(2)}</span></p>)}
                 </div>
@@ -922,7 +915,6 @@ export default function Batches() {
               setRName(recipe.name);
               setRDescription(recipe.description || '');
               setRTargetWeight(String(recipe.targetWeight || '0'));
-              setRPieceWeight(recipe.pieceWeight || '');
               setRStatus(recipe.recipeStatus || 'semi_final');
               setRSteps(recipe.steps.length ? [...recipe.steps] : ['']);
               setRIngredients(recipe.ingredients.map(i => ({ ...i })));
@@ -936,7 +928,6 @@ export default function Batches() {
                   name: rName,
                   description: rDescription,
                   targetWeight: Number(rTargetWeight) || 0,
-                  pieceWeight: rPieceWeight,
                   recipeStatus: rStatus,
                   steps: rSteps.filter(s => s.trim()),
                   ingredients: rIngredients,
@@ -1090,10 +1081,6 @@ export default function Batches() {
                     <div className="space-y-1.5">
                       <Label>Target Weight (kg)</Label>
                       <Input type="number" value={rTargetWeight} onChange={e => setRTargetWeight(e.target.value)} />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Piece Weight</Label>
-                      <Input value={rPieceWeight} onChange={e => setRPieceWeight(e.target.value)} placeholder="e.g. 500g" />
                     </div>
                     <div className="space-y-1.5">
                       <Label>Status</Label>

@@ -16,7 +16,6 @@ const toPayload = (r: Partial<Recipe>) => ({
   description: r.description,
   steps: r.steps,
   target_weight: r.targetWeight,
-  piece_weight: r.pieceWeight,
   recipe_status: r.recipeStatus,
   packages: r.packages,
   version: r.version,

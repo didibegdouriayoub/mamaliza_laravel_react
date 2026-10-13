@@ -35,7 +35,6 @@ export default function Recipes() {
   const [ingredients, setIngredients] = useState<RecipeIngredient[]>([{ ...emptyIng }]);
   const [steps, setSteps] = useState<string[]>(['']);
   const [targetWeight, setTargetWeight] = useState('0');
-  const [pieceWeight, setPieceWeight] = useState('');
   const { toast } = useToast();
 
   const loadData = async () => {
@@ -49,7 +48,6 @@ export default function Recipes() {
       const recipeData = (recipeRaw || []).map((r: any) => ({
         ...r,
         targetWeight: Number(r.target_weight ?? r.targetWeight) || 0,
-        pieceWeight: r.piece_weight ?? r.pieceWeight ?? '',
         recipeStatus: r.recipe_status ?? r.recipeStatus ?? 'semi_final',
         packages: r.packages || [],
         ingredients: (r.ingredients || []).map((i: any) => ({
@@ -80,7 +78,7 @@ export default function Recipes() {
     setEditingRecipe(null);
     setName(''); setDescription(''); setSteps(['']);
     setIngredients([{ ...emptyIng }]);
-    setTargetWeight('0'); setPieceWeight('');
+    setTargetWeight('0');
     setFormOpen(true);
   };
 
@@ -90,7 +88,6 @@ export default function Recipes() {
     setIngredients(r.ingredients.map(i => ({ ...i })));
     setSteps([...r.steps]);
     setTargetWeight(r.targetWeight ? String(r.targetWeight) : '0');
-    setPieceWeight(r.pieceWeight);
     setFormOpen(true);
     setSelected(null);
   };
@@ -105,13 +102,13 @@ export default function Recipes() {
       if (editingRecipe) {
         await recipeService.update(editingRecipe.id, {
           name, description, ingredients: validIngs, steps: validSteps,
-          targetWeight: targetWeightNum, pieceWeight,
+          targetWeight: targetWeightNum,
         });
         toast({ title: 'Recipe updated' });
       } else {
         await recipeService.create({
           name, description, ingredients: validIngs, steps: validSteps,
-          targetWeight: targetWeightNum, pieceWeight,
+          targetWeight: targetWeightNum,
         });
         toast({ title: 'Recipe created' });
       }
@@ -177,7 +174,7 @@ export default function Recipes() {
                     <span>
                       {recipe.ingredients.length} ing. • {recipe.steps.length} steps
                     </span>
-                    <span className="font-medium">Target: {recipe.targetWeight} ({recipe.pieceWeight})</span>
+                    <span className="font-medium">Target: {recipe.targetWeight} kg</span>
                   </div>
                   {showMoney && (
                   <p className="text-xs font-medium text-primary mt-1">
@@ -233,8 +230,7 @@ export default function Recipes() {
                 </div>
                 <div className="text-xs text-muted-foreground pt-2 border-t flex justify-between items-center">
                   <div>
-                    Target: <span className="font-medium text-foreground">{selected.targetWeight}</span> •
-                    Piece Weight: <span className="font-medium text-foreground">{selected.pieceWeight}</span>
+                    Target: <span className="font-medium text-foreground">{selected.targetWeight} kg</span>
                   </div>
                 </div>
                 {selected.packages && selected.packages.length > 0 && (
@@ -322,7 +318,6 @@ export default function Recipes() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label>Target Weight (Batch Total)</Label><Input type="number" value={targetWeight} onChange={e => setTargetWeight(e.target.value)} /></div>
-              <div className="space-y-1.5"><Label>Piece Weight (Unit)</Label><Input value={pieceWeight} onChange={e => setPieceWeight(e.target.value)} placeholder="e.g. 500g" /></div>
             </div>
             <div className="space-y-1.5">
               <Label>Description</Label>
