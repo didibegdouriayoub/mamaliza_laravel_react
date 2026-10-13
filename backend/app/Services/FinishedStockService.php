@@ -147,9 +147,10 @@ class FinishedStockService
     /**
      * Pack $cartons of a box product: uses its component pieces (oldest lots first) and adds sealed-carton lots.
      * Each carton takes the date of the oldest piece inside it. Packaging items are handled by the caller.
+     * $firstLotId (a piece lot just produced) is used before the other lots; the rest is oldest first.
      * Returns the number of cartons packed per lot date.
      */
-    public function pack(FinishedProduct $box, int $cartons, int $finishingLogId): void
+    public function pack(FinishedProduct $box, int $cartons, int $finishingLogId, ?int $firstLotId = null): void
     {
         $components = $box->components()->with('component:id,name')->get();
         if ($components->isEmpty()) {
@@ -171,6 +172,9 @@ class FinishedStockService
         foreach ($components as $c) {
             $lots = FinishedGoodsLot::where('finished_product_id', $c->component_id)
                 ->where('qty_remaining', '>', 0)->orderBy('lot_date')->orderBy('id')->get();
+            if ($firstLotId) {
+                $lots = $lots->sortBy(fn ($l) => $l->id === $firstLotId ? 0 : 1)->values();
+            }
             $k = $c->qty_per_box;
             for ($j = 0; $j < $cartons; $j++) {
                 $startIndex = $j * $k; // first piece of carton j in FIFO order
@@ -190,7 +194,14 @@ class FinishedStockService
         }
 
         foreach ($components as $c) {
-            $this->deduct($c->component_id, $c->qty_per_box * $cartons, 'pack_used', "Packed into {$box->name}", null, null, null, false, $finishingLogId);
+            $need = $c->qty_per_box * $cartons;
+            $first = $firstLotId ? FinishedGoodsLot::where('id', $firstLotId)->where('finished_product_id', $c->component_id)->first() : null;
+            if ($first) {
+                $need -= $this->deduct($c->component_id, min($need, (float) $first->qty_remaining), 'pack_used', "Packed into {$box->name}", $first->id, null, null, false, $finishingLogId);
+            }
+            if ($need > 0) {
+                $this->deduct($c->component_id, $need, 'pack_used', "Packed into {$box->name}", null, null, null, false, $finishingLogId);
+            }
         }
 
         // one carton lot per (date, code) pair

@@ -87,7 +87,8 @@ class FinishingLogController extends Controller
                 throw ValidationException::withMessages(['cartons' => "Only {$max} carton(s) of {$link->qty_per_box} fit in {$validated['pieces_produced']} pieces."]);
             }
             if ($cartons > 0) {
-                $this->createLog($box, $cartons, $validated['date'], "Auto-packed from production #{$log->id}", [], $log->id, $stockService);
+                $this->createLog($box, $cartons, $validated['date'], "Auto-packed from production #{$log->id}", [], $log->id, $stockService, null,
+                    \App\Models\FinishedGoodsLot::where('finishing_log_id', $log->id)->value('id'));
                 $cartonsPacked = $cartons;
             }
         });
@@ -129,7 +130,7 @@ class FinishingLogController extends Controller
     }
 
     /** One production / packing entry: log row, packaging items, and the stock (a lot, or packed cartons). */
-    private function createLog(FinishedProduct $product, int $pieces, string $date, ?string $notes, array $sources, ?int $parentId, FinishedStockService $stockService, ?string $lotCode = null): FinishingLog
+    private function createLog(FinishedProduct $product, int $pieces, string $date, ?string $notes, array $sources, ?int $parentId, FinishedStockService $stockService, ?string $lotCode = null, ?int $packFromLotId = null): FinishingLog
     {
         // Cartons carry the lot code of the pieces inside (set per carton lot when packing)
         $log = FinishingLog::create([
@@ -160,7 +161,7 @@ class FinishingLogController extends Controller
 
         if ($product->type === 'box') {
             // Packing cartons: uses the pieces inside (422 when not enough), lots inherit the pieces' dates
-            $stockService->pack($product, $pieces, $log->id);
+            $stockService->pack($product, $pieces, $log->id, $packFromLotId);
         } else {
             $stockService->receive($product->id, $pieces, $date, 'production', $log->id, null, null, null, false, $lotCode);
         }
