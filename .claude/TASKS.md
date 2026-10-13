@@ -537,6 +537,7 @@
 | T31.6 | Finishing: dough used (pieces × kg/piece) is now computed by the backend when the form sends 0; piece products can no longer be saved without a kg/piece rate | 🔴 | ✅ (tested in Docker: 10 pcs × 0.4 = 4 kg deducted; rate-less product refused; deploy backend) |
 | T31.8 | Dough used falls back to the recipe piece weight when the product has no kg/piece (172 pcs × 1.8 kg = 309.6 kg deducted) | 🔴 | ✅ (tested in Docker; deploy backend) |
 | T31.9 | Remove the recipe piece weight: input on Recipes + Batches forms, API field, display, importer, seeders, and a migration dropping `recipes.piece_weight` (dough per piece now only from the product kg/piece) | 🔴 | 🔄 (frontend type-check + 35 tests pass; migration NOT run yet; DB backup of recipes + batch_groups taken before) |
+| T31.10 | Batch form raw-material select: show stock + lot per option, hide out-of-stock items | 🔴 | ✅ (type-check + 35 tests pass; needs browser check; frontend deploy) |
 | T31.7 | Finishing auto-pack takes the pieces just produced (not the oldest stock): 171 pcs → 42 cartons + 3 loose | 🔴 | ✅ (tested in Docker; deploy backend) |
 | T31.4 | Tests and deploy | 🔴 | 🔄 (no migration; backend + frontend deploy) |
 

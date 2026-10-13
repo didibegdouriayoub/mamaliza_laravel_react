@@ -31,6 +31,6 @@ it('edit recipe shows ingredient names', async () => {
   fireEvent.click(await screen.findByText('Edit'));
   const combos = await screen.findAllByRole('combobox');
   const texts = combos.map(c => c.textContent);
-  expect(texts).toContain('Salt (DH2/kg)');
+  expect(texts).toContain('Salt — 5 kg in stock (DH2/kg)');
   expect(texts).toContain('Old leftover');
 });

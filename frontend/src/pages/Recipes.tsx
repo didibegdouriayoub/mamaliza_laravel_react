@@ -131,7 +131,7 @@ export default function Recipes() {
   };
 
   const materialOptions = inventory
-    .filter(m => m.type === 'raw')
+    .filter(m => m.type === 'raw' && m.quantity > 0) // out-of-stock items are not offered
     .sort((x, y) => x.name.localeCompare(y.name, undefined, { sensitivity: 'base' }));
 
   const handleMaterialSelect = (idx: number, materialId: string) => {
@@ -339,7 +339,7 @@ export default function Recipes() {
                         <SelectItem value={String(ing.materialId)}>{ing.materialName || `#${ing.materialId}`}</SelectItem>
                       )}
                       {materialOptions.map(m => (
-                        <SelectItem key={m.id} value={String(m.id)}>{m.name} ({showMoney ? `DH${m.price}/` : ''}{m.unit})</SelectItem>
+                        <SelectItem key={m.id} value={String(m.id)}>{m.name}{m.lot ? ` · Lot ${m.lot}` : ''} — {m.quantity} {m.unit} in stock{showMoney ? ` (DH${m.price}/${m.unit})` : ''}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

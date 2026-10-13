@@ -343,7 +343,7 @@ export default function Batches() {
   };
 
   const rawMaterials = [...inventory]
-    .filter(m => m.type === 'raw')
+    .filter(m => m.type === 'raw' && m.quantity > 0) // out-of-stock lots are not offered
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }) || (a.lot || '').localeCompare(b.lot || ''));
 
   const handleCreate = async () => {
@@ -689,7 +689,13 @@ export default function Batches() {
                         {draft.ingredients.map((ing, iIdx) => (
                           <div key={iIdx} className="grid grid-cols-[1fr_140px_32px] gap-1.5 items-center">
                             {ing.materialId
-                              ? <span className="text-sm truncate">{ing.materialName}</span>
+                              ? (() => {
+                                  const inv = inventory.find(m => String(m.id) === String(ing.materialId));
+                                  return <span className="text-sm truncate" title={inv ? `${inv.quantity} ${inv.unit} in stock` : undefined}>
+                                    {ing.materialName}
+                                    {inv && <span className="text-xs text-muted-foreground">{inv.lot ? ` · Lot ${inv.lot}` : ''} · {inv.quantity} {inv.unit} in stock</span>}
+                                  </span>;
+                                })()
                               : <Select value={ing.materialId} onValueChange={v => setDraftIngredientMaterial(bIdx, iIdx, v)}>
                                   <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select material" /></SelectTrigger>
                                   <SelectContent>{rawMaterials.map(m => (
