@@ -107,7 +107,18 @@ class FinishingLogController extends Controller
 
         $inputs = $product->inputs()->get();
         $match = $inputs->firstWhere('recipe_id', $groups->first()->recipe_id) ?: $inputs->first(fn ($i) => $i->kg_per_piece > 0);
-        $remaining = round($pieces * ($match ? (float) $match->kg_per_piece : 0), 4);
+        $rate = $match ? (float) $match->kg_per_piece : 0;
+        if ($rate <= 0) {
+            // no rate on the product: use the piece weight written on the recipe ("1.8kg", "500 g")
+            $text = (string) optional($groups->first()->recipe)->piece_weight;
+            if (preg_match('/(\d+(?:[.,]\d+)?)\s*(kg|g)?/i', $text, $m)) {
+                $rate = (float) str_replace(',', '.', $m[1]);
+                if (strtolower($m[2] ?? 'kg') === 'g') {
+                    $rate /= 1000;
+                }
+            }
+        }
+        $remaining = round($pieces * $rate, 4);
         if ($remaining <= 0) {
             return $sources;
         }
