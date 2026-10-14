@@ -153,11 +153,13 @@ export function printOrderDocument(order: Order, kind: DocKind, customerAddress 
 
     ${totals}
 
-    <div class="inv-thank">Merci pour votre confiance</div>
-    <hr class="inv-sep-red">
-    <div class="inv-footer-legal">
-      ${COMPANY.name} | IF : ${COMPANY.if_} | TP : ${COMPANY.tp} | RC : ${COMPANY.rc} | ICE : ${COMPANY.ice} | CNSS : ${COMPANY.cnss}
+    <div class="push-bottom">
+      <div class="inv-thank">Merci pour votre confiance</div>
+      <hr class="inv-sep-red">
+      <div class="inv-footer-legal">
+        ${COMPANY.name} | IF : ${COMPANY.if_} | TP : ${COMPANY.tp} | RC : ${COMPANY.rc} | ICE : ${COMPANY.ice} | CNSS : ${COMPANY.cnss}
+      </div>
     </div>`;
 
-  printDocument(`${title} ${ref}`, html);
+  printDocument(`${title} ${ref}`, html, { fullPage: true });
 }

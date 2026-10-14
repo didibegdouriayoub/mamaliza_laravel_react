@@ -5,11 +5,13 @@
  *
  * opts.fitOnePage — scale content down so it always fits on exactly 1 page
  * opts.pageSizeMm — [width, height] of the target page in mm (default A4 portrait [210, 297])
+ * opts.fullPage — content fills the whole page (margin 0, so the browser prints no date / title / about:blank line);
+ *                  an element with class `push-bottom` is pinned to the bottom of the page
  */
 export function printDocument(
   title: string,
   bodyHtml: string,
-  opts?: { fitOnePage?: boolean; pageSizeMm?: [number, number] }
+  opts?: { fitOnePage?: boolean; pageSizeMm?: [number, number]; fullPage?: boolean }
 ): void {
   const win = window.open('', '_blank', 'width=900,height=700');
   if (!win) {
@@ -244,6 +246,13 @@ export function printDocument(
       .page { padding: 0; max-width: 100%; }
       .no-print { display: none !important; }
     }
+    ${opts?.fullPage ? `
+    @page { margin: 0; size: ${pageW}mm ${pageH}mm; }
+    .page { display: flex; flex-direction: column; }
+    .push-bottom { margin-top: auto; }
+    @media print {
+      .page { padding: 14mm 12mm; min-height: ${pageH - 1}mm; }
+    }` : ''}
   </style>
 </head>
 <body>
