@@ -193,7 +193,7 @@ export default function FinishedGoods() {
   };
 
   const cartLines = useMemo(
-    () => products.filter(p => cart[p.id] > 0).map(p => {
+    () => products.filter(p => picks[p.id] ? Object.values(picks[p.id]).some(q => q > 0) : cart[p.id] > 0).map(p => {
       const picked = picks[p.id];
       if (picked) {
         // lots chosen by hand: one line with exactly those lots, no automatic carton split
@@ -214,10 +214,12 @@ export default function FinishedGoods() {
 
   const exitOrderMode = () => { setOrderMode(false); setCart({}); setPicks({}); };
 
-  const togglePicking = (productId: number) => setPicks(prev => {
-    if (prev[productId]) { const { [productId]: _, ...rest } = prev; return rest; }
-    return { ...prev, [productId]: {} };
-  });
+  // Tapping a product in order mode opens its lots on the card right away: pick how many from each lot.
+  const startPicking = (p: FinishedProduct) => setPicks(prev => ({ ...prev, [p.id]: {} }));
+  const stopPicking = (productId: number) => {
+    setPicks(prev => { const { [productId]: _, ...rest } = prev; return rest; });
+    setCart(prev => { const { [productId]: _, ...rest } = prev; return rest; });
+  };
 
   const createOrder = async (print = false) => {
     if (!custName.trim()) { toast({ title: 'Customer name required', variant: 'destructive' }); return; }
@@ -267,7 +269,7 @@ export default function FinishedGoods() {
           : <Button onClick={() => setOrderMode(true)}><ShoppingCart className="h-4 w-4 mr-1" />Record order</Button>)}
       </div>
 
-      {orderMode && <p className="text-sm text-muted-foreground">Order mode — tap a product to add it, use + / − to change the quantity.</p>}
+      {orderMode && <p className="text-sm text-muted-foreground">Order mode — tap a product, then choose how many from each lot.</p>}
 
       {loading ? <TableSkeleton cols={4} rows={3} /> : filtered.length === 0 ? (
         <EmptyState title="No products" description="Create products first in the Products page." />
@@ -276,15 +278,20 @@ export default function FinishedGoods() {
           {filtered.map(p => {
             const summary = stockSummary(p);
             const total = summary.total;
-            const inCart = cart[p.id] ?? 0;
+            const picking = !!picks[p.id];
+            const inCart = picking ? Object.values(picks[p.id]).reduce((s, q) => s + q, 0) : (cart[p.id] ?? 0);
             const disabled = orderMode && sellableTotal(p) <= 0;
             const opens = cartonsToOpen(p, inCart);
             return (
               <Card
                 key={p.id}
                 role="button"
-                onClick={() => !disabled && (orderMode ? changeCart(p, 1) : openPanel(p))}
-                className={`overflow-hidden transition-all ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-md'} ${inCart ? 'ring-2 ring-primary' : ''}`}
+                onClick={() => {
+                  if (disabled) return;
+                  if (!orderMode) openPanel(p);
+                  else if (!picking) (cart[p.id] ?? 0) > 0 ? changeCart(p, 1) : startPicking(p);
+                }}
+                className={`overflow-hidden transition-all ${picking ? 'col-span-2 row-span-1' : ''} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-md'} ${inCart || picking ? 'ring-2 ring-primary' : ''}`}
               >
                 <div className="relative">
                   <ProductImage product={p} className="aspect-square w-full" />
@@ -300,7 +307,14 @@ export default function FinishedGoods() {
                   <p className="text-xs text-muted-foreground">{summary.sub}</p>
                   {inCart > 0 && splitLabel(splitPieces(p, inCart)) && <p className="text-xs font-medium text-primary">{splitLabel(splitPieces(p, inCart))}</p>}
                   {opens > 0 && <p className="text-xs font-medium text-amber-600">Will open {opens} carton{opens === 1 ? '' : 's'}</p>}
-                  {orderMode && inCart > 0 && (
+                  {orderMode && picking && (
+                    <div className="mt-1 rounded bg-accent/20 p-2 cursor-default" onClick={e => e.stopPropagation()}>
+                      <LotPicker lots={p.available_lots ?? []} picks={picks[p.id] ?? {}}
+                        onChange={(lotId, qty) => setPicks(prev => ({ ...prev, [p.id]: { ...prev[p.id], [lotId]: qty } }))} />
+                      <button type="button" className="mt-1 text-xs text-primary hover:underline" onClick={() => stopPicking(p.id)}>Remove from order</button>
+                    </div>
+                  )}
+                  {orderMode && !picking && inCart > 0 && (
                     <div className="flex items-center justify-between pt-1" onClick={e => e.stopPropagation()}>
                       <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => changeCart(p, -1)}><Minus className="h-4 w-4" /></Button>
                       <span className="font-semibold">{inCart}</span>
@@ -327,7 +341,7 @@ export default function FinishedGoods() {
             <p className="font-semibold">{cartCount} piece{cartCount === 1 ? '' : 's'} · {cartLines.length} product{cartLines.length === 1 ? '' : 's'}</p>
             {showMoney && <p className="text-sm text-muted-foreground">Total {cartTotal.toFixed(2)} DH</p>}
           </div>
-          <Button variant="ghost" disabled={cartCount === 0} onClick={() => setCart({})}>Clear</Button>
+          <Button variant="ghost" disabled={cartCount === 0 && Object.keys(picks).length === 0} onClick={() => { setCart({}); setPicks({}); }}>Clear</Button>
           <Button disabled={cartCount === 0} onClick={() => setOrderOpen(true)}>Continue</Button>
         </div>
       )}
@@ -347,15 +361,6 @@ export default function FinishedGoods() {
                         <span>{it.quantity} × {it.product_name}</span>{showMoney && <span className="font-medium">{it.total.toFixed(2)} DH</span>}
                       </div>
                     ))}
-                  <button type="button" className="text-xs text-primary hover:underline" onClick={() => togglePicking(l.product.id)}>
-                    {l.picked ? 'Back to automatic (oldest first)' : 'Choose lots'}
-                  </button>
-                  {l.picked && (
-                    <div className="mt-1 rounded bg-accent/20 p-2">
-                      <LotPicker lots={l.product.available_lots ?? []} picks={picks[l.product.id] ?? {}}
-                        onChange={(lotId, qty) => setPicks(prev => ({ ...prev, [l.product.id]: { ...prev[l.product.id], [lotId]: qty } }))} />
-                    </div>
-                  )}
                 </div>
               ))}
               {showMoney && <div className="flex justify-between px-3 py-2 font-semibold"><span>Total</span><span>{cartTotal.toFixed(2)} DH</span></div>}
@@ -378,7 +383,7 @@ export default function FinishedGoods() {
                 {cartLines.filter(l => cartonsToOpen(l.product, l.quantity) > 0).map(l => `${cartonsToOpen(l.product, l.quantity)} carton(s) of ${l.product.name} will be opened`).join(' · ')}
               </p>
             )}
-            <p className="text-xs text-muted-foreground">Stock is taken from the oldest lots first, unless you choose the lots.</p>
+            <p className="text-xs text-muted-foreground">Stock comes from the lots you chose on each product.</p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOrderOpen(false)}>Back</Button>

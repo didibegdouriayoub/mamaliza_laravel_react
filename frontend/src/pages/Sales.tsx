@@ -88,13 +88,17 @@ export default function Sales() {
     setNewOrderOpen(true);
   };
 
+  // A product with lots in stock opens its lot list straight away (pick how many from each lot);
+  // "Back to automatic" on the line switches to oldest-first with a plain quantity.
   const addOrderLine = (product: FinishedProduct) => {
+    const pickNow = (product.available_lots?.length ?? 0) > 0;
     setOrderLines(prev => [...prev, {
       finished_product_id: product.id,
       product_name: product.name,
       unit_price: product.unit_price,
-      quantity: 1,
-      total: product.unit_price,
+      quantity: pickNow ? 0 : 1,
+      total: pickNow ? 0 : product.unit_price,
+      ...(pickNow ? { allocations: {} } : {}),
     }]);
   };
 
