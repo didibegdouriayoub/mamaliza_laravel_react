@@ -102,3 +102,20 @@ it('return dialog lists the products sold and records the quantity per line', as
     orderItemId: 11, productName: 'Kroom pot', finishedProductId: 3, quantity: 2, disposition: 'restock', refundAmount: 20,
   })));
 });
+
+it('a facture returned in full owes nothing (returns reduce the balance)', async () => {
+  (orderService.getAll as any).mockResolvedValue([
+    { ...orders[0], amountReturned: 100, returns: [{ id: 1, orderItemId: 11, productName: 'Kroom pot', quantity: 6, refundAmount: 100, reason: '', returnedAt: '2026-10-09' }] },
+  ]);
+  render(<Sales />);
+  fireEvent.click(await screen.findByText('FA-2026-0001'));
+  expect(await screen.findByText('DH0 (Settled)')).toBeTruthy();
+});
+
+it('a facture returned in full is not listed under who owes me', async () => {
+  (orderService.getAll as any).mockResolvedValue([{ ...orders[0], amountReturned: 100 }]);
+  render(<Sales />);
+  await screen.findByText('FA-2026-0001');
+  openTab(/Who owes me/);
+  expect(screen.queryByText('Hotel Atlas')).toBeNull();
+});

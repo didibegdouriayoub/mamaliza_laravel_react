@@ -274,7 +274,8 @@ class OrderController extends Controller
         $order->increment('amount_paid', $validated['amount']);
         $order->refresh();
 
-        if ($order->amount_paid >= $order->total_amount) {
+        // what the customer owes = total minus the goods they gave back
+        if ($order->amount_paid >= $order->total_amount - $order->amount_returned - 0.009) {
             $order->update(['status' => 'paid', 'paid_at' => now()]);
         } elseif ($order->amount_paid > 0) {
             $order->update(['status' => 'partial']);
@@ -341,6 +342,11 @@ class OrderController extends Controller
 
             if (($validated['refund_amount'] ?? 0) > 0) {
                 $order->increment('amount_returned', $validated['refund_amount']);
+                $order->refresh();
+                // everything given back (or already paid for what was kept): the facture is settled
+                if (in_array($order->status, ['pending', 'partial'], true) && $order->amount_paid >= $order->total_amount - $order->amount_returned - 0.009) {
+                    $order->update(['status' => 'paid', 'paid_at' => $order->paid_at ?? now()]);
+                }
             }
 
             $disposition = $validated['disposition'] ?? null;

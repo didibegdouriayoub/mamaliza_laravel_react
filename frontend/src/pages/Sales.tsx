@@ -177,7 +177,7 @@ export default function Sales() {
     const rows = filtered.map(o => [
       o.docNumber ?? o.id, o.customerName,
       o.totalAmount.toFixed(2), o.amountPaid.toFixed(2), o.amountReturned.toFixed(2),
-      Math.max(0, o.totalAmount - o.amountPaid + o.amountReturned).toFixed(2),
+      Math.max(0, o.totalAmount - o.amountReturned - o.amountPaid).toFixed(2),
       o.status, o.createdAt,
     ]);
     const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
@@ -259,7 +259,8 @@ export default function Sales() {
     }
   };
 
-  const balance = (o: Order) => o.totalAmount - o.amountPaid + o.amountReturned;
+  // what the customer still owes: total minus goods returned minus what was paid (negative = we owe them a refund)
+  const balance = (o: Order) => o.totalAmount - o.amountReturned - o.amountPaid;
 
   const canWrite = hasPermission('sales.write');
   const showMoney = hasPermission('money.read');
@@ -486,7 +487,7 @@ export default function Sales() {
                   <div className="flex justify-between"><span>Total</span><span className="font-semibold">DH{selected.totalAmount}</span></div>
                   <div className="flex justify-between text-success"><span>Paid</span><span>DH{selected.amountPaid}</span></div>
                   <div className="flex justify-between text-destructive"><span>Returned</span><span>DH{selected.amountReturned}</span></div>
-                  <div className="flex justify-between font-bold border-t pt-1"><span>Balance</span><span>{balance(selected) > 0 ? `DH${money(balance(selected))}` : 'DH0 (Settled)'}</span></div>
+                  <div className="flex justify-between font-bold border-t pt-1"><span>Balance</span><span>{balance(selected) > 0.009 ? `DH${money(balance(selected))}` : balance(selected) < -0.009 ? `Refund due DH${money(-balance(selected))}` : 'DH0 (Settled)'}</span></div>
                 </div>
                 )}
 
