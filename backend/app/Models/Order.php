@@ -21,6 +21,7 @@ class Order extends Model
         'document_type',
         'doc_number',
         'converted_to_id',
+        'tournee_id',
         'paid_at'
     ];
 

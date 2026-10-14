@@ -541,6 +541,7 @@
 | T31.11 | Facture/devis/bon de livraison print: footer pinned to the bottom of the page; remove browser header/footer (date, about:blank) | 🔴 | ✅ (rendered a 1-line facture to PDF: 1 page, footer at bottom, no browser header/footer; frontend deploy) |
 | T31.12 | Prices include tax (TTC): facture/devis show HT and TVA worked back from the product price instead of adding 20% on top | 🔴 | ✅ (35 MAD TTC → HT 29,17 + TVA 5,83; tests pass; frontend deploy) |
 | T31.13 | Order forms: choose the lot right under the product line when adding it (expands inline), not only in the final confirm step | 🔴 | ✅ (type-check + 35 tests pass; needs browser check; frontend deploy) |
+| T32.1 | Tournée (worker daily load): load stock out of the fridge by lot, settle per customer into factures, return the rest, printable load sheet | 🔴 | ✅ (backend tested in Docker with rollback: load, settle x2, over-delivery blocked, close, cancel, delete facture; frontend type-check + 36 tests; migration 2026_10_14_110000 must run on the server; needs browser check) |
 | T31.7 | Finishing auto-pack takes the pieces just produced (not the oldest stock): 171 pcs → 42 cartons + 3 loose | 🔴 | ✅ (tested in Docker; deploy backend) |
 | T31.4 | Tests and deploy | 🔴 | 🔄 (no migration; backend + frontend deploy) |
 

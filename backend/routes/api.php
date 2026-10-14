@@ -85,6 +85,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orders/{order}', [\App\Http\Controllers\OrderController::class, 'show'])->middleware('permission:sales.read,analytics.read');
     Route::match(['put', 'patch'], '/orders/{order}', [\App\Http\Controllers\OrderController::class, 'update'])->middleware('permission:sales.write');
     Route::delete('/orders/{order}', [\App\Http\Controllers\OrderController::class, 'destroy'])->middleware('permission:sales.write');
+    Route::get('/tournees', [\App\Http\Controllers\TourneeController::class, 'index'])->middleware('permission:sales.read');
+    Route::post('/tournees', [\App\Http\Controllers\TourneeController::class, 'store'])->middleware('permission:sales.write');
+    Route::get('/tournees/{tournee}', [\App\Http\Controllers\TourneeController::class, 'show'])->middleware('permission:sales.read');
+    Route::post('/tournees/{tournee}/settle', [\App\Http\Controllers\TourneeController::class, 'settle'])->middleware('permission:sales.write');
+    Route::post('/tournees/{tournee}/close', [\App\Http\Controllers\TourneeController::class, 'close'])->middleware('permission:sales.write');
+    Route::delete('/tournees/{tournee}', [\App\Http\Controllers\TourneeController::class, 'destroy'])->middleware('permission:sales.write');
     Route::post('/orders/{order}/convert', [\App\Http\Controllers\OrderController::class, 'convert'])->middleware('permission:sales.write');
     Route::post('/orders/{order}/payments', [\App\Http\Controllers\OrderController::class, 'storePayment'])->middleware('permission:sales.write');
     Route::post('/orders/{order}/returns', [\App\Http\Controllers\OrderController::class, 'storeReturn'])->middleware('permission:sales.write');

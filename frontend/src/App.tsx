@@ -12,6 +12,7 @@ import Recipes from "./pages/Recipes";
 import Batches from "./pages/Batches";
 import Quality from "./pages/Quality";
 import Sales from "./pages/Sales";
+import Tournees from "./pages/Tournees";
 import Analytics from "./pages/Analytics";
 import UserManagement from "./pages/UserManagement";
 import Estimation from "./pages/Estimation";
@@ -50,6 +51,7 @@ function AppRoutes() {
         <Route path="/devis" element={<Navigate to="/sales" replace />} />
         <Route path="/customers" element={<ProtectedRoute permissions={['customers.read']}><Customers /></ProtectedRoute>} />
         <Route path="/suppliers" element={<ProtectedRoute permissions={['suppliers.read']}><Suppliers /></ProtectedRoute>} />
+        <Route path="/tournees" element={<ProtectedRoute permissions={['sales.read']}><Tournees /></ProtectedRoute>} />
         <Route path="/sales" element={<ProtectedRoute permissions={['sales.read', 'money.read']}><Sales /></ProtectedRoute>} />
         <Route path="/analytics" element={<ProtectedRoute permissions={['analytics.read']}><Analytics /></ProtectedRoute>} />
         <Route path="/users" element={<ProtectedRoute permissions={['users.read']}><UserManagement /></ProtectedRoute>} />

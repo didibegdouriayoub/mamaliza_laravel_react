@@ -37,6 +37,8 @@ const MOVEMENT_LABEL: Record<string, string> = {
   unpack: 'Pieces from opened carton',
   pack_used: 'Used for packing',
   pack_restored: 'Packing deleted',
+  tournee_out: 'Loaded for a tournée',
+  tournee_return: 'Back from a tournée',
 };
 
 /** Headline number and sub line shown on a card / in the panel. */

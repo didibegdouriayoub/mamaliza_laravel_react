@@ -27,6 +27,7 @@ const navItems: { title: string; url: string; icon: typeof LayoutDashboard; perm
   // Sales & admin
   { title: 'Customers', url: '/customers', icon: Users, permission: 'customers.read' },
   { title: 'Suppliers', url: '/suppliers', icon: Truck, permission: 'suppliers.read' },
+  { title: 'Tournées', url: '/tournees', icon: Truck, permission: 'sales.read' },
   { title: 'Sales', url: '/sales', icon: ShoppingCart, permission: ['sales.read', 'money.read'] },
   { title: 'Analytics', url: '/analytics', icon: BarChart3, permission: 'analytics.read' },
   { title: 'Users', url: '/users', icon: Users, permission: 'users.read' },
