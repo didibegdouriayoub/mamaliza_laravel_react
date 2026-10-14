@@ -539,6 +539,7 @@
 | T31.9 | Remove the recipe piece weight: input on Recipes + Batches forms, API field, display, importer, seeders, and a migration dropping `recipes.piece_weight` (dough per piece now only from the product kg/piece) | 🔴 | 🔄 (frontend type-check + 35 tests pass; migration NOT run yet; DB backup of recipes + batch_groups taken before) |
 | T31.10 | Batch form raw-material select: show stock + lot per option, hide out-of-stock items | 🔴 | ✅ (type-check + 35 tests pass; needs browser check; frontend deploy) |
 | T31.11 | Facture/devis/bon de livraison print: footer pinned to the bottom of the page; remove browser header/footer (date, about:blank) | 🔴 | ✅ (rendered a 1-line facture to PDF: 1 page, footer at bottom, no browser header/footer; frontend deploy) |
+| T31.12 | Prices include tax (TTC): facture/devis show HT and TVA worked back from the product price instead of adding 20% on top | 🔴 | ✅ (35 MAD TTC → HT 29,17 + TVA 5,83; tests pass; frontend deploy) |
 | T31.7 | Finishing auto-pack takes the pieces just produced (not the oldest stock): 171 pcs → 42 cartons + 3 loose | 🔴 | ✅ (tested in Docker; deploy backend) |
 | T31.4 | Tests and deploy | 🔴 | 🔄 (no migration; backend + frontend deploy) |
 

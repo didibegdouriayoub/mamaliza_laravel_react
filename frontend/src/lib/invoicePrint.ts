@@ -15,6 +15,10 @@ const COMPANY = {
   email: 'mamalia12023@gmail.com',
 };
 
+/** Product prices already include the tax (TTC): HT and TVA are worked back from them. */
+const TVA_RATE = 0.2;
+const toHT = (ttc: number) => ttc / (1 + TVA_RATE);
+
 const fmtMAD = (n: number) =>
   n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' MAD';
 
@@ -76,17 +80,17 @@ export function printOrderDocument(order: Order, kind: DocKind, customerAddress 
   const secondLabel = kind === 'devis' ? "Validité jusqu'au" : kind === 'bl' ? 'Livraison' : "Date d'échéance";
   const secondDate = kind === 'devis' ? addDays(created, 30) : created;
 
-  const totalHT = order.totalAmount;
-  const tva = +(totalHT * 0.2).toFixed(2);
-  const ttc = +(totalHT + tva).toFixed(2);
+  const ttc = +order.totalAmount.toFixed(2);
+  const totalHT = +toHT(ttc).toFixed(2);
+  const tva = +(ttc - totalHT).toFixed(2);
 
   const rows = (order.items || []).map(item => showPrices
     ? `<tr>
         <td>${esc(item.productName)}</td>
         <td>${item.finishedProductId ? String(item.finishedProductId).padStart(3, '0') : '—'}</td>
         <td class="c">${item.quantity}</td>
-        <td class="r">${fmtMAD(item.unitPrice ?? 0)}</td>
-        <td class="r" style="color:#D4162E;font-weight:700;">${fmtMAD(item.total)}</td>
+        <td class="r">${fmtMAD(toHT(item.unitPrice ?? 0))}</td>
+        <td class="r" style="color:#D4162E;font-weight:700;">${fmtMAD(toHT(item.total))}</td>
       </tr>`
     : `<tr>
         <td>${esc(item.productName)}</td>
@@ -101,7 +105,7 @@ export function printOrderDocument(order: Order, kind: DocKind, customerAddress 
   const totals = showPrices
     ? `<div class="inv-totals">
         <div class="inv-tot-row"><span>Total HT</span><span>${fmtMAD(totalHT)}</span></div>
-        <div class="inv-tot-row"><span>TVA (20%)</span><span>${fmtMAD(tva)}</span></div>
+        <div class="inv-tot-row"><span>TVA (${TVA_RATE * 100}%)</span><span>${fmtMAD(tva)}</span></div>
         <div class="inv-ttc"><span>Total TTC</span><span>${fmtMAD(ttc)}</span></div>
       </div>`
     : `<div class="bl-sign"><div>Livré par</div><div>Reçu par (nom, date, signature)</div></div>`;
