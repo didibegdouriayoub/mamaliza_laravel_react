@@ -169,6 +169,7 @@ export interface Customer {
 }
 
 export interface OrderItem {
+  id?: number;
   productName: string;
   quantity: number;
   unitPrice: number;
@@ -185,6 +186,7 @@ export interface Payment {
 
 export interface ReturnItem {
   id: string;
+  orderItemId?: number | null;
   productName: string;
   quantity: number;
   reason: string;

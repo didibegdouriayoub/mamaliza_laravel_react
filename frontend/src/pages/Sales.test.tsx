@@ -10,7 +10,7 @@ vi.mock('@/lib/printDocument', () => ({ printDocument: vi.fn(), fmtDate: (d: str
 vi.mock('@/services/customerService', () => ({ customerService: { getAll: vi.fn().mockResolvedValue([{ id: 1, name: 'Hotel Atlas', address: 'Tanger' }]) } }));
 vi.mock('@/services/finishedProductService', () => ({ finishedProductService: { getAll: vi.fn().mockResolvedValue([]) } }));
 
-const item = { productName: 'Kroom pot', quantity: 6, unitPrice: 10, total: 60, finishedProductId: 3 };
+const item = { id: 11, productName: 'Kroom pot', quantity: 6, unitPrice: 10, total: 60, finishedProductId: 3 };
 const orders = [
   { id: 1, docNumber: 'FA-2026-0001', documentType: 'facture', customerId: 1, customerName: 'Hotel Atlas', totalAmount: 100, amountPaid: 0, amountReturned: 0, status: 'pending', createdAt: '2026-10-05', items: [item], payments: [], returns: [] },
   { id: 2, docNumber: 'FA-2026-0002', documentType: 'facture', customerId: 2, customerName: 'Cafe Paid', totalAmount: 50, amountPaid: 50, amountReturned: 0, status: 'paid', createdAt: '2026-10-06', items: [item], payments: [], returns: [] },
@@ -85,4 +85,20 @@ it('prints a delivery note without prices and an invoice with them', async () =>
   const fa = (printDocument as any).mock.calls[1][1] as string;
   expect(fa).toContain('Total TTC');
   expect(fa).toContain('FACTURE');
+});
+
+it('return dialog lists the products sold and records the quantity per line', async () => {
+  render(<Sales />);
+  fireEvent.click(await screen.findByText('FA-2026-0001'));
+  fireEvent.click(await screen.findByText('Record Return'));
+
+  // the order's own line is shown: no product to pick
+  expect(await screen.findByText('Kroom pot')).toBeTruthy();
+  expect(screen.getByText(/sold 6/)).toBeTruthy();
+
+  fireEvent.change(screen.getByPlaceholderText('0'), { target: { value: '2' } });
+  fireEvent.click(screen.getByText('Confirm Return'));
+  await waitFor(() => expect(orderService.addReturn).toHaveBeenCalledWith(1, expect.objectContaining({
+    orderItemId: 11, productName: 'Kroom pot', finishedProductId: 3, quantity: 2, disposition: 'restock', refundAmount: 20,
+  })));
 });

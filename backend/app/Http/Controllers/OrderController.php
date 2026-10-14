@@ -303,6 +303,16 @@ class OrderController extends Controller
         ]);
 
         $orderItem = isset($validated['order_item_id']) ? OrderItem::find($validated['order_item_id']) : null;
+        if ($orderItem) {
+            if ((int) $orderItem->order_id !== (int) $order->id) {
+                throw ValidationException::withMessages(['order_item_id' => 'This line does not belong to this order.']);
+            }
+            $already = (float) $order->returns()->where('order_item_id', $orderItem->id)->sum('quantity');
+            $canReturn = (float) $orderItem->quantity - $already;
+            if ($validated['quantity'] > $canReturn + 1e-6) {
+                throw ValidationException::withMessages(['quantity' => "{$orderItem->product_name}: only {$canReturn} can still be returned (sold {$orderItem->quantity}, already returned {$already})."]);
+            }
+        }
 
         $unit = $validated['unit'] ?? $orderItem?->unit ?? 'piece';
         $cartonId = $validated['carton_id'] ?? $orderItem?->carton_id;

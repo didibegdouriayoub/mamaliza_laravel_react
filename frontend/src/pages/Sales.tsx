@@ -47,13 +47,10 @@ export default function Sales() {
   const [converting, setConverting] = useState(false);
   const [payAmount, setPayAmount] = useState(0);
   const [payMethod, setPayMethod] = useState('Cash');
-  const [retProductName, setRetProductName] = useState('');
-  const [retFinishedProductId, setRetFinishedProductId] = useState<number | null>(null);
-  const [retQty, setRetQty] = useState(1);
-  const [retUnitPrice, setRetUnitPrice] = useState(0);
+  // Return dialog: one row per line of the order (index = position in selected.items)
+  type RetRow = { qty: string; refund: string; disposition: 'restock' | 'perte' };
+  const [retRows, setRetRows] = useState<RetRow[]>([]);
   const [retReason, setRetReason] = useState('');
-  const [retRefund, setRetRefund] = useState(0);
-  const [retDisposition, setRetDisposition] = useState<'restock' | 'perte'>('restock');
   const { user, hasPermission } = useAuth();
   const { toast } = useToast();
 
@@ -213,18 +210,45 @@ export default function Sales() {
     }
   };
 
+  // already returned per order line
+  const returnedOf = (itemId?: number) =>
+    itemId ? (selected?.returns ?? []).filter(r => r.orderItemId === itemId).reduce((s, r) => s + Number(r.quantity), 0) : 0;
+  const returnableOf = (item: { id?: number; quantity: number }) => Math.max(0, +(Number(item.quantity) - returnedOf(item.id)).toFixed(4));
+
+  const openReturn = () => {
+    if (!selected) return;
+    setRetRows(selected.items.map(() => ({ qty: '', refund: '', disposition: 'restock' })));
+    setRetReason('');
+    setReturnOpen(true);
+  };
+
+  const setRetRow = (i: number, patch: Partial<RetRow>) => setRetRows(prev => prev.map((r, j) => j === i ? { ...r, ...patch } : r));
+
+  // typing a quantity fills the refund with unit price x quantity (still editable)
+  const setRetQtyFor = (i: number, value: string) => {
+    const item = selected?.items[i];
+    if (!item) return;
+    const q = Math.min(returnableOf(item), Math.max(0, Number(value) || 0));
+    setRetRow(i, { qty: value === '' ? '' : String(q), refund: q > 0 ? String(+(Number(item.unitPrice) * q).toFixed(2)) : '' });
+  };
+
   const handleReturn = async () => {
-    if (!selected || (!retProductName && !retFinishedProductId)) return;
+    if (!selected) return;
+    const lines = selected.items.map((item, i) => ({ item, row: retRows[i] })).filter(x => Number(x.row?.qty) > 0);
+    if (!lines.length) { toast({ title: 'Enter the quantity he brought back', description: 'On at least one line.', variant: 'destructive' }); return; }
     try {
-      await orderService.addReturn(selected.id, {
-        productName: retProductName,
-        finishedProductId: retFinishedProductId,
-        quantity: retQty,
-        reason: retReason,
-        refundAmount: retRefund,
-        disposition: retDisposition,
-      });
-      toast({ title: 'Return recorded' });
+      for (const { item, row } of lines) {
+        await orderService.addReturn(selected.id, {
+          orderItemId: item.id,
+          productName: item.productName,
+          finishedProductId: item.finishedProductId,
+          quantity: Number(row.qty),
+          reason: retReason,
+          refundAmount: Number(row.refund) || 0,
+          disposition: row.disposition,
+        });
+      }
+      toast({ title: 'Return recorded', description: `${lines.length} line${lines.length === 1 ? '' : 's'}` });
       setReturnOpen(false);
       const updated = await orderService.getAll();
       setOrders(updated);
@@ -238,6 +262,7 @@ export default function Sales() {
   const balance = (o: Order) => o.totalAmount - o.amountPaid + o.amountReturned;
 
   const canWrite = hasPermission('sales.write');
+  const showMoney = hasPermission('money.read');
 
   const printFor = (o: Order, kind: DocKind) => printOrderDocument(o, kind, addressOf(o.customerId));
 
@@ -531,7 +556,7 @@ export default function Sales() {
                       <Button size="sm" variant="outline" onClick={() => { setPayAmount(balance(selected)); setPaymentOpen(true); }}>
                         <CreditCard className="h-3 w-3 mr-1" /> Record Payment
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => { setRetProductName(''); setRetFinishedProductId(null); setRetQty(1); setRetUnitPrice(0); setRetReason(''); setRetRefund(0); setRetDisposition('restock'); setReturnOpen(true); }}>
+                      <Button size="sm" variant="outline" onClick={openReturn}>
                         <Undo2 className="h-3 w-3 mr-1" /> Record Return
                       </Button>
                     </>
@@ -570,59 +595,54 @@ export default function Sales() {
         </DialogContent>
       </Dialog>
 
-      {/* Return dialog */}
+      {/* Return dialog: the lines of the order, nothing to pick */}
       <Dialog open={returnOpen} onOpenChange={setReturnOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle className="font-display">Record Return</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label>Product</Label>
-              <Select value={retFinishedProductId ? String(retFinishedProductId) : '__manual__'} onValueChange={v => {
-                if (v === '__manual__') { setRetFinishedProductId(null); setRetUnitPrice(0); setRetRefund(0); }
-                else {
-                  const fp = finishedProducts.find(fp => String(fp.id) === v);
-                  // prefer the unit price stored on the order item for this product
-                  const orderItem = selected?.items?.find(i => i.finishedProductId === Number(v));
-                  const price = orderItem?.unitPrice ?? fp?.unit_price ?? 0;
-                  setRetFinishedProductId(Number(v));
-                  if (fp) setRetProductName(fp.name);
-                  setRetUnitPrice(price);
-                  setRetRefund(+(price * retQty).toFixed(2));
-                }
-              }}>
-                <SelectTrigger><SelectValue placeholder="Select product or type manually" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__manual__">Manual entry</SelectItem>
-                  {finishedProducts.map(p => <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              {!retFinishedProductId && <Input className="mt-1" value={retProductName} onChange={e => setRetProductName(e.target.value)} placeholder="Product name" />}
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label>Quantity</Label>
-                <Input type="number" min="1" value={retQty} onChange={e => {
-                  const q = Number(e.target.value) || 1;
-                  setRetQty(q);
-                  if (retUnitPrice > 0) setRetRefund(+(retUnitPrice * q).toFixed(2));
-                }} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Refund Amount (DH){retUnitPrice > 0 && <span className="ml-1 text-xs text-muted-foreground">auto: {retUnitPrice.toFixed(2)} × {retQty}</span>}</Label>
-                <Input type="number" step="0.01" value={retRefund} onChange={e => setRetRefund(Number(e.target.value))} />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Disposition</Label>
-              <Select value={retDisposition} onValueChange={v => setRetDisposition(v as any)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="restock">Restock (back to stock)</SelectItem>
-                  <SelectItem value="perte">Write off (trash)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        <DialogContent className="max-w-2xl max-h-[88vh] overflow-y-auto">
+          <DialogHeader><DialogTitle className="font-display">Record Return{selected?.docNumber ? ` — ${selected.docNumber}` : ''}</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">These are the products on this facture. Enter the quantity that came back and what to do with it.</p>
+            {(selected?.items ?? []).map((item, i) => {
+              const can = returnableOf(item);
+              const row = retRows[i] ?? { qty: '', refund: '', disposition: 'restock' as const };
+              return (
+                <div key={item.id ?? i} className={`rounded-lg border p-3 space-y-2 ${can <= 0 ? 'opacity-50' : ''}`}>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="font-medium">{item.productName}</span>
+                    <span className="text-xs text-muted-foreground">sold {item.quantity}{returnedOf(item.id) > 0 ? ` · already returned ${returnedOf(item.id)}` : ''}</span>
+                  </div>
+                  {can <= 0
+                    ? <p className="text-xs text-muted-foreground">Fully returned.</p>
+                    : (
+                      <div className={`grid gap-2 items-end ${showMoney ? 'grid-cols-[90px_1fr_110px]' : 'grid-cols-[90px_1fr]'}`}>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Returned (max {can})</Label>
+                          <Input type="number" min="0" max={can} className="h-9" placeholder="0" value={row.qty} onChange={e => setRetQtyFor(i, e.target.value)} />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Disposition</Label>
+                          <Select value={row.disposition} onValueChange={v => setRetRow(i, { disposition: v as 'restock' | 'perte' })}>
+                            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="restock">Restock (back to stock)</SelectItem>
+                              <SelectItem value="perte">Write off (trash)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {showMoney && (
+                          <div className="space-y-1">
+                            <Label className="text-xs">Refund (DH)</Label>
+                            <Input type="number" step="0.01" min="0" className="h-9" value={row.refund} onChange={e => setRetRow(i, { refund: e.target.value })} />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                </div>
+              );
+            })}
             <div className="space-y-1.5"><Label>Reason</Label><Textarea value={retReason} onChange={e => setRetReason(e.target.value)} rows={2} /></div>
+            {showMoney && (
+              <p className="text-sm text-right font-semibold">Total refund: {retRows.reduce((t, r) => t + (Number(r.refund) || 0), 0).toFixed(2)} DH</p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setReturnOpen(false)}>Cancel</Button>
