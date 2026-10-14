@@ -125,7 +125,8 @@ export default function Inventory() {
     const isLow = i.quantity > 0 && i.minStock > 0 && i.quantity <= i.minStock;
     const isOut = i.quantity <= 0;
     const status = isOut ? 'out' : (isLow ? 'low' : 'ok');
-    const matchesStatus = statusFilter === 'all' || status === statusFilter;
+    // 'noprice' = items whose unit price is still 0 (to find what is left to price)
+    const matchesStatus = statusFilter === 'all' || (statusFilter === 'noprice' ? i.price <= 0 : status === statusFilter);
 
     if (dateFilter && i.createdAt > dateFilter) return false;
     return matchesSearch && matchesType && matchesStatus;
@@ -509,6 +510,7 @@ export default function Inventory() {
                   <SelectItem value="ok">In Stock (OK)</SelectItem>
                   <SelectItem value="low">Low Stock</SelectItem>
                   <SelectItem value="out">Out of Stock</SelectItem>
+                  {showMoney && <SelectItem value="noprice">No price (0)</SelectItem>}
                 </SelectContent>
               </Select>
 

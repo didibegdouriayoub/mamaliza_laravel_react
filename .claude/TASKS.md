@@ -544,6 +544,7 @@
 | T32.1 | Tournée (worker daily load): load stock out of the fridge by lot, settle per customer into factures, return the rest, printable load sheet | 🔴 | ✅ (backend tested in Docker with rollback: load, settle x2, over-delivery blocked, close, cancel, delete facture; frontend type-check + 36 tests; migration 2026_10_14_110000 must run on the server; needs browser check) |
 | T31.14 | Record return: list the exact items sold on the order, enter returned qty + disposition per item (no product picker) | 🔴 | ✅ (backend tested in Docker: restock +2, write-off no stock change, over-return refused; frontend test added, 37 tests pass; frontend + backend deploy, no migration) |
 | T31.15 | Balance after a return is doubled (total - paid + returned): returns must reduce what the customer owes | 🔴 | ✅ (backend tested in Docker with rollback: full return = owes 0 + settled, partial return owes the rest, payment after return settles; 39 frontend tests; migration 2026_10_14_120000 settles old fully-returned factures; deploy + migrate on server) |
+| T32.2 | Inventory: status filter for items with price 0 | 🟡 | ✅ (type-check shows no new errors, 39 tests pass; no Inventory UI test, needs browser check; frontend deploy) |
 | T31.7 | Finishing auto-pack takes the pieces just produced (not the oldest stock): 171 pcs → 42 cartons + 3 loose | 🔴 | ✅ (tested in Docker; deploy backend) |
 | T31.4 | Tests and deploy | 🔴 | 🔄 (no migration; backend + frontend deploy) |
 
