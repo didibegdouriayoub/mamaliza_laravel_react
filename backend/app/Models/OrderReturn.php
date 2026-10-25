@@ -27,6 +27,8 @@ class OrderReturn extends Model
         'returned_at'
     ];
 
+    protected $appends = ['pieces'];
+
     protected $casts = [
         'returned_at' => 'datetime',
         'quantity' => 'float',
@@ -51,6 +53,11 @@ class OrderReturn extends Model
     public function inventoryItem()
     {
         return $this->belongsTo(InventoryItem::class, 'inventory_item_id');
+    }
+
+    public function getPiecesAttribute(): float
+    {
+        return $this->piecesQuantity();
     }
 
     public function piecesQuantity(): float

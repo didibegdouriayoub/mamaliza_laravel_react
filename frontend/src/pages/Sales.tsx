@@ -48,7 +48,7 @@ export default function Sales() {
   const [payAmount, setPayAmount] = useState(0);
   const [payMethod, setPayMethod] = useState('Cash');
   // Return dialog: one row per line of the order (index = position in selected.items)
-  type RetRow = { qty: string; refund: string; disposition: 'restock' | 'perte' };
+  type RetRow = { qty: string; refund: string; disposition: 'restock' | 'perte'; unit: 'piece' | 'carton' };
   const [retRows, setRetRows] = useState<RetRow[]>([]);
   const [retReason, setRetReason] = useState('');
   const { user, hasPermission } = useAuth();
@@ -211,13 +211,23 @@ export default function Sales() {
   };
 
   // already returned per order line
+  // Everything is counted in pieces so a box and loose pieces of the same line add up.
+  const ppuOf = (item: { piecesPerUnit?: number }) => Number(item.piecesPerUnit) || 1;
+  const soldPiecesOf = (item: { quantity: number; piecesPerUnit?: number }) => Number(item.quantity) * ppuOf(item);
   const returnedOf = (itemId?: number) =>
-    itemId ? (selected?.returns ?? []).filter(r => r.orderItemId === itemId).reduce((s, r) => s + Number(r.quantity), 0) : 0;
-  const returnableOf = (item: { id?: number; quantity: number }) => Math.max(0, +(Number(item.quantity) - returnedOf(item.id)).toFixed(4));
+    itemId ? (selected?.returns ?? []).filter(r => r.orderItemId === itemId).reduce((s, r) => s + Number(r.pieces ?? r.quantity), 0) : 0;
+  const returnableOf = (item: { id?: number; quantity: number; piecesPerUnit?: number }) => Math.max(0, +(soldPiecesOf(item) - returnedOf(item.id)).toFixed(4));
+  // max quantity in the chosen unit (whole boxes only)
+  const maxIn = (item: { id?: number; quantity: number; piecesPerUnit?: number }, unit: 'piece' | 'carton') =>
+    unit === 'carton' ? Math.floor(returnableOf(item) / ppuOf(item) + 1e-9) : returnableOf(item);
+  const piecesOfRow = (item: { piecesPerUnit?: number }, row: { qty: string; unit: 'piece' | 'carton' }) =>
+    (Number(row.qty) || 0) * (row.unit === 'carton' ? ppuOf(item) : 1);
+  const refundFor = (item: { unitPrice: number; piecesPerUnit?: number }, pieces: number) =>
+    pieces > 0 ? String(+((Number(item.unitPrice) / ppuOf(item)) * pieces).toFixed(2)) : '';
 
   const openReturn = () => {
     if (!selected) return;
-    setRetRows(selected.items.map(() => ({ qty: '', refund: '', disposition: 'restock' })));
+    setRetRows(selected.items.map(it => ({ qty: '', refund: '', disposition: 'restock', unit: it.unit === 'carton' ? 'carton' : 'piece' })));
     setRetReason('');
     setReturnOpen(true);
   };
@@ -228,8 +238,16 @@ export default function Sales() {
   const setRetQtyFor = (i: number, value: string) => {
     const item = selected?.items[i];
     if (!item) return;
-    const q = Math.min(returnableOf(item), Math.max(0, Number(value) || 0));
-    setRetRow(i, { qty: value === '' ? '' : String(q), refund: q > 0 ? String(+(Number(item.unitPrice) * q).toFixed(2)) : '' });
+    const unit = retRows[i]?.unit ?? 'piece';
+    const q = Math.min(maxIn(item, unit), Math.max(0, Number(value) || 0));
+    setRetRow(i, { qty: value === '' ? '' : String(q), refund: refundFor(item, piecesOfRow(item, { qty: String(q), unit })) });
+  };
+
+  // switching box <-> piece clears the row (the quantity means something different)
+  const setRetUnitFor = (i: number, unit: 'piece' | 'carton') => {
+    const item = selected?.items[i];
+    if (!item) return;
+    setRetRow(i, { unit, qty: '', refund: '' });
   };
 
   const handleReturn = async () => {
@@ -243,6 +261,7 @@ export default function Sales() {
           productName: item.productName,
           finishedProductId: item.finishedProductId,
           quantity: Number(row.qty),
+          unit: item.unit === 'carton' ? row.unit : undefined,
           reason: retReason,
           refundAmount: Number(row.refund) || 0,
           disposition: row.disposition,
@@ -511,7 +530,7 @@ export default function Sales() {
                     {selected.returns.map(r => (
                       <div key={r.id} className="text-sm py-1 border-b last:border-0">
                         <div className="flex justify-between">
-                          <span>{r.productName} × {r.quantity}</span>
+                          <span>{r.productName} × {r.quantity}{r.unit === 'carton' ? ` box (${r.pieces ?? '?'} pc)` : r.unit === 'piece' ? ' pc' : ''}</span>
                           <span className="text-destructive font-medium">-DH{r.refundAmount}</span>
                         </div>
                         <p className="text-xs text-muted-foreground">{r.reason} — {r.returnedAt}</p>
@@ -604,20 +623,35 @@ export default function Sales() {
             <p className="text-sm text-muted-foreground">These are the products on this facture. Enter the quantity that came back and what to do with it.</p>
             {(selected?.items ?? []).map((item, i) => {
               const can = returnableOf(item);
-              const row = retRows[i] ?? { qty: '', refund: '', disposition: 'restock' as const };
+              const row = retRows[i] ?? { qty: '', refund: '', disposition: 'restock' as const, unit: 'piece' as const };
+              const isBox = item.unit === 'carton' && ppuOf(item) > 1;
               return (
                 <div key={item.id ?? i} className={`rounded-lg border p-3 space-y-2 ${can <= 0 ? 'opacity-50' : ''}`}>
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="font-medium">{item.productName}</span>
-                    <span className="text-xs text-muted-foreground">sold {item.quantity}{returnedOf(item.id) > 0 ? ` · already returned ${returnedOf(item.id)}` : ''}</span>
+                    <span className="text-xs text-muted-foreground">sold {item.quantity}{isBox ? ` box (${soldPiecesOf(item)} pc)` : ''}{returnedOf(item.id) > 0 ? ` · already returned ${returnedOf(item.id)} pc` : ''}</span>
                   </div>
                   {can <= 0
                     ? <p className="text-xs text-muted-foreground">Fully returned.</p>
                     : (
-                      <div className={`grid gap-2 items-end ${showMoney ? 'grid-cols-[90px_1fr_110px]' : 'grid-cols-[90px_1fr]'}`}>
+                      <div className={`grid gap-2 items-end ${isBox ? (showMoney ? 'grid-cols-[80px_90px_1fr_110px]' : 'grid-cols-[80px_90px_1fr]') : (showMoney ? 'grid-cols-[90px_1fr_110px]' : 'grid-cols-[90px_1fr]')}`}>
+                        {isBox && (
+                          <div className="space-y-1">
+                            <Label className="text-xs">Unit</Label>
+                            <Select value={row.unit} onValueChange={v => setRetUnitFor(i, v as 'piece' | 'carton')}>
+                              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="carton">Box</SelectItem>
+                                <SelectItem value="piece">Piece</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
                         <div className="space-y-1">
-                          <Label className="text-xs">Returned (max {can})</Label>
-                          <Input type="number" min="0" max={can} className="h-9" placeholder="0" value={row.qty} onChange={e => setRetQtyFor(i, e.target.value)} />
+                          <Label className="text-xs">Returned (max {maxIn(item, row.unit)})</Label>
+                          <Input type="number" min="0" max={maxIn(item, row.unit)} className="h-9" placeholder="0" value={row.qty} onChange={e => setRetQtyFor(i, e.target.value)} />
+                          {isBox && row.unit === 'piece' && Number(row.qty) > 0 && <p className="text-[10px] text-muted-foreground">= {+(Number(row.qty) / ppuOf(item)).toFixed(2)} box of {ppuOf(item)}</p>}
+                          {isBox && row.unit === 'carton' && Number(row.qty) > 0 && <p className="text-[10px] text-muted-foreground">= {piecesOfRow(item, row)} pieces</p>}
                         </div>
                         <div className="space-y-1">
                           <Label className="text-xs">Disposition</Label>

@@ -17,7 +17,7 @@ class OrderController extends Controller
 {
     public function index()
     {
-        return response()->json(Order::with('items', 'returns', 'payments')->latest()->get());
+        return response()->json(Order::with('items.carton', 'returns.carton', 'payments')->latest()->get());
     }
 
     /**
@@ -308,19 +308,27 @@ class OrderController extends Controller
             if ((int) $orderItem->order_id !== (int) $order->id) {
                 throw ValidationException::withMessages(['order_item_id' => 'This line does not belong to this order.']);
             }
-            $already = (float) $order->returns()->where('order_item_id', $orderItem->id)->sum('quantity');
-            $canReturn = (float) $orderItem->quantity - $already;
-            if ($validated['quantity'] > $canReturn + 1e-6) {
-                throw ValidationException::withMessages(['quantity' => "{$orderItem->product_name}: only {$canReturn} can still be returned (sold {$orderItem->quantity}, already returned {$already})."]);
-            }
         }
 
         $unit = $validated['unit'] ?? $orderItem?->unit ?? 'piece';
         $cartonId = $validated['carton_id'] ?? $orderItem?->carton_id;
         $piecesPerCarton = $cartonId ? PackagingCarton::find($cartonId)?->pieces_per_carton : null;
+        if ($unit === 'carton' && $orderItem && $orderItem->unit !== 'carton') {
+            throw ValidationException::withMessages(['unit' => "{$orderItem->product_name} was not sold by the carton."]);
+        }
         $piecesReturned = ($unit === 'carton' && $piecesPerCarton)
             ? $validated['quantity'] * $piecesPerCarton
             : $validated['quantity'];
+
+        // The limit is counted in pieces so a box and loose pieces of the same line add up correctly.
+        if ($orderItem) {
+            $soldPieces = $orderItem->piecesQuantity();
+            $alreadyPieces = (float) $order->returns()->with('carton')->where('order_item_id', $orderItem->id)->get()->sum(fn ($r) => $r->piecesQuantity());
+            $canReturn = $soldPieces - $alreadyPieces;
+            if ($piecesReturned > $canReturn + 1e-6) {
+                throw ValidationException::withMessages(['quantity' => "{$orderItem->product_name}: only " . round($canReturn, 3) . " piece(s) can still be returned (sold " . round($soldPieces, 3) . ", already returned " . round($alreadyPieces, 3) . ")."]);
+            }
+        }
 
         $targetInventoryItemId = $validated['target_inventory_item_id'] ?? $orderItem?->inventory_item_id;
 

@@ -176,6 +176,8 @@ export interface OrderItem {
   unitPrice: number;
   total: number;
   finishedProductId?: number;
+  unit?: 'piece' | 'carton';
+  piecesPerUnit?: number; // pieces in one sold unit (carton size, else 1)
 }
 
 export interface Payment {
@@ -190,6 +192,8 @@ export interface ReturnItem {
   orderItemId?: number | null;
   productName: string;
   quantity: number;
+  unit?: 'piece' | 'carton';
+  pieces?: number; // quantity expressed in pieces
   reason: string;
   refundAmount: number;
   returnedAt: string; // T12.7.8: was `date`, API returns returned_at → returnedAt

@@ -32,6 +32,7 @@ export const orderService = {
       order_item_id: ret.orderItemId ?? null,
       finished_product_id: ret.finishedProductId ?? null,
       quantity: ret.quantity,
+      unit: ret.unit ?? null,
       reason: ret.reason,
       refund_amount: ret.refundAmount,
       disposition: ret.disposition ?? null,

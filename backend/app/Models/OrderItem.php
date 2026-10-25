@@ -19,6 +19,8 @@ class OrderItem extends Model
         'total' => 'float',
     ];
 
+    protected $appends = ['pieces_per_unit'];
+
     protected $fillable = [
         'order_id',
         'product_name',
@@ -30,6 +32,16 @@ class OrderItem extends Model
         'unit_price',
         'total'
     ];
+
+    /** Pieces in one sold unit: pieces per carton for a carton line, else 1 */
+    public function getPiecesPerUnitAttribute(): float
+    {
+        if ($this->unit === 'carton' && $this->carton) {
+            return (float) $this->carton->pieces_per_carton;
+        }
+
+        return 1.0;
+    }
 
     public function order()
     {
