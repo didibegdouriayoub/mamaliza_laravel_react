@@ -71,6 +71,7 @@ export interface InventoryItem {
   supplier: string;
   supplierId: string;
   lot?: string;
+  bestBefore?: string;
   code?: string;
   status: 'ok' | 'low' | 'out';
   minStock: number;

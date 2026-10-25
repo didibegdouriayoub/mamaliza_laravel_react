@@ -31,8 +31,18 @@ const emptyForm = {
   minStock: 0,
   leadTimeDays: 0,
   lot: '',
+  bestBefore: '',
   code: '',
   createdAt: new Date().toISOString().split('T')[0]
+};
+
+// Best-before status for raw materials: expired / expiring within 30 days / ok / no date
+const EXPIRY_SOON_DAYS = 30;
+const expiryStatus = (type: string, bestBefore?: string): 'expired' | 'soon' | 'ok' | 'none' | null => {
+  if (type !== 'raw') return null;
+  if (!bestBefore) return 'none';
+  const days = Math.floor((new Date(bestBefore + 'T00:00:00').getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000);
+  return days < 0 ? 'expired' : days <= EXPIRY_SOON_DAYS ? 'soon' : 'ok';
 };
 
 export default function Inventory() {
@@ -44,6 +54,7 @@ export default function Inventory() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [expiryFilter, setExpiryFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState('');
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
@@ -80,6 +91,7 @@ export default function Inventory() {
           minStock,
           status,
           lot: item.lot || '',
+          bestBefore: (item.bestBefore ?? item.best_before ?? '').split('T')[0],
           code: item.code || '',
           leadTimeDays: Number(item.leadTimeDays ?? item.lead_time_days) || 0,
           createdAt: item.createdAt?.split('T')[0] || item.created_at?.split('T')[0] || '',
@@ -128,8 +140,10 @@ export default function Inventory() {
     // 'noprice' = items whose unit price is still 0 (to find what is left to price)
     const matchesStatus = statusFilter === 'all' || (statusFilter === 'noprice' ? i.price <= 0 : status === statusFilter);
 
+    const matchesExpiry = expiryFilter === 'all' || expiryStatus(i.type, i.bestBefore) === expiryFilter;
+
     if (dateFilter && i.createdAt > dateFilter) return false;
-    return matchesSearch && matchesType && matchesStatus;
+    return matchesSearch && matchesType && matchesStatus && matchesExpiry;
   });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -166,6 +180,7 @@ export default function Inventory() {
       supplierId: String(item.supplierId ?? ''),
       minStock: item.minStock,
       lot: item.lot || '',
+      bestBefore: item.bestBefore || '',
       code: item.code || '',
       leadTimeDays: item.leadTimeDays ?? 0,
       createdAt: item.createdAt || ''
@@ -427,6 +442,12 @@ export default function Inventory() {
                     <Input value={form.code} onChange={e => setForm(p => ({ ...p, code: e.target.value }))} placeholder="Auto-generated" />
                   </div>
                 </div>
+                {form.type === 'raw' && (
+                  <div className="space-y-1.5">
+                    <Label>Best Before (expiry date)</Label>
+                    <Input type="date" value={form.bestBefore} onChange={e => setForm(p => ({ ...p, bestBefore: e.target.value }))} />
+                  </div>
+                )}
                 <div className="grid grid-cols-4 gap-3">
                   <div className="space-y-1.5">
                     <Label>Quantity</Label>
@@ -514,6 +535,17 @@ export default function Inventory() {
                 </SelectContent>
               </Select>
 
+              <Select value={expiryFilter} onValueChange={v => { setExpiryFilter(v); setPage(1); }}>
+                <SelectTrigger className="w-[150px]"><SelectValue placeholder="Best before" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Best Before</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
+                  <SelectItem value="soon">{`Expiring within ${EXPIRY_SOON_DAYS} days`}</SelectItem>
+                  <SelectItem value="ok">Fresh</SelectItem>
+                  <SelectItem value="none">No date set</SelectItem>
+                </SelectContent>
+              </Select>
+
               <div className="relative">
                 <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -548,6 +580,7 @@ export default function Inventory() {
                     <TableHead className="hidden sm:table-cell">Type</TableHead>
                     <TableHead className="hidden lg:table-cell">Lot</TableHead>
                     <TableHead className="hidden lg:table-cell">Code</TableHead>
+                    <TableHead className="hidden md:table-cell">Best Before</TableHead>
                     <TableHead className="text-right">Qty</TableHead>
                     <TableHead className="hidden sm:table-cell">Unit</TableHead>
                     {showMoney && <TableHead className="text-right hidden sm:table-cell">Price (DH)</TableHead>}
@@ -570,6 +603,15 @@ export default function Inventory() {
                         <TableCell className="capitalize hidden sm:table-cell">{item.type}</TableCell>
                         <TableCell className="hidden lg:table-cell font-mono text-xs">{item.lot || '—'}</TableCell>
                         <TableCell className="hidden lg:table-cell font-mono text-xs">{item.code || '—'}</TableCell>
+                        <TableCell className="hidden md:table-cell text-xs">
+                          {(() => {
+                            const ex = expiryStatus(item.type, item.bestBefore);
+                            if (ex === null) return '—';
+                            if (ex === 'none') return <span className="text-muted-foreground">Not set</span>;
+                            const cls = ex === 'expired' ? 'text-destructive font-semibold' : ex === 'soon' ? 'text-amber-600 font-semibold' : '';
+                            return <span className={cls}>{formatDate(item.bestBefore!)}{ex === 'expired' ? ' (expired)' : ex === 'soon' ? ' (soon)' : ''}</span>;
+                          })()}
+                        </TableCell>
                         <TableCell className="text-right">{displayQty !== null ? displayQty.toLocaleString() : '—'}</TableCell>
                         <TableCell className="hidden sm:table-cell">{item.unit}</TableCell>
                         {showMoney && <TableCell className="text-right hidden sm:table-cell">DH{item.price.toFixed(2)}</TableCell>}

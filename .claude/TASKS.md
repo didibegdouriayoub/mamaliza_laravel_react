@@ -565,3 +565,4 @@
 | D4 | Remove Pieces Produced / Leftover from Batches page, Dashboard loss chart, permission tables (kept in Finishing) | 🟡 | ✅ |
 | D5 | Admin 'Replace in recipes': swap an inventory item for another with same code + unit across selected recipes (history + version bump) | 🔴 | ✅ |
 | D6 | inventory:import-csv command + packaging list (40 items: wax, cartons, vacuum bags, labels) | 🟡 | ☐ (run on server) |
+| D7 | Inventory: best-before date on raw materials only (nullable `best_before`, form field, list column with expired/soon colours, Best Before filter) | 🟡 | ✅ (run `php artisan migrate` on server) |

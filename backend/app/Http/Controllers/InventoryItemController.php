@@ -61,9 +61,15 @@ class InventoryItemController extends Controller
             'min_stock' => 'required|numeric|min:0',
             'lead_time_days' => 'nullable|integer|min:0',
             'lot' => 'nullable|string|max:50',
+            'best_before' => 'nullable|date',
             'code' => 'nullable|string|max:100',
             'created_at' => 'nullable|date',
         ]);
+
+        // Best-before only applies to raw materials
+        if (($validated['type'] ?? null) !== 'raw') {
+            $validated['best_before'] = null;
+        }
 
         // created_at is not in $fillable, so set it manually after instantiation
         $createdAt = $validated['created_at'] ?? null;
@@ -98,9 +104,15 @@ class InventoryItemController extends Controller
             'min_stock' => 'sometimes|numeric|min:0',
             'lead_time_days' => 'nullable|integer|min:0',
             'lot' => 'nullable|string|max:50',
+            'best_before' => 'nullable|date',
             'code' => 'nullable|string|max:100',
             'created_at' => 'nullable|date',
         ]);
+
+        // Best-before only applies to raw materials
+        if (array_key_exists('best_before', $validated) && ($validated['type'] ?? $inventory->type) !== 'raw') {
+            $validated['best_before'] = null;
+        }
 
         // Record history
         foreach ($validated as $key => $value) {

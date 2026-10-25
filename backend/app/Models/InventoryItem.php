@@ -15,6 +15,7 @@ class InventoryItem extends Model
         'quantity' => 'float',
         'price' => 'float',
         'min_stock' => 'float',
+        'best_before' => 'date:Y-m-d',
     ];
 
     protected $fillable = [
@@ -25,6 +26,7 @@ class InventoryItem extends Model
         'price',
         'supplier_id',
         'lot',
+        'best_before',
         'code',
         'min_stock',
         'lead_time_days',
