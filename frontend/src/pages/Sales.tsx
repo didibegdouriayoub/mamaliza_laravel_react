@@ -222,10 +222,10 @@ export default function Sales() {
     unit === 'carton' ? Math.floor(returnableOf(item) / ppuOf(item) + 1e-9) : returnableOf(item);
   const piecesOfRow = (item: { piecesPerUnit?: number }, row: { qty: string; unit: 'piece' | 'carton' }) =>
     (Number(row.qty) || 0) * (row.unit === 'carton' ? ppuOf(item) : 1);
-  // a loose piece is refunded at the piece's own price (box price / pieces when the piece has no price)
+  // a loose piece is always refunded at the piece product's own price x pieces returned (0 if that piece has no price)
   const refundFor = (item: { unitPrice: number; piecesPerUnit?: number; pieceUnitPrice?: number | null }, pieces: number, unit: 'piece' | 'carton') => {
     if (pieces <= 0) return '';
-    const piecePrice = unit === 'piece' && Number(item.pieceUnitPrice) > 0 ? Number(item.pieceUnitPrice) : Number(item.unitPrice) / ppuOf(item);
+    const piecePrice = unit === 'piece' ? Number(item.pieceUnitPrice) || 0 : Number(item.unitPrice) / ppuOf(item);
     return String(+(piecePrice * pieces).toFixed(2));
   };
 
