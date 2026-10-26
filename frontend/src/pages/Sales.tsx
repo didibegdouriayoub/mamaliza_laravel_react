@@ -225,7 +225,7 @@ export default function Sales() {
   // a loose piece is always refunded at the piece product's own price x pieces returned (0 if that piece has no price)
   const refundFor = (item: { unitPrice: number; piecesPerUnit?: number; pieceUnitPrice?: number | null }, pieces: number, unit: 'piece' | 'carton') => {
     if (pieces <= 0) return '';
-    const piecePrice = unit === 'piece' ? Number(item.pieceUnitPrice) || 0 : Number(item.unitPrice) / ppuOf(item);
+    const piecePrice = unit === 'piece' && ppuOf(item) > 1 ? Number(item.pieceUnitPrice) || 0 : Number(item.unitPrice) / ppuOf(item);
     return String(+(piecePrice * pieces).toFixed(2));
   };
 
