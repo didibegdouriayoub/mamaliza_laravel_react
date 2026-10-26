@@ -11,6 +11,7 @@ const toPayload = (item: Partial<InventoryItem>) =>
     price: item.price,
     supplierId: item.supplierId || null,  // → supplier_id (null if empty)
     lot: item.lot || null,
+    bestBefore: item.bestBefore || null,  // → best_before (raw materials only)
     code: item.code || null,
     minStock: item.minStock,              // → min_stock
     leadTimeDays: item.leadTimeDays ?? null, // → lead_time_days
