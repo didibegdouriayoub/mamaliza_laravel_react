@@ -33,9 +33,19 @@ class OrderItem extends Model
         'total'
     ];
 
-    /** Pieces in one sold unit: pieces per carton for a carton line, else 1 */
+    /** The piece product packed in this line's product when it is a box product (null for plain pieces) */
+    public function boxComponent()
+    {
+        return $this->hasOne(FinishedProductComponent::class, 'finished_product_id', 'finished_product_id')->orderBy('id');
+    }
+
+    /** Pieces in one sold unit: pieces per box for a box product, pieces per carton for a carton line, else 1 */
     public function getPiecesPerUnitAttribute(): float
     {
+        if ($this->finished_product_id && $this->boxComponent && $this->boxComponent->qty_per_box > 0) {
+            return (float) $this->boxComponent->qty_per_box;
+        }
+
         if ($this->unit === 'carton' && $this->carton) {
             return (float) $this->carton->pieces_per_carton;
         }
@@ -65,10 +75,6 @@ class OrderItem extends Model
      */
     public function piecesQuantity(): float
     {
-        if ($this->unit === 'carton' && $this->carton) {
-            return $this->quantity * $this->carton->pieces_per_carton;
-        }
-
-        return (float) $this->quantity;
+        return $this->quantity * $this->pieces_per_unit;
     }
 }

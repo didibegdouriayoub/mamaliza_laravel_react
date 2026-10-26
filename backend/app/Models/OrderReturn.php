@@ -60,8 +60,21 @@ class OrderReturn extends Model
         return $this->piecesQuantity();
     }
 
+    /**
+     * Quantity in pieces. unit 'loose' = loose pieces taken out of a box line; any other unit counts in the
+     * line's own unit (boxes for a box line), which keeps returns recorded before 'loose' existed correct.
+     */
     public function piecesQuantity(): float
     {
+        if ($this->unit === 'loose') {
+            return (float) $this->quantity;
+        }
+
+        $ppu = $this->item?->pieces_per_unit ?? 1;
+        if ($ppu > 1) {
+            return $this->quantity * $ppu;
+        }
+
         if ($this->unit === 'carton' && $this->carton) {
             return $this->quantity * $this->carton->pieces_per_carton;
         }

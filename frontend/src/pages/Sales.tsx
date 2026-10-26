@@ -227,7 +227,7 @@ export default function Sales() {
 
   const openReturn = () => {
     if (!selected) return;
-    setRetRows(selected.items.map(it => ({ qty: '', refund: '', disposition: 'restock', unit: it.unit === 'carton' ? 'carton' : 'piece' })));
+    setRetRows(selected.items.map(it => ({ qty: '', refund: '', disposition: 'restock', unit: ppuOf(it) > 1 ? 'carton' : 'piece' })));
     setRetReason('');
     setReturnOpen(true);
   };
@@ -261,7 +261,7 @@ export default function Sales() {
           productName: item.productName,
           finishedProductId: item.finishedProductId,
           quantity: Number(row.qty),
-          unit: item.unit === 'carton' ? row.unit : undefined,
+          unit: ppuOf(item) > 1 ? (row.unit === 'piece' ? 'loose' : 'carton') : undefined,
           reason: retReason,
           refundAmount: Number(row.refund) || 0,
           disposition: row.disposition,
@@ -530,7 +530,7 @@ export default function Sales() {
                     {selected.returns.map(r => (
                       <div key={r.id} className="text-sm py-1 border-b last:border-0">
                         <div className="flex justify-between">
-                          <span>{r.productName} × {r.quantity}{r.unit === 'carton' ? ` box (${r.pieces ?? '?'} pc)` : r.unit === 'piece' ? ' pc' : ''}</span>
+                          <span>{r.productName} × {r.quantity}{r.unit === 'loose' ? ' pc' : Number(r.pieces) > Number(r.quantity) ? ` box (${r.pieces} pc)` : ''}</span>
                           <span className="text-destructive font-medium">-DH{r.refundAmount}</span>
                         </div>
                         <p className="text-xs text-muted-foreground">{r.reason} — {r.returnedAt}</p>
@@ -624,7 +624,7 @@ export default function Sales() {
             {(selected?.items ?? []).map((item, i) => {
               const can = returnableOf(item);
               const row = retRows[i] ?? { qty: '', refund: '', disposition: 'restock' as const, unit: 'piece' as const };
-              const isBox = item.unit === 'carton' && ppuOf(item) > 1;
+              const isBox = ppuOf(item) > 1;
               return (
                 <div key={item.id ?? i} className={`rounded-lg border p-3 space-y-2 ${can <= 0 ? 'opacity-50' : ''}`}>
                   <div className="flex items-baseline justify-between gap-2">

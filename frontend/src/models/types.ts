@@ -192,7 +192,7 @@ export interface ReturnItem {
   orderItemId?: number | null;
   productName: string;
   quantity: number;
-  unit?: 'piece' | 'carton';
+  unit?: 'piece' | 'carton' | 'loose'; // loose = loose pieces taken out of a box line
   pieces?: number; // quantity expressed in pieces
   reason: string;
   refundAmount: number;

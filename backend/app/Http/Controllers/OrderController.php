@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\FinishedGoodsLot;
+use App\Models\FinishedGoodsMovement;
 use App\Models\InventoryHistory;
 use App\Models\InventoryItem;
 use App\Models\Order;
@@ -17,7 +19,7 @@ class OrderController extends Controller
 {
     public function index()
     {
-        return response()->json(Order::with('items.carton', 'returns.carton', 'payments')->latest()->get());
+        return response()->json(Order::with('items.carton', 'items.boxComponent', 'returns.carton', 'returns.item.boxComponent', 'payments')->latest()->get());
     }
 
     /**
@@ -294,7 +296,7 @@ class OrderController extends Controller
             'product_name'   => 'nullable|string|max:255',
             'order_item_id'  => 'nullable|exists:order_items,id',
             'quantity'       => 'required|numeric|min:0.001',
-            'unit'           => 'nullable|in:piece,carton',
+            'unit'           => 'nullable|in:piece,carton,loose',
             'carton_id'      => 'nullable|exists:packaging_cartons,id',
             'reason'               => 'nullable|string',
             'refund_amount'        => 'nullable|numeric|min:0',
@@ -313,12 +315,17 @@ class OrderController extends Controller
         $unit = $validated['unit'] ?? $orderItem?->unit ?? 'piece';
         $cartonId = $validated['carton_id'] ?? $orderItem?->carton_id;
         $piecesPerCarton = $cartonId ? PackagingCarton::find($cartonId)?->pieces_per_carton : null;
-        if ($unit === 'carton' && $orderItem && $orderItem->unit !== 'carton') {
-            throw ValidationException::withMessages(['unit' => "{$orderItem->product_name} was not sold by the carton."]);
+        $linePpu = $orderItem ? $orderItem->pieces_per_unit : 1.0;
+        if ($unit === 'loose' && $linePpu <= 1) {
+            throw ValidationException::withMessages(['unit' => ($orderItem?->product_name ?? 'This line') . ' was not sold in boxes.']);
         }
-        $piecesReturned = ($unit === 'carton' && $piecesPerCarton)
-            ? $validated['quantity'] * $piecesPerCarton
-            : $validated['quantity'];
+        if ($unit === 'loose') {
+            $piecesReturned = $validated['quantity'];
+        } elseif ($orderItem) {
+            $piecesReturned = $validated['quantity'] * $linePpu;
+        } else {
+            $piecesReturned = ($unit === 'carton' && $piecesPerCarton) ? $validated['quantity'] * $piecesPerCarton : $validated['quantity'];
+        }
 
         // The limit is counted in pieces so a box and loose pieces of the same line add up correctly.
         if ($orderItem) {
@@ -360,8 +367,18 @@ class OrderController extends Controller
             $disposition = $validated['disposition'] ?? null;
 
             // Restore finished goods stock when restock disposition + finished product
-            if ($disposition === 'restock' && $finishedProductId) {
-                $stockService->restoreForOrderItem($finishedProductId, (float) $piecesReturned, $order->id, $orderItem?->id, $validated['reason'] ?? null);
+            if ($disposition === 'restock' && $finishedProductId && $unit === 'loose' && $orderItem?->boxComponent) {
+                // loose pieces out of a box line go back as loose pieces of the piece product, keeping the box's date and lot code
+                $lotId = FinishedGoodsMovement::where('order_item_id', $orderItem->id)->where('type', 'order')->whereNotNull('finished_goods_lot_id')->orderBy('id')->value('finished_goods_lot_id');
+                $lot = $lotId ? FinishedGoodsLot::find($lotId) : null;
+                $stockService->receive(
+                    $orderItem->boxComponent->component_id, (float) $piecesReturned,
+                    $lot?->lot_date?->toDateString() ?? now()->toDateString(), 'return', null,
+                    $validated['reason'] ?? null, $order->id, $orderItem->id, false, $lot?->lot_code,
+                );
+            } elseif ($disposition === 'restock' && $finishedProductId) {
+                // boxes (or plain pieces) go back to the line's own product
+                $stockService->restoreForOrderItem($finishedProductId, (float) $validated['quantity'], $order->id, $orderItem?->id, $validated['reason'] ?? null);
             } elseif (in_array($disposition, ['restock', 'reemploi'], true) && $targetInventoryItemId) {
                 $inventoryItem = InventoryItem::find($targetInventoryItemId);
                 if ($inventoryItem) {
