@@ -9,7 +9,7 @@ class OrderItem extends Model
     use \App\Models\Concerns\HidesMoney;
 
     /** Hidden from users without the money permission */
-    protected array $moneyFields = ['unit_price', 'total'];
+    protected array $moneyFields = ['unit_price', 'total', 'piece_unit_price'];
 
     public $timestamps = false; // Add this since migration doesn't have timestamps()
 
@@ -19,7 +19,7 @@ class OrderItem extends Model
         'total' => 'float',
     ];
 
-    protected $appends = ['pieces_per_unit'];
+    protected $appends = ['pieces_per_unit', 'piece_unit_price'];
 
     protected $fillable = [
         'order_id',
@@ -32,6 +32,14 @@ class OrderItem extends Model
         'unit_price',
         'total'
     ];
+
+    /** Catalog price of one loose piece when this line is a box product (null otherwise) */
+    public function getPieceUnitPriceAttribute(): ?float
+    {
+        $price = $this->boxComponent?->component?->unit_price;
+
+        return $price !== null ? (float) $price : null;
+    }
 
     /** The piece product packed in this line's product when it is a box product (null for plain pieces) */
     public function boxComponent()

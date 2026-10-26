@@ -178,6 +178,7 @@ export interface OrderItem {
   finishedProductId?: number;
   unit?: 'piece' | 'carton';
   piecesPerUnit?: number; // pieces in one sold unit (carton size, else 1)
+  pieceUnitPrice?: number | null; // catalog price of one loose piece (box lines only)
 }
 
 export interface Payment {

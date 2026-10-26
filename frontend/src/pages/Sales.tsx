@@ -222,8 +222,12 @@ export default function Sales() {
     unit === 'carton' ? Math.floor(returnableOf(item) / ppuOf(item) + 1e-9) : returnableOf(item);
   const piecesOfRow = (item: { piecesPerUnit?: number }, row: { qty: string; unit: 'piece' | 'carton' }) =>
     (Number(row.qty) || 0) * (row.unit === 'carton' ? ppuOf(item) : 1);
-  const refundFor = (item: { unitPrice: number; piecesPerUnit?: number }, pieces: number) =>
-    pieces > 0 ? String(+((Number(item.unitPrice) / ppuOf(item)) * pieces).toFixed(2)) : '';
+  // a loose piece is refunded at the piece's own price (box price / pieces when the piece has no price)
+  const refundFor = (item: { unitPrice: number; piecesPerUnit?: number; pieceUnitPrice?: number | null }, pieces: number, unit: 'piece' | 'carton') => {
+    if (pieces <= 0) return '';
+    const piecePrice = unit === 'piece' && Number(item.pieceUnitPrice) > 0 ? Number(item.pieceUnitPrice) : Number(item.unitPrice) / ppuOf(item);
+    return String(+(piecePrice * pieces).toFixed(2));
+  };
 
   const openReturn = () => {
     if (!selected) return;
@@ -240,7 +244,7 @@ export default function Sales() {
     if (!item) return;
     const unit = retRows[i]?.unit ?? 'piece';
     const q = Math.min(maxIn(item, unit), Math.max(0, Number(value) || 0));
-    setRetRow(i, { qty: value === '' ? '' : String(q), refund: refundFor(item, piecesOfRow(item, { qty: String(q), unit })) });
+    setRetRow(i, { qty: value === '' ? '' : String(q), refund: refundFor(item, piecesOfRow(item, { qty: String(q), unit }), unit) });
   };
 
   // switching box <-> piece clears the row (the quantity means something different)

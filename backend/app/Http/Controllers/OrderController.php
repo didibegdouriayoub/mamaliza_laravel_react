@@ -19,7 +19,7 @@ class OrderController extends Controller
 {
     public function index()
     {
-        return response()->json(Order::with('items.carton', 'items.boxComponent', 'returns.carton', 'returns.item.boxComponent', 'payments')->latest()->get());
+        return response()->json(Order::with('items.carton', 'items.boxComponent.component', 'returns.carton', 'returns.item.boxComponent.component', 'payments')->latest()->get());
     }
 
     /**
