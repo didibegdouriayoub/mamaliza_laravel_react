@@ -342,7 +342,10 @@ class ImportLegacyBakery extends Command
             // Since spring the legacy app saved "not filled in" as 0 pieces / -100 % loss
             $recorded = (int) $lb->pieces_produced > 0;
             $legacyRecipe = $legacyRecipes[$lb->recipe_id] ?? null;
-            $createdAt = $lb->created_at ?? $lb->date;
+            // the group sits on the production date (the one the lots carry), keeping the legacy time of day
+            $createdAt = $lb->created_at
+                ? \Carbon\Carbon::parse($lb->date)->setTimeFrom(\Carbon\Carbon::parse($lb->created_at))->toDateTimeString()
+                : $lb->date;
 
             $groupId = DB::table('batch_groups')->insertGetId([
                 'legacy_id'          => $lb->id,
