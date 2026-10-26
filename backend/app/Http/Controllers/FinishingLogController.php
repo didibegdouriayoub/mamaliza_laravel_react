@@ -69,6 +69,11 @@ class FinishingLogController extends Controller
                 $validated['batch_sources'] ?? [], null, $stockService, $validated['lot_code'] ?? null
             );
 
+            // a batch group whose dough is now all used is done
+            foreach (collect($validated['batch_sources'] ?? [])->pluck('batch_group_id')->unique() as $groupId) {
+                \App\Models\BatchGroup::find($groupId)?->closeIfUsedUp();
+            }
+
             $product = $log->product;
             if ($product->type !== 'piece') {
                 return;
@@ -217,7 +222,13 @@ class FinishingLogController extends Controller
             }
         }
 
+        $groupIds = $finishingLog->batchSources()->pluck('batch_group_id')->unique();
         $finishingLog->batchSources()->delete();
         $finishingLog->delete();
+
+        // dough given back: a group that was done only because it was used up is open again
+        foreach ($groupIds as $groupId) {
+            \App\Models\BatchGroup::find($groupId)?->reopenIfDoughLeft();
+        }
     }
 }

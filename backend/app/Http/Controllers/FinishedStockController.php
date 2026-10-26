@@ -35,16 +35,21 @@ class FinishedStockController extends Controller
             'reason'    => 'required|string|min:3|max:255',
             'lot_id'    => 'nullable|integer|exists:finished_goods_lots,id',
             'lot_date'  => 'nullable|date',
+            // stock added by hand must come from a specific batch
+            'batch_group_id' => 'required_if:direction,add|nullable|integer|exists:batch_groups,id',
         ]);
 
         $qty = (float) $validated['quantity'];
 
         DB::transaction(function () use ($validated, $qty, $finishedProduct, $stock) {
             if ($validated['direction'] === 'add') {
-                $stock->receive(
+                $group = \App\Models\BatchGroup::findOrFail($validated['batch_group_id']);
+                $source = trim($group->recipe_name) . ' ' . ($group->created_at?->format('d-m-Y') ?? '');
+                $lot = $stock->receive(
                     $finishedProduct->id, $qty, $validated['lot_date'] ?? now()->toDateString(),
-                    'adjustment', null, $validated['reason']
+                    'adjustment', null, $validated['reason'] . " (batch: {$source})"
                 );
+                $lot->update(['batch_group_id' => $group->id]);
                 return;
             }
 

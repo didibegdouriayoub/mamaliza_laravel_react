@@ -568,3 +568,4 @@
 | D7 | Inventory: best-before date on raw materials only (nullable `best_before`, form field, list column with expired/soon colours, Best Before filter) | 🟡 | ✅ (run `php artisan migrate` on server) |
 | D8 | Returns counted in pieces: Box/Piece switch per sold line, limit checked in pieces (box + loose pieces add up), refund suggested per piece, returns list shows box (pc) | 🟠 | ✅ |
 | D9 | Legacy batch groups take the production date (the one in the lot code) instead of the legacy created_at; migration fixes the 127 already imported; import fixed for future runs | 🔴 | ✅ (run `php artisan migrate` on server) |
+| D10 | Finishing: batch group auto-done when all its dough is used (reopens if a log is deleted); `php artisan batches:close-old` closes old groups except latest Moza (dry run unless --apply); admin Add stock needs a source batch + reason (stored on the lot) | 🟠 | ✅ (run migrate + close-old on server) |

@@ -99,7 +99,7 @@ export const finishedProductService = {
   getStock: (id: number): Promise<FinishedStockDetail> =>
     apiClient.fetch(`/finished-products/${id}/stock`, { method: 'GET' }, raw),
 
-  adjust: (id: number, data: { direction: 'add' | 'remove'; quantity: number; reason?: string; lot_id?: number | null; lot_date?: string }): Promise<FinishedStockDetail> =>
+  adjust: (id: number, data: { direction: 'add' | 'remove'; quantity: number; reason?: string; lot_id?: number | null; lot_date?: string; batch_group_id?: number | null }): Promise<FinishedStockDetail> =>
     apiClient.fetch(`/finished-products/${id}/adjust`, { method: 'POST', body: JSON.stringify(data) }, raw),
 
   deleteImage: (id: number): Promise<FinishedProduct> =>

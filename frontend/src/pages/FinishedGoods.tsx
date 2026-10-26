@@ -19,6 +19,7 @@ import { orderService } from '@/services/orderService';
 import { printOrderDocument } from '@/lib/invoicePrint';
 import { Order } from '@/models/types';
 import { customerService } from '@/services/customerService';
+import { apiClient } from '@/lib/apiClient';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { formatDate } from '@/lib/formatDate';
@@ -108,6 +109,9 @@ export default function FinishedGoods() {
   const [qty, setQty] = useState('1');
   const [reason, setReason] = useState('');
   const [lotId, setLotId] = useState<number | null>(null);
+  // batch groups an admin can attribute manually added stock to
+  const [batchGroups, setBatchGroups] = useState<{ id: number; label: string }[]>([]);
+  const [addBatchId, setAddBatchId] = useState('');
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -123,13 +127,20 @@ export default function FinishedGoods() {
 
   useEffect(() => {
     load();
+    apiClient.get('/batch-groups').then((r: any) => {
+      const list = Array.isArray(r) ? r : (r?.data ?? []);
+      setBatchGroups(list.map((g: any) => ({
+        id: g.id,
+        label: `${g.recipeName ?? g.recipe_name ?? g.recipe?.name ?? '-'} - ${formatDate(g.createdAt ?? g.created_at)} - ${g.batchCount ?? g.batch_count} batches`,
+      })));
+    }).catch(() => setBatchGroups([]));
     customerService.getAll().then((c: any) => setCustomers(Array.isArray(c) ? c : c?.data ?? [])).catch(() => setCustomers([]));
   }, []);
 
   const panelProduct = products.find(p => p.id === panelId) ?? null;
 
   const openPanel = async (p: FinishedProduct) => {
-    setPanelId(p.id); setDetail(null); setQty('1'); setReason(''); setLotId(null);
+    setPanelId(p.id); setDetail(null); setQty('1'); setReason(''); setLotId(null); setAddBatchId('');
     try { setDetail(await finishedProductService.getStock(p.id)); }
     catch (e: any) { toast({ title: 'Failed to load stock', description: e?.message, variant: 'destructive' }); }
   };
@@ -139,10 +150,15 @@ export default function FinishedGoods() {
     const n = parseFloat(qty);
     if (!n || n <= 0) { toast({ title: 'Enter a quantity', variant: 'destructive' }); return; }
     if (reason.trim().length < 3) { toast({ title: 'A reason is required', description: 'e.g. waste, recount, damaged', variant: 'destructive' }); return; }
+    if (direction === 'add' && !addBatchId) { toast({ title: 'Pick the source batch', description: 'Added stock must come from a specific batch.', variant: 'destructive' }); return; }
     setBusy(true);
     try {
-      const d = await finishedProductService.adjust(panelProduct.id, { direction, quantity: n, reason: reason.trim(), lot_id: direction === 'remove' ? lotId : null });
-      setDetail(d); setQty('1'); setReason(''); setLotId(null);
+      const d = await finishedProductService.adjust(panelProduct.id, {
+        direction, quantity: n, reason: reason.trim(),
+        lot_id: direction === 'remove' ? lotId : null,
+        batch_group_id: direction === 'add' ? Number(addBatchId) : null,
+      });
+      setDetail(d); setQty('1'); setReason(''); setLotId(null); setAddBatchId('');
       toast({ title: direction === 'add' ? `Added ${n}` : `Removed ${n}` });
       load();
     } catch (e: any) {
@@ -452,6 +468,12 @@ export default function FinishedGoods() {
                     <Input type="number" min="0" step="1" placeholder="Quantity" value={qty} onChange={e => setQty(e.target.value)} />
                     <Input placeholder="Reason (required)" value={reason} onChange={e => setReason(e.target.value)} />
                   </div>
+                  <Select value={addBatchId} onValueChange={setAddBatchId}>
+                    <SelectTrigger><SelectValue placeholder="Source batch (required to Add)" /></SelectTrigger>
+                    <SelectContent>
+                      {batchGroups.map(g => <SelectItem key={g.id} value={String(g.id)}>{g.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                   <div className="flex gap-2">
                     <Button className="flex-1" variant="outline" disabled={busy} onClick={() => adjust('add')}><Plus className="h-4 w-4 mr-1" />Add</Button>
                     <Button className="flex-1" variant="outline" disabled={busy} onClick={() => adjust('remove')}>
