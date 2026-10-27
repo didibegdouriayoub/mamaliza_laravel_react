@@ -62,13 +62,21 @@ class InventoryItemController extends Controller
             'lead_time_days' => 'nullable|integer|min:0',
             'lot' => 'nullable|string|max:50',
             'best_before' => 'nullable|date',
+            'category' => 'nullable|in:dairy_fat,salt_emulsifier,texture_filler,additive',
+            'fat_pct' => 'nullable|numeric|min:0|max:100',
+            'protein_pct' => 'nullable|numeric|min:0|max:100',
             'code' => 'nullable|string|max:100',
             'created_at' => 'nullable|date',
         ]);
 
-        // Best-before only applies to raw materials
+        // Best-before and category only apply to raw materials; fat / protein only to dairy & fats
         if (($validated['type'] ?? null) !== 'raw') {
             $validated['best_before'] = null;
+            $validated['category'] = null;
+        }
+        if (($validated['category'] ?? null) !== 'dairy_fat') {
+            $validated['fat_pct'] = null;
+            $validated['protein_pct'] = null;
         }
 
         // created_at is not in $fillable, so set it manually after instantiation
@@ -105,13 +113,25 @@ class InventoryItemController extends Controller
             'lead_time_days' => 'nullable|integer|min:0',
             'lot' => 'nullable|string|max:50',
             'best_before' => 'nullable|date',
+            'category' => 'nullable|in:dairy_fat,salt_emulsifier,texture_filler,additive',
+            'fat_pct' => 'nullable|numeric|min:0|max:100',
+            'protein_pct' => 'nullable|numeric|min:0|max:100',
             'code' => 'nullable|string|max:100',
             'created_at' => 'nullable|date',
         ]);
 
-        // Best-before only applies to raw materials
-        if (array_key_exists('best_before', $validated) && ($validated['type'] ?? $inventory->type) !== 'raw') {
-            $validated['best_before'] = null;
+        // Best-before and category only apply to raw materials; fat / protein only to dairy & fats
+        $effType = $validated['type'] ?? $inventory->type;
+        if ($effType !== 'raw') {
+            if (array_key_exists('best_before', $validated)) {
+                $validated['best_before'] = null;
+            }
+            $validated['category'] = null;
+        }
+        $effCategory = array_key_exists('category', $validated) ? $validated['category'] : $inventory->category;
+        if ($effCategory !== 'dairy_fat') {
+            $validated['fat_pct'] = null;
+            $validated['protein_pct'] = null;
         }
 
         // Record history

@@ -12,6 +12,11 @@ class Recipe extends Model
     protected $fillable = [
         'name',
         'description',
+        'cheese_type',
+        'target_temp',
+        'ph_min',
+        'ph_max',
+        'default_water_kg',
         'steps',
         'target_weight',
         'recipe_status',
@@ -21,6 +26,10 @@ class Recipe extends Model
 
     protected $casts = [
         'steps' => 'array',
+        'target_temp' => 'float',
+        'ph_min' => 'float',
+        'ph_max' => 'float',
+        'default_water_kg' => 'float',
         'packages' => 'array',
     ];
 

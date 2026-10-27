@@ -11,6 +11,9 @@ const toPayload = (item: Partial<InventoryItem>) =>
     price: item.price,
     supplierId: item.supplierId || null,  // → supplier_id (null if empty)
     lot: item.lot || null,
+    category: item.category || null,
+    fatPct: item.fatPct === '' || item.fatPct == null ? null : Number(item.fatPct), // → fat_pct
+    proteinPct: item.proteinPct === '' || item.proteinPct == null ? null : Number(item.proteinPct),
     bestBefore: item.bestBefore || null,  // → best_before (raw materials only)
     code: item.code || null,
     minStock: item.minStock,              // → min_stock

@@ -15,12 +15,17 @@ class InventoryItem extends Model
         'quantity' => 'float',
         'price' => 'float',
         'min_stock' => 'float',
+        'fat_pct' => 'float',
+        'protein_pct' => 'float',
         'best_before' => 'date:Y-m-d',
     ];
 
     protected $fillable = [
         'name',
         'type',
+        'category',
+        'fat_pct',
+        'protein_pct',
         'quantity',
         'unit',
         'price',

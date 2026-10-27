@@ -35,6 +35,12 @@ export default function Recipes() {
   const [ingredients, setIngredients] = useState<RecipeIngredient[]>([{ ...emptyIng }]);
   const [steps, setSteps] = useState<string[]>(['']);
   const [targetWeight, setTargetWeight] = useState('0');
+  // quality targets (kept as text while typing)
+  const [cheeseType, setCheeseType] = useState('');
+  const [targetTemp, setTargetTemp] = useState('');
+  const [phMin, setPhMin] = useState('');
+  const [phMax, setPhMax] = useState('');
+  const [defaultWater, setDefaultWater] = useState('');
   const { toast } = useToast();
 
   const loadData = async () => {
@@ -48,6 +54,11 @@ export default function Recipes() {
       const recipeData = (recipeRaw || []).map((r: any) => ({
         ...r,
         targetWeight: Number(r.target_weight ?? r.targetWeight) || 0,
+        cheeseType: r.cheeseType ?? r.cheese_type ?? null,
+        targetTemp: r.targetTemp ?? r.target_temp ?? null,
+        phMin: r.phMin ?? r.ph_min ?? null,
+        phMax: r.phMax ?? r.ph_max ?? null,
+        defaultWaterKg: r.defaultWaterKg ?? r.default_water_kg ?? null,
         recipeStatus: r.recipe_status ?? r.recipeStatus ?? 'semi_final',
         packages: r.packages || [],
         ingredients: (r.ingredients || []).map((i: any) => ({
@@ -79,6 +90,7 @@ export default function Recipes() {
     setName(''); setDescription(''); setSteps(['']);
     setIngredients([{ ...emptyIng }]);
     setTargetWeight('0');
+    setCheeseType(''); setTargetTemp(''); setPhMin(''); setPhMax(''); setDefaultWater('');
     setFormOpen(true);
   };
 
@@ -88,6 +100,11 @@ export default function Recipes() {
     setIngredients(r.ingredients.map(i => ({ ...i })));
     setSteps([...r.steps]);
     setTargetWeight(r.targetWeight ? String(r.targetWeight) : '0');
+    setCheeseType(r.cheeseType ?? '');
+    setTargetTemp(r.targetTemp != null ? String(r.targetTemp) : '');
+    setPhMin(r.phMin != null ? String(r.phMin) : '');
+    setPhMax(r.phMax != null ? String(r.phMax) : '');
+    setDefaultWater(r.defaultWaterKg != null ? String(r.defaultWaterKg) : '');
     setFormOpen(true);
     setSelected(null);
   };
@@ -99,16 +116,21 @@ export default function Recipes() {
 
     try {
       const targetWeightNum = Number(targetWeight) || 0;
+      const num = (v: string) => (v.trim() === '' ? null : Number(v));
+      const quality = {
+        cheeseType: (cheeseType || null) as 'mozzarella' | 'fondue' | null,
+        targetTemp: num(targetTemp), phMin: num(phMin), phMax: num(phMax), defaultWaterKg: num(defaultWater),
+      };
       if (editingRecipe) {
         await recipeService.update(editingRecipe.id, {
           name, description, ingredients: validIngs, steps: validSteps,
-          targetWeight: targetWeightNum,
+          targetWeight: targetWeightNum, ...quality,
         });
         toast({ title: 'Recipe updated' });
       } else {
         await recipeService.create({
           name, description, ingredients: validIngs, steps: validSteps,
-          targetWeight: targetWeightNum,
+          targetWeight: targetWeightNum, ...quality,
         });
         toast({ title: 'Recipe created' });
       }
@@ -318,6 +340,25 @@ export default function Recipes() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label>Target Weight (Batch Total)</Label><Input type="number" value={targetWeight} onChange={e => setTargetWeight(e.target.value)} /></div>
+            </div>
+            <div className="rounded-lg border p-3 space-y-3">
+              <p className="text-sm font-medium">Quality targets</p>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <div className="space-y-1.5 col-span-2 sm:col-span-1">
+                  <Label className="text-xs">Cheese type</Label>
+                  <Select value={cheeseType} onValueChange={setCheeseType}>
+                    <SelectTrigger><SelectValue placeholder="Type" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mozzarella">Mozzarella</SelectItem>
+                      <SelectItem value="fondue">Fondue</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5"><Label className="text-xs">Target temp (&deg;C)</Label><Input type="number" step="0.1" value={targetTemp} onChange={e => setTargetTemp(e.target.value)} /></div>
+                <div className="space-y-1.5"><Label className="text-xs">pH min</Label><Input type="number" step="0.01" value={phMin} onChange={e => setPhMin(e.target.value)} /></div>
+                <div className="space-y-1.5"><Label className="text-xs">pH max</Label><Input type="number" step="0.01" value={phMax} onChange={e => setPhMax(e.target.value)} /></div>
+                <div className="space-y-1.5"><Label className="text-xs">Water (kg / batch)</Label><Input type="number" step="0.001" value={defaultWater} onChange={e => setDefaultWater(e.target.value)} /></div>
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label>Description</Label>

@@ -569,3 +569,12 @@
 | D8 | Returns counted in pieces: Box/Piece switch per sold line, limit checked in pieces (box + loose pieces add up), refund suggested per piece, returns list shows box (pc) | 🟠 | ✅ |
 | D9 | Legacy batch groups take the production date (the one in the lot code) instead of the legacy created_at; migration fixes the 127 already imported; import fixed for future runs | 🔴 | ✅ (run `php artisan migrate` on server) |
 | D10 | Finishing: batch group auto-done when all its dough is used (reopens if a log is deleted); `php artisan batches:close-old` closes old groups except latest Moza (dry run unless --apply); admin Add stock needs a source batch + reason (stored on the lot) | 🟠 | ✅ (run migrate + close-old on server) |
+
+### Batch quality (replaces the old Quality page) — plan agreed 2026-10-27
+Per batch (mix); output values of the first batch of a group are the default for the others (editable). Fat/protein/steam are computed only once the group is Done, from the real dough weight (kg used in Finishing + leftover).
+| # | Task | Priority | Status |
+|---|---|---|---|
+| Q1 | Step 1: raw-material category (4) + fat %/protein % per lot (dairy & fats only), "No category" filter; recipe fields cheese type, target temp, pH range, default water | 🟠 | ✅ (run `php artisan migrate`; fill values in Inventory) |
+| Q2 | Step 2: new Quality page (batch list, chips, filters) + Production card (pH + flag, peak temp, water, notes), autosave, replaces old quality | 🟠 | ☐ |
+| Q3 | Step 3: Output stage auto-calc after group Done (output weight, steam water = dough - (ingredients+water), fat %, protein %), leftover fat/protein, rework lines | 🟠 | ☐ |
+| Q4 | Step 4: Tasting stage (mozzarella/fondue scores, taste x2), suggested verdict + override, batch Complete summary | 🟠 | ☐ |

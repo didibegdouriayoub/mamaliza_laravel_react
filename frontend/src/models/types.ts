@@ -71,6 +71,9 @@ export interface InventoryItem {
   supplier: string;
   supplierId: string;
   lot?: string;
+  category?: string | null; // dairy_fat | salt_emulsifier | texture_filler | additive (raw only)
+  fatPct?: number | string | null; // per 100 g, dairy & fats only
+  proteinPct?: number | string | null;
   bestBefore?: string;
   code?: string;
   status: 'ok' | 'low' | 'out';
@@ -93,6 +96,11 @@ export interface Recipe {
   id: string;
   name: string;
   description: string;
+  cheeseType?: 'mozzarella' | 'fondue' | null;
+  targetTemp?: number | null; // degrees C to reach
+  phMin?: number | null;
+  phMax?: number | null;
+  defaultWaterKg?: number | null; // water per batch, editable on each batch
   targetWeight: number;
   recipeStatus: 'semi_final' | 'final';
   packages: Array<{ id: string; name: string; quantity: number }>;

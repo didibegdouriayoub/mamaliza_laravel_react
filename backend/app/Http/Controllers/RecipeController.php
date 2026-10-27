@@ -20,6 +20,11 @@ class RecipeController extends Controller
             'name'                         => 'required|string|max:255',
             'description'                  => 'nullable|string',
             'steps'                        => 'nullable|array',
+            'cheese_type'   => 'nullable|in:mozzarella,fondue',
+            'target_temp'   => 'nullable|numeric|min:0|max:200',
+            'ph_min'        => 'nullable|numeric|min:0|max:14',
+            'ph_max'        => 'nullable|numeric|min:0|max:14|gte:ph_min',
+            'default_water_kg' => 'nullable|numeric|min:0',
             'target_weight'                => 'nullable|numeric|min:0',
             'recipe_status'                => 'nullable|string|in:semi_final,final',
             'packages'                     => 'nullable|array',
@@ -61,6 +66,11 @@ class RecipeController extends Controller
             'name' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
             'steps' => 'nullable|array',
+            'cheese_type'   => 'nullable|in:mozzarella,fondue',
+            'target_temp'   => 'nullable|numeric|min:0|max:200',
+            'ph_min'        => 'nullable|numeric|min:0|max:14',
+            'ph_max'        => 'nullable|numeric|min:0|max:14|gte:ph_min',
+            'default_water_kg' => 'nullable|numeric|min:0',
             'target_weight' => 'sometimes|numeric|min:0',
             'recipe_status' => 'sometimes|string|in:semi_final,final',
             'packages' => 'sometimes|array',
@@ -70,7 +80,7 @@ class RecipeController extends Controller
         ]);
 
         // Record history for main fields (including steps array)
-        foreach (['name', 'description', 'target_weight', 'recipe_status', 'packages', 'steps'] as $field) {
+        foreach (['name', 'description', 'target_weight', 'recipe_status', 'packages', 'steps', 'cheese_type', 'target_temp', 'ph_min', 'ph_max', 'default_water_kg'] as $field) {
             if (isset($validated[$field])) {
                 $oldVal = $recipe->$field;
                 $newVal = $validated[$field];

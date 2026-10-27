@@ -19,6 +19,7 @@ import { InventoryItem, MaterialType, Supplier } from '@/models/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { formatDate } from '@/lib/formatDate';
+import { MATERIAL_CATEGORIES, categoryLabel } from '@/lib/materialCategories';
 
 const emptyForm = {
   name: '',
@@ -32,6 +33,9 @@ const emptyForm = {
   leadTimeDays: 0,
   lot: '',
   bestBefore: '',
+  category: '' as string,
+  fatPct: '' as string | number,
+  proteinPct: '' as string | number,
   code: '',
   createdAt: new Date().toISOString().split('T')[0]
 };
@@ -92,6 +96,9 @@ export default function Inventory() {
           status,
           lot: item.lot || '',
           bestBefore: (item.bestBefore ?? item.best_before ?? '').split('T')[0],
+          category: item.category || '',
+          fatPct: item.fatPct ?? item.fat_pct ?? '',
+          proteinPct: item.proteinPct ?? item.protein_pct ?? '',
           code: item.code || '',
           leadTimeDays: Number(item.leadTimeDays ?? item.lead_time_days) || 0,
           createdAt: item.createdAt?.split('T')[0] || item.created_at?.split('T')[0] || '',
@@ -138,7 +145,7 @@ export default function Inventory() {
     const isOut = i.quantity <= 0;
     const status = isOut ? 'out' : (isLow ? 'low' : 'ok');
     // 'noprice' = items whose unit price is still 0 (to find what is left to price)
-    const matchesStatus = statusFilter === 'all' || (statusFilter === 'noprice' ? i.price <= 0 : status === statusFilter);
+    const matchesStatus = statusFilter === 'all' || (statusFilter === 'noprice' ? i.price <= 0 : statusFilter === 'nocategory' ? (i.type === 'raw' && !i.category) : status === statusFilter);
 
     const matchesExpiry = expiryFilter === 'all' || expiryStatus(i.type, i.bestBefore) === expiryFilter;
 
@@ -160,7 +167,11 @@ export default function Inventory() {
         price: existing.price,
         supplierId: String(existing.supplierId ?? ''),
         supplier: existing.supplier,
-        minStock: existing.minStock
+        minStock: existing.minStock,
+        // a new lot of the same material starts with the previous lot's composition
+        category: existing.category || '',
+        fatPct: existing.fatPct ?? '',
+        proteinPct: existing.proteinPct ?? '',
       }));
     } else {
       setForm(p => ({ ...p, name }));
@@ -181,6 +192,9 @@ export default function Inventory() {
       minStock: item.minStock,
       lot: item.lot || '',
       bestBefore: item.bestBefore || '',
+      category: item.category || '',
+      fatPct: item.fatPct ?? '',
+      proteinPct: item.proteinPct ?? '',
       code: item.code || '',
       leadTimeDays: item.leadTimeDays ?? 0,
       createdAt: item.createdAt || ''
@@ -444,6 +458,29 @@ export default function Inventory() {
                 </div>
                 {form.type === 'raw' && (
                   <div className="space-y-1.5">
+                    <Label>Category</Label>
+                    <Select value={form.category} onValueChange={v => setForm(p => ({ ...p, category: v }))}>
+                      <SelectTrigger><SelectValue placeholder="Choose a category" /></SelectTrigger>
+                      <SelectContent>
+                        {MATERIAL_CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                {form.type === 'raw' && form.category === 'dairy_fat' && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label>Fat % (per 100 g)</Label>
+                      <Input type="number" min={0} max={100} step="0.01" value={form.fatPct} onChange={e => setForm(p => ({ ...p, fatPct: e.target.value }))} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Protein % (per 100 g)</Label>
+                      <Input type="number" min={0} max={100} step="0.01" value={form.proteinPct} onChange={e => setForm(p => ({ ...p, proteinPct: e.target.value }))} />
+                    </div>
+                  </div>
+                )}
+                {form.type === 'raw' && (
+                  <div className="space-y-1.5">
                     <Label>Best Before (expiry date)</Label>
                     <Input type="date" value={form.bestBefore} onChange={e => setForm(p => ({ ...p, bestBefore: e.target.value }))} />
                   </div>
@@ -532,6 +569,7 @@ export default function Inventory() {
                   <SelectItem value="low">Low Stock</SelectItem>
                   <SelectItem value="out">Out of Stock</SelectItem>
                   {showMoney && <SelectItem value="noprice">No price (0)</SelectItem>}
+                  <SelectItem value="nocategory">No category (raw)</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -596,6 +634,11 @@ export default function Inventory() {
                       <motion.tr key={item.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: idx * 0.03 }} className="border-b">
                         <TableCell className="font-medium">
                           <div>{item.name}</div>
+                          {item.type === 'raw' && item.category && (
+                            <div className="text-[10px] text-muted-foreground">
+                              {categoryLabel(item.category)}{item.category === 'dairy_fat' && item.fatPct !== '' && item.fatPct != null ? ` · fat ${item.fatPct}% · protein ${item.proteinPct ?? '?'}%` : ''}
+                            </div>
+                          )}
                           <div className="text-[10px] text-muted-foreground lg:hidden">
                             {item.code && `[${item.code}] `}{item.lot && `Lot: ${item.lot}`}
                           </div>

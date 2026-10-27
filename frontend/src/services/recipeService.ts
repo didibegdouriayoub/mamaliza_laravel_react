@@ -14,6 +14,11 @@ const ingToPayload = (i: RecipeIngredient) => ({
 const toPayload = (r: Partial<Recipe>) => ({
   name: r.name,
   description: r.description,
+  cheese_type: r.cheeseType ?? null,
+  target_temp: r.targetTemp ?? null,
+  ph_min: r.phMin ?? null,
+  ph_max: r.phMax ?? null,
+  default_water_kg: r.defaultWaterKg ?? null,
   steps: r.steps,
   target_weight: r.targetWeight,
   recipe_status: r.recipeStatus,
