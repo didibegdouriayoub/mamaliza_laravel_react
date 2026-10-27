@@ -11,6 +11,7 @@ import Inventory from "./pages/Inventory";
 import Recipes from "./pages/Recipes";
 import Batches from "./pages/Batches";
 import Quality from "./pages/Quality";
+import QualityBatchPage from "./pages/QualityBatch";
 import Sales from "./pages/Sales";
 import Tournees from "./pages/Tournees";
 import Analytics from "./pages/Analytics";
@@ -43,6 +44,7 @@ function AppRoutes() {
         <Route path="/recipes" element={<ProtectedRoute permissions={['recipes.read']}><Recipes /></ProtectedRoute>} />
         <Route path="/batches" element={<ProtectedRoute permissions={['batches.read']}><Batches /></ProtectedRoute>} />
         <Route path="/quality" element={<ProtectedRoute permissions={['quality.read']}><Quality /></ProtectedRoute>} />
+        <Route path="/quality/:id" element={<ProtectedRoute permissions={['quality.read']}><QualityBatchPage /></ProtectedRoute>} />
         <Route path="/estimation" element={<ProtectedRoute permissions={['estimation.read', 'money.read']}><Estimation /></ProtectedRoute>} />
         <Route path="/products" element={<ProtectedRoute permissions={['products.read']}><Products /></ProtectedRoute>} />
         <Route path="/finishing" element={<ProtectedRoute permissions={['finishing.read']}><Finishing /></ProtectedRoute>} />

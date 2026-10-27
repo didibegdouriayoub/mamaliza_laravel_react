@@ -58,6 +58,12 @@ class Batch extends Model
         return $this->hasMany(BatchNote::class);
     }
 
+    /** Quality record: production (pH, temperature, water), later output and tasting */
+    public function quality()
+    {
+        return $this->hasOne(BatchQuality::class);
+    }
+
     public function qualityControl()
     {
         return $this->hasOne(QualityControl::class);

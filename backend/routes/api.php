@@ -65,7 +65,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/batch-groups/{batchGroup}/close', [\App\Http\Controllers\BatchGroupController::class, 'close'])->middleware('permission:batches.write,pieces.write,leftover.write');
     Route::delete('/batch-groups/{batchGroup}', [\App\Http\Controllers\BatchGroupController::class, 'destroy'])->middleware('permission:batches.write');
 
-    // Quality Controls
+    // Batch quality (production / output / tasting stages per batch)
+    Route::get('/batch-quality', [\App\Http\Controllers\BatchQualityController::class, 'index'])->middleware('permission:quality.read');
+    Route::get('/batch-quality/{batch}', [\App\Http\Controllers\BatchQualityController::class, 'show'])->middleware('permission:quality.read');
+    Route::match(['put', 'patch'], '/batch-quality/{batch}', [\App\Http\Controllers\BatchQualityController::class, 'update'])->middleware('permission:quality.write');
+
+    // Quality Controls (old evaluations, kept for existing data)
     Route::get('/quality-controls', [\App\Http\Controllers\QualityControlController::class, 'index'])->middleware('permission:quality.read,batches.read');
     Route::post('/quality-controls', [\App\Http\Controllers\QualityControlController::class, 'store'])->middleware('permission:quality.write');
     Route::get('/quality-controls/{quality_control}', [\App\Http\Controllers\QualityControlController::class, 'show'])->middleware('permission:quality.read');

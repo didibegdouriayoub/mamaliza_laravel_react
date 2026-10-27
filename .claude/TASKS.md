@@ -575,6 +575,6 @@ Per batch (mix); output values of the first batch of a group are the default for
 | # | Task | Priority | Status |
 |---|---|---|---|
 | Q1 | Step 1: raw-material category (4) + fat %/protein % per lot (dairy & fats only), "No category" filter; recipe fields cheese type, target temp, pH range, default water | 🟠 | ✅ (run `php artisan migrate`; fill values in Inventory) |
-| Q2 | Step 2: new Quality page (batch list, chips, filters) + Production card (pH + flag, peak temp, water, notes), autosave, replaces old quality | 🟠 | ☐ |
+| Q2 | Step 2: new Quality page (batch list, chips, filters) + Production card (pH + flag, peak temp, water, notes), autosave, replaces old quality | 🟠 | ✅ (run `php artisan migrate`) |
 | Q3 | Step 3: Output stage auto-calc after group Done (output weight, steam water = dough - (ingredients+water), fat %, protein %), leftover fat/protein, rework lines | 🟠 | ☐ |
 | Q4 | Step 4: Tasting stage (mozzarella/fondue scores, taste x2), suggested verdict + override, batch Complete summary | 🟠 | ☐ |
