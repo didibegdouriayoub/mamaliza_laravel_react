@@ -6,6 +6,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import BestBatches from './BestBatches';
 import { batchQualityService, QualityBatch } from '@/services/batchQualityService';
 import { phStatus, productionDone, tastingDone, tastingScore, suggestedVerdict, finalVerdict } from '@/lib/batchQuality';
 import { EmptyState, TableSkeleton } from '@/components/DataStates';
@@ -27,7 +29,7 @@ function Chip({ label, state, detail }: { label: string; state: 'done' | 'todo' 
   );
 }
 
-export default function Quality() {
+function AllBatches() {
   const [batches, setBatches] = useState<QualityBatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [date, setDate] = useState('');
@@ -46,11 +48,6 @@ export default function Quality() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-display font-bold flex items-center gap-2"><ShieldCheck className="h-6 w-6" /> Quality</h1>
-        <p className="text-sm text-muted-foreground">Production, output and tasting data for every batch</p>
-      </div>
-
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative">
           <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -106,6 +103,25 @@ export default function Quality() {
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+export default function Quality() {
+  return (
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-2xl font-display font-bold flex items-center gap-2"><ShieldCheck className="h-6 w-6" /> Quality</h1>
+        <p className="text-sm text-muted-foreground">Production, output and tasting data for every batch</p>
+      </div>
+      <Tabs defaultValue="all">
+        <TabsList>
+          <TabsTrigger value="all">All batches</TabsTrigger>
+          <TabsTrigger value="best">Best batches</TabsTrigger>
+        </TabsList>
+        <TabsContent value="all"><AllBatches /></TabsContent>
+        <TabsContent value="best"><BestBatches /></TabsContent>
+      </Tabs>
     </div>
   );
 }

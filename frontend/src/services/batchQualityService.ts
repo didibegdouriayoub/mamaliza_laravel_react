@@ -64,13 +64,15 @@ export interface QualityBatch {
   output?: BatchOutput;
 }
 
-export interface QualityFilters { date?: string; needs?: 'production' | 'tasting'; limit?: number }
+export interface QualityFilters { date?: string; needs?: 'production' | 'tasting'; tasted?: boolean; ingredients?: boolean; limit?: number }
 
 export const batchQualityService = {
   list: (f: QualityFilters = {}): Promise<QualityBatch[]> => {
     const qs = new URLSearchParams();
     if (f.date) qs.set('date', f.date);
     if (f.needs) qs.set('needs', f.needs);
+    if (f.tasted) qs.set('tasted', '1');
+    if (f.ingredients) qs.set('ingredients', '1');
     if (f.limit) qs.set('limit', String(f.limit));
     const q = qs.toString();
     return apiClient.get(`/batch-quality${q ? `?${q}` : ''}`);

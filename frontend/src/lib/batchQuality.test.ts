@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { phStatus, productionDone, tastingCriteria, tastingScore, suggestedVerdict, finalVerdict, tastingDone } from './batchQuality';
+import { phStatus, productionDone, tastingCriteria, tastingScore, suggestedVerdict, finalVerdict, tastingDone, rankBest } from './batchQuality';
 
 describe('phStatus', () => {
   it('is ok inside the range, edges included', () => {
@@ -73,5 +73,22 @@ describe('tasting', () => {
     expect(tastingDone({ tastingScores: { taste: 4, texture: 4 } }, null)).toBe(true);
     expect(tastingDone({ tastingScores: { taste: 4 } }, null)).toBe(false);
     expect(tastingDone(null, null)).toBe(false);
+  });
+});
+
+describe('rankBest', () => {
+  const mk = (id: number, recipeName: string, startedAt: string, taste: number | null, texture = 4) => ({
+    id, recipeName, startedAt, recipe: { cheeseType: null as null }, quality: { tastingScores: taste == null ? null : { taste, texture } },
+  });
+  const rows = [mk(1, 'A', '2026-10-01', 3), mk(2, 'B', '2026-10-02', 5), mk(3, 'A', '2026-10-03', 5), mk(4, 'A', '2026-10-04', null), mk(5, 'B', '2026-10-05', 4)];
+
+  it('ranks by rating then newest, and skips untasted batches', () => {
+    expect(rankBest(rows).map(b => b.id)).toEqual([3, 2, 5, 1]);
+  });
+
+  it('filters by minimum rating and recipe', () => {
+    expect(rankBest(rows, 4.5).map(b => b.id)).toEqual([3, 2]);
+    expect(rankBest(rows, 0, 'B').map(b => b.id)).toEqual([2, 5]);
+    expect(rankBest(rows, 4.5, 'B').map(b => b.id)).toEqual([2]);
   });
 });

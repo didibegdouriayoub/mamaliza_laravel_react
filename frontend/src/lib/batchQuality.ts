@@ -53,3 +53,21 @@ export const finalVerdict = (override: Verdict | null | undefined, suggested: Ve
 
 export const tastingDone = (q: { tastingScores?: TastingScores | null } | null | undefined, type: CheeseType) =>
   tastingScore(q?.tastingScores, type) != null;
+
+// ---- Best batches -----------------------------------------------------------
+
+interface RankableBatch {
+  id: number;
+  startedAt: string;
+  recipeName: string;
+  recipe?: { cheeseType?: CheeseType } | null;
+  quality?: { tastingScores?: TastingScores | null } | null;
+}
+
+/** Fully tasted batches, best rating first (newest first on a tie), optionally above a minimum rating and for one recipe. */
+export function rankBest<T extends RankableBatch>(batches: T[], minScore = 0, recipeName?: string): (T & { score: number })[] {
+  return batches
+    .map(b => ({ ...b, score: tastingScore(b.quality?.tastingScores, b.recipe?.cheeseType) }))
+    .filter((b): b is T & { score: number } => b.score != null && b.score >= minScore && (!recipeName || b.recipeName === recipeName))
+    .sort((a, b) => b.score - a.score || (b.startedAt || '').localeCompare(a.startedAt || '') || b.id - a.id);
+}

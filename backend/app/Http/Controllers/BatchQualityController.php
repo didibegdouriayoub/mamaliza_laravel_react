@@ -13,7 +13,7 @@ class BatchQualityController extends Controller
 
     /**
      * Batches with their quality record and the recipe targets.
-     * ?date=YYYY-MM-DD (production day), ?needs=production (pH not entered yet) or ?needs=tasting (no scores yet), ?limit=N (default 300, newest first)
+     * ?date=YYYY-MM-DD (production day), ?needs=production (pH not entered yet) or ?needs=tasting (no scores yet), ?tasted=1 (scored only), ?ingredients=1 (include the ingredient list), ?limit=N (default 300, newest first)
      */
     public function index(Request $request)
     {
@@ -30,11 +30,19 @@ class BatchQualityController extends Controller
             $query->whereDoesntHave('quality', fn ($q) => $q->whereNotNull('tasting_scores'));
         }
 
+        if ($request->boolean('tasted')) {
+            $query->whereHas('quality', fn ($q) => $q->whereNotNull('tasting_scores'));
+        }
+
         $limit = min(1000, max(1, (int) $request->input('limit', 300)));
 
-        return response()->json(
-            $query->limit($limit)->get()->each->makeHidden(['input_materials'])->values()
-        );
+        $rows = $query->limit($limit)->get();
+        // ingredients are only sent when asked for (the Best batches tab)
+        if (!$request->boolean('ingredients')) {
+            $rows->each->makeHidden(['input_materials']);
+        }
+
+        return response()->json($rows->values());
     }
 
     // One batch: ingredients (read-only), recipe targets and steps, quality record.
