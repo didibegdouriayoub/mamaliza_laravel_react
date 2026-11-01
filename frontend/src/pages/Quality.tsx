@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { batchQualityService, QualityBatch } from '@/services/batchQualityService';
-import { phStatus, productionDone } from '@/lib/batchQuality';
+import { phStatus, productionDone, tastingDone, tastingScore, suggestedVerdict, finalVerdict } from '@/lib/batchQuality';
 import { EmptyState, TableSkeleton } from '@/components/DataStates';
 import { useToast } from '@/hooks/use-toast';
 import { formatDate } from '@/lib/formatDate';
@@ -31,18 +31,18 @@ export default function Quality() {
   const [batches, setBatches] = useState<QualityBatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [date, setDate] = useState('');
-  const [needsProduction, setNeedsProduction] = useState(false);
+  const [needs, setNeeds] = useState<'production' | 'tasting' | undefined>();
   const { toast } = useToast();
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    batchQualityService.list({ date: date || undefined, needs: needsProduction ? 'production' : undefined })
+    batchQualityService.list({ date: date || undefined, needs })
       .then(rows => { if (!cancelled) setBatches(rows || []); })
       .catch((e: any) => toast({ title: 'Failed to load batches', description: e?.message, variant: 'destructive' }))
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [date, needsProduction]);
+  }, [date, needs]);
 
   return (
     <div className="space-y-4">
@@ -57,8 +57,11 @@ export default function Quality() {
           <Input type="date" className="pl-9 w-full sm:w-44" value={date} onChange={e => setDate(e.target.value)} aria-label="Production day" />
         </div>
         {date && <Button variant="ghost" size="sm" onClick={() => setDate('')}>All days</Button>}
-        <Button variant={needsProduction ? 'default' : 'outline'} size="sm" onClick={() => setNeedsProduction(v => !v)}>
+        <Button variant={needs === 'production' ? 'default' : 'outline'} size="sm" onClick={() => setNeeds(v => v === 'production' ? undefined : 'production')}>
           Needs production
+        </Button>
+        <Button variant={needs === 'tasting' ? 'default' : 'outline'} size="sm" onClick={() => setNeeds(v => v === 'tasting' ? undefined : 'tasting')}>
+          Needs tasting
         </Button>
       </div>
 
@@ -84,8 +87,14 @@ export default function Quality() {
                           {productionDone(q)
                             ? <Chip label="Production" state={flag === 'low' || flag === 'high' ? 'warn' : 'done'} detail={`pH ${q!.ph}`} />
                             : <Chip label="Production" state="todo" />}
-                          <Chip label="Output" state="soon" />
-                          <Chip label="Tasting" state="soon" />
+                          {b.batchGroup?.closedAt
+                            ? <Chip label="Output" state="done" />
+                            : <Chip label="Output" state="soon" detail="after group Done" />}
+                          {tastingDone(q, b.recipe?.cheeseType) ? (() => {
+                            const score = tastingScore(q?.tastingScores, b.recipe?.cheeseType);
+                            const v = finalVerdict(q?.tastingVerdict, suggestedVerdict(score, flag));
+                            return <Chip label="Tasting" state={v === 'rejected' ? 'warn' : 'done'} detail={`${score}/5${v ? ` ${v}` : ''}`} />;
+                          })() : <Chip label="Tasting" state="todo" />}
                         </div>
                       </div>
                       <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />

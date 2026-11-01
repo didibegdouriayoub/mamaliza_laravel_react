@@ -48,6 +48,11 @@ class Batch extends Model
         return $this->belongsTo(Recipe::class);
     }
 
+    public function batchGroup()
+    {
+        return $this->belongsTo(BatchGroup::class);
+    }
+
     public function operator()
     {
         return $this->belongsTo(User::class, 'operator_id');
