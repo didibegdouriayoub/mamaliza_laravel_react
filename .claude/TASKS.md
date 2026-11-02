@@ -579,3 +579,22 @@ Per batch (mix); output values of the first batch of a group are the default for
 | Q3 | Step 3: Output stage auto-calc after group Done (output weight, steam water = dough - (ingredients+water), fat %, protein %), leftover fat/protein, rework lines | 🟠 | ✅ (backend tested locally with rollback: 96 kg dough / 2 mixes, fat 3.2 kg = 6.67 %, steam, default follows first mix; screen needs browser check; run `php artisan migrate`. Leftover fat/protein and rework composition come from the inventory item's fat/protein values — leftover items do not get them automatically yet) |
 | Q4 | Step 4: Tasting stage (mozzarella/fondue scores, taste x2), suggested verdict + override, batch Complete summary | 🟠 | ✅ (scores 1-5, taste x2, type-specific criteria, verdict suggestion + override, summary card, list chips + Needs tasting filter; 11 unit tests + endpoint test; needs browser check; run `php artisan migrate`) |
 | Q5 | Quality: "Best batches" tab - tasted batches ranked by rating, filter by minimum rating and recipe, each one expands to show recipe steps, ingredients, water, pH, temperature and all notes | 🟠 | ✅ (ranking + filters unit tested, endpoint tested with rollback; screen needs browser check; no new migration) |
+
+---
+
+## Live status (server checked 2026-11-02)
+
+**Database:** `php artisan migrate:status` on the server shows every migration as Ran, up to `2026_10_29_100000_add_output_and_tasting_to_batch_quality` (batch 14). Every task whose only pending step was "run migrate" is live: D7, D9, D10 (migration part), T24.1, T26.1, T27.1, T28.1, T31.9, T32.1, T31.15, Q1, Q2, Q3, Q4.
+**Code:** pushed to GitHub up to `9e2a532` on 2026-11-01 and pulled on the server (Q3, Q4, Q5 included).
+
+**Commands that migrate does not run - still to confirm on the server (docker exec fromagerie_backend php artisan ...):**
+| Task | Command | Done? |
+|---|---|---|
+| T22.7 | production date fix for the last three batch groups | ☐ (owner must say which groups) |
+| T24.8 | `lots:backfill-codes --dry-run`, then without | ☐ |
+| T28.4 | `user:make-owner <owner email>` | ☐ |
+| T29.3 | back up, `sales:reset --dry-run`, then the real reset | ☐ |
+| D6 | `inventory:import-csv` (packaging list) | ☐ |
+| D10 | `batches:close-old` (dry run, then `--apply`) | ☐ |
+
+Still open / not built: T16.1, T12.23, T12.26, T13.49 (in progress), T24.7, D2.
