@@ -598,3 +598,8 @@ Per batch (mix); output values of the first batch of a group are the default for
 | D10 | `batches:close-old` (dry run, then `--apply`) | ☐ |
 
 Still open / not built: T16.1, T12.23, T12.26, T13.49 (in progress), T24.7, D2.
+
+### Recipes: hide / show
+| # | Task | Priority | Status |
+|---|---|---|---|
+| R1 | Recipes page: hide chosen recipes from the list (per-recipe Hide button), "Show hidden" button reveals them with Unhide; `recipes.hidden` flag (migration) | 🟠 | ✅ (type-check + 52 tests pass, route registered; needs browser check; run migrate + route:clear on server) |

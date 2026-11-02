@@ -55,6 +55,15 @@ class RecipeController extends Controller
         return response()->json($recipe->load(['ingredients', 'history.user']), 201);
     }
 
+    // Hide / show a recipe in the Recipes list. Not a recipe change: no new version, no history entry.
+    public function setHidden(Request $request, Recipe $recipe)
+    {
+        $validated = $request->validate(['hidden' => 'required|boolean']);
+        $recipe->forceFill(['hidden' => $validated['hidden']])->saveQuietly();
+
+        return response()->json(['id' => $recipe->id, 'hidden' => $recipe->hidden]);
+    }
+
     public function show(Recipe $recipe)
     {
         return response()->json($recipe->load(['ingredients', 'history']));

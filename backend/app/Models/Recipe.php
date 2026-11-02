@@ -31,6 +31,7 @@ class Recipe extends Model
         'ph_max' => 'float',
         'default_water_kg' => 'float',
         'packages' => 'array',
+        'hidden' => 'boolean',
     ];
 
     public function ingredients()

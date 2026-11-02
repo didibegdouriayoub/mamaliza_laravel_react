@@ -32,6 +32,7 @@ export const recipeService = {
   getById: (id: string | number) => apiClient.get(`/recipes/${id}`),
   create: (recipe: Partial<Recipe>) => apiClient.post('/recipes', toPayload(recipe)),
   update: (id: string | number, recipe: Partial<Recipe>) => apiClient.put(`/recipes/${id}`, toPayload(recipe)),
+  setHidden: (id: string | number, hidden: boolean) => apiClient.patch(`/recipes/${id}/hidden`, { hidden }),
   delete: (id: string | number) => apiClient.delete(`/recipes/${id}`),
   // Admin: swap one inventory item for another (same code + unit) in the given recipes
   replaceIngredient: (fromMaterialId: string | number, toMaterialId: string | number, recipeIds: (string | number)[]) =>

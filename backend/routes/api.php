@@ -47,6 +47,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/recipes', [\App\Http\Controllers\RecipeController::class, 'store'])->middleware('permission:recipes.write');
     Route::get('/recipes/{recipe}', [\App\Http\Controllers\RecipeController::class, 'show'])->middleware('permission:recipes.read,batches.read,estimation.read,products.read,analytics.read');
     Route::match(['put', 'patch'], '/recipes/{recipe}', [\App\Http\Controllers\RecipeController::class, 'update'])->middleware('permission:recipes.write');
+    Route::patch('/recipes/{recipe}/hidden', [\App\Http\Controllers\RecipeController::class, 'setHidden'])->middleware('permission:recipes.write');
     Route::delete('/recipes/{recipe}', [\App\Http\Controllers\RecipeController::class, 'destroy'])->middleware('permission:recipes.write');
     Route::post('/recipes/replace-ingredient', [\App\Http\Controllers\RecipeIngredientReplaceController::class, 'replace']);
 

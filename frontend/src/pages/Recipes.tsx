@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, ChevronRight, Plus, Edit, Trash2, History } from 'lucide-react';
+import { BookOpen, ChevronRight, Plus, Edit, Trash2, History, Eye, EyeOff } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,7 @@ export default function Recipes() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Recipe | null>(null);
+  const [showHidden, setShowHidden] = useState(false);
   const [formOpen, setFormOpen] = useState(false);
   const [historyRecipe, setHistoryRecipe] = useState<Recipe | null>(null);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
@@ -60,6 +61,7 @@ export default function Recipes() {
         phMax: r.phMax ?? r.ph_max ?? null,
         defaultWaterKg: r.defaultWaterKg ?? r.default_water_kg ?? null,
         recipeStatus: r.recipe_status ?? r.recipeStatus ?? 'semi_final',
+        hidden: !!r.hidden,
         packages: r.packages || [],
         ingredients: (r.ingredients || []).map((i: any) => ({
           ...i,
@@ -141,6 +143,20 @@ export default function Recipes() {
     }
   };
 
+  const toggleHidden = async (recipe: Recipe) => {
+    try {
+      await recipeService.setHidden(recipe.id, !recipe.hidden);
+      setRecipes(prev => prev.map(r => r.id === recipe.id ? { ...r, hidden: !recipe.hidden } : r));
+      setSelected(sel => (sel && sel.id === recipe.id ? { ...sel, hidden: !recipe.hidden } : sel));
+      toast({ title: recipe.hidden ? 'Recipe shown again' : 'Recipe hidden', description: recipe.hidden ? undefined : 'Use "Show hidden" to see it.' });
+    } catch (err: any) {
+      toast({ title: 'Could not update', description: err.message || 'An error occurred.', variant: 'destructive' });
+    }
+  };
+
+  const hiddenCount = recipes.filter(r => r.hidden).length;
+  const visibleRecipes = recipes.filter(r => showHidden || !r.hidden);
+
   const handleDelete = async (id: string) => {
     await recipeService.delete(id);
     toast({ title: 'Recipe deleted', variant: 'destructive' });
@@ -172,21 +188,32 @@ export default function Recipes() {
           <h1 className="text-2xl font-display font-bold flex items-center gap-2"><BookOpen className="h-6 w-6" /> Recipes</h1>
           <p className="text-sm text-muted-foreground">Manage your cheese recipes and formulations</p>
         </div>
-        {hasPermission('recipes.write') && (
-          <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> New Recipe</Button>
-        )}
+        <div className="flex items-center gap-2">
+          {(hiddenCount > 0 || showHidden) && (
+            <Button variant="outline" onClick={() => setShowHidden(v => !v)}>
+              {showHidden ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
+              {showHidden ? 'Hide hidden' : `Show hidden (${hiddenCount})`}
+            </Button>
+          )}
+          {hasPermission('recipes.write') && (
+            <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> New Recipe</Button>
+          )}
+        </div>
       </div>
 
-      {recipes.length === 0 ? <EmptyState title="No recipes yet" description="Create your first recipe to get started." icon="📖" /> : (
+      {recipes.length === 0 ? <EmptyState title="No recipes yet" description="Create your first recipe to get started." icon="📖" /> : visibleRecipes.length === 0 ? (
+        <EmptyState title="All recipes are hidden" description={`Press "Show hidden (${hiddenCount})" to see them.`} icon="🙈" />
+      ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {recipes.map((recipe, idx) => (
+          {visibleRecipes.map((recipe, idx) => (
             <motion.div key={recipe.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.08 }}>
-              <Card className="shadow-card hover:shadow-elevated transition-all cursor-pointer group" onClick={() => setSelected(recipe)}>
+              <Card className={`shadow-card hover:shadow-elevated transition-all cursor-pointer group ${recipe.hidden ? 'opacity-60 border-dashed' : ''}`} onClick={() => setSelected(recipe)}>
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
                     <CardTitle className="text-lg font-display">{recipe.name}</CardTitle>
                     <div className="flex flex-col items-end gap-1">
                       <Badge variant="secondary" className="text-[10px] px-1.5 h-4">v{recipe.version}</Badge>
+                      {recipe.hidden && <Badge variant="outline" className="text-[10px] px-1.5 h-4">Hidden</Badge>}
                     </div>
                   </div>
                 </CardHeader>
@@ -270,6 +297,11 @@ export default function Recipes() {
                 </div>
               </div>
               <DialogFooter className="gap-2 flex-wrap">
+                {hasPermission('recipes.write') && (
+                  <Button variant="outline" size="sm" onClick={() => toggleHidden(selected)}>
+                    {selected.hidden ? <><Eye className="h-3 w-3 mr-1" /> Show</> : <><EyeOff className="h-3 w-3 mr-1" /> Hide</>}
+                  </Button>
+                )}
                 <Button variant="outline" size="sm" onClick={() => { setHistoryRecipe(selected); setSelected(null); }}>
                   <History className="h-3 w-3 mr-1" /> History
                 </Button>

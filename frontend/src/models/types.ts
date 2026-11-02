@@ -103,6 +103,7 @@ export interface Recipe {
   defaultWaterKg?: number | null; // water per batch, editable on each batch
   targetWeight: number;
   recipeStatus: 'semi_final' | 'final';
+  hidden?: boolean; // hidden from the Recipes list until "Show hidden"
   packages: Array<{ id: string; name: string; quantity: number }>;
   steps: string[];
   ingredients: RecipeIngredient[];
