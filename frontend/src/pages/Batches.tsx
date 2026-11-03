@@ -21,10 +21,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { recipeService } from '@/services/recipeService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { allocateByStock, overAllocated, missingInBatch } from '@/lib/batchStock';
 import { cn } from '@/lib/utils';
 import { formatDate } from '@/lib/formatDate';
 
-type BatchDraftIngredient = { materialId: string; materialName: string; quantity: number; unit: string; unitPrice: number; lot?: string; linkId?: string; linkSource?: number; custom?: boolean; };
+type BatchDraftIngredient = { materialId: string; materialName: string; quantity: number; unit: string; unitPrice: number; lot?: string; needed?: number; linkId?: string; linkSource?: number; custom?: boolean; };
 type BatchDraft = { startedAt: string; outputQty: number; note: string; ingredients: BatchDraftIngredient[]; };
 type PrintData = { recipe: Recipe; batches: Array<{ batchNum: number; lot: string; outputQty: number; ingredients: BatchDraftIngredient[] }>; groupId: string; };
 
@@ -281,6 +282,11 @@ export default function Batches() {
   const selectedRecipe = recipes.find(r => String(r.id) === String(recipeId));
   const effectiveTarget = Number(groupTarget) > 0 ? Number(groupTarget) : (selectedRecipe?.targetWeight || 0);
 
+  const stockOf = (materialId: string) => {
+    const inv = inventory.find(m => String(m.id) === String(materialId));
+    return inv ? inv.quantity : undefined;
+  };
+
   const handleNextStep = () => {
     if (!selectedRecipe) return;
     const count = Math.max(1, Math.min(20, Math.floor(Number(batchCount)) || 1));
@@ -290,7 +296,8 @@ export default function Batches() {
       note: '',
       ingredients: selectedRecipe.ingredients.map(ing => ({ ...ing })),
     }));
-    setBatchDrafts(drafts);
+    // stock never goes below 0: the first batch takes what exists, the others get 0
+    setBatchDrafts(allocateByStock(drafts, stockOf));
     setExpandedBatch(0);
     setCreateStep(2);
   };
@@ -330,6 +337,11 @@ export default function Batches() {
     setBatchDrafts(prev => prev.map(d => ({ ...d, ingredients: [...d.ingredients, { materialId: '', materialName: '', quantity: 0, unit: '', unitPrice: 0, linkId }] })));
   };
 
+  // Add a blank ingredient to one batch only (e.g. another lot to cover what is missing there)
+  const addIngredientToBatch = (bIdx: number) =>
+    setBatchDrafts(prev => prev.map((d, i) => i === bIdx
+      ? { ...d, ingredients: [...d.ingredients, { materialId: '', materialName: '', quantity: 0, unit: '', unitPrice: 0 }] } : d));
+
   const setDraftIngredientMaterial = (bIdx: number, iIdx: number, materialId: string) => {
     const mat = inventory.find(m => String(m.id) === String(materialId));
     if (!mat) return;
@@ -345,6 +357,9 @@ export default function Batches() {
   const rawMaterials = [...inventory]
     .filter(m => m.type === 'raw' && m.quantity > 0) // out-of-stock lots are not offered
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }) || (a.lot || '').localeCompare(b.lot || ''));
+
+  const stockProblems = overAllocated(batchDrafts, stockOf);
+  const shortRecipeIngredients = batchDrafts.some(d => d.ingredients.some(i => i.needed !== undefined));
 
   const handleCreate = async () => {
     const recipe = selectedRecipe;
@@ -370,7 +385,7 @@ export default function Batches() {
           recipeId: String(recipe.id), recipeName: recipe.name,
           status: 'completed' as BatchStatus,
           startedAt: draft.startedAt,
-          inputMaterials: draft.ingredients.map(({ linkId, linkSource, custom, ...ing }) => ing),
+          inputMaterials: draft.ingredients.map(({ linkId, linkSource, custom, needed, ...ing }) => ing),
           outputQuantity: draft.outputQty || effectiveTarget,
           outputUnit: 'kg',
           operatorId: user?.id, operatorName: user?.name,
@@ -673,6 +688,17 @@ export default function Batches() {
           {createStep === 2 && (
             <div className="space-y-3 py-2">
               <p className="text-sm text-muted-foreground">Edit ingredients per batch. Batches start as <strong>Completed</strong>.</p>
+              {shortRecipeIngredients && (
+                <p className="text-sm rounded-md border border-amber-200 bg-amber-50 text-amber-800 p-2">
+                  Not enough stock for some ingredients. The first batch takes what is in stock and the next ones get 0.
+                  Use <strong>Add ingredient (this batch)</strong> to add another lot of the same material and fill the rest.
+                </p>
+              )}
+              {stockProblems.length > 0 && (
+                <p className="text-sm rounded-md border border-red-200 bg-red-50 text-red-700 p-2">
+                  {stockProblems.map(p => `${p.name}: ${p.total} needed, only ${p.stock} in stock`).join(' · ')} — stock cannot go below 0, lower the quantities.
+                </p>
+              )}
               {batchDrafts.map((draft, bIdx) => {
                 const isOpen = expandedBatch === bIdx;
                 const draftCost = draft.ingredients.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
@@ -710,9 +736,17 @@ export default function Batches() {
                               <span className="text-xs text-muted-foreground w-8 shrink-0">{ing.unit}</span>
                             </div>
                             <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => removeIngredient(bIdx, iIdx)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
+                            {missingInBatch(draft.ingredients, iIdx) > 0 && (
+                              <p className="col-span-3 text-xs text-amber-700 -mt-0.5">
+                                Needs {ing.needed} {ing.unit} — {missingInBatch(draft.ingredients, iIdx)} {ing.unit} missing (not enough in stock). Add another lot below.
+                              </p>
+                            )}
                           </div>
                         ))}
-                        <Button type="button" variant="ghost" size="sm" className="text-xs h-7" onClick={addIngredient}><Plus className="h-3 w-3 mr-1" /> Add ingredient (all batches)</Button>
+                        <div className="flex flex-wrap gap-1">
+                          <Button type="button" variant="ghost" size="sm" className="text-xs h-7" onClick={() => addIngredientToBatch(bIdx)}><Plus className="h-3 w-3 mr-1" /> Add ingredient (this batch)</Button>
+                          <Button type="button" variant="ghost" size="sm" className="text-xs h-7" onClick={addIngredient}><Plus className="h-3 w-3 mr-1" /> Add ingredient (all batches)</Button>
+                        </div>
                         <div className="space-y-1"><Label className="text-xs">Note</Label><Input className="h-8 text-sm" value={draft.note} onChange={e => updateDraft(bIdx, { note: e.target.value })} placeholder="Production notes..." /></div>
                         {showMoney && (<p className="text-xs text-right text-muted-foreground">Cost: <span className="font-semibold text-foreground">DH{draftCost.toFixed(2)}</span></p>)}
                       </div>
@@ -728,7 +762,7 @@ export default function Batches() {
             {createStep === 1 ? (
               <><Button variant="outline" onClick={() => setFormOpen(false)}>Cancel</Button><Button disabled={!recipeId} onClick={handleNextStep}>Next →</Button></>
             ) : (
-              <><Button variant="outline" onClick={() => setCreateStep(1)}>← Back</Button><Button onClick={handleCreate}>Create {batchDrafts.length} Batch{batchDrafts.length !== 1 ? 'es' : ''}</Button></>
+              <><Button variant="outline" onClick={() => setCreateStep(1)}>← Back</Button><Button disabled={stockProblems.length > 0} onClick={handleCreate}>Create {batchDrafts.length} Batch{batchDrafts.length !== 1 ? 'es' : ''}</Button></>
             )}
           </DialogFooter>
         </DialogContent>

@@ -39,6 +39,23 @@ class BatchController extends Controller
             $validated['started_at'] = now()->toDateTimeString();
         }
 
+        // Stock never goes below 0: refuse a batch that needs more of a material than is in stock
+        $needed = [];
+        foreach ($validated['input_materials'] ?? [] as $material) {
+            $materialId = $material['material_id'] ?? $material['id'] ?? null;
+            if ($materialId) {
+                $needed[$materialId] = ($needed[$materialId] ?? 0) + (float) ($material['quantity'] ?? 0);
+            }
+        }
+        foreach ($needed as $materialId => $quantity) {
+            $item = \App\Models\InventoryItem::find($materialId);
+            if ($item && $quantity > (float) $item->quantity + 0.0005) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'input_materials' => "Not enough {$item->name} in stock: {$item->quantity} {$item->unit} available, {$quantity} {$item->unit} needed.",
+                ]);
+            }
+        }
+
         // Auto-generate unique lot: {3-LETTERS}-{DDMMYYYY}-{NNN}
         $prefix = strtoupper(substr(preg_replace('/[^a-zA-Z]/', '', $validated['recipe_name']), 0, 3));
         $date   = \Carbon\Carbon::parse($validated['started_at'])->format('dmY'); // lot carries the production date

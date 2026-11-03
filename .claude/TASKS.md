@@ -611,3 +611,9 @@ Still open / not built: T16.1, T12.23, T12.26, T13.49 (in progress), T24.7, D2.
 | L1 | Language setting: `users.language` (en/fr), choice in the Users tab, i18n library, French for login + menu + common buttons | 🟠 | ✅ (54 tests pass incl. key check; needs browser check; run migrate + route:clear on server; frontend rebuild) |
 | L2 | Translate pages the French user works in (list to confirm), table of English/French for review | 🟠 | ☐ |
 | L3 | Translate the remaining pages and the server messages | 🟡 | ☐ |
+
+### Batch ingredients never go below zero
+> Owner rule: an ingredient's stock never goes below 0. When a material has less stock than all batches need (e.g. 3 available, 5 needed), the first batch gets what exists (3) and the other batches get 0 by default; the user can add another material (another lot) to cover the missing amount, per batch.
+| # | Task | Priority | Status |
+|---|---|---|---|
+| S1 | Batch create: default quantities capped by stock (first batch takes the available stock, the rest 0), shortage shown with a hint to add a replacement material; backend refuses to take more than the stock | 🔴 | ✅ (frontend: 8 new unit tests, 62 pass, type-check clean; backend guard written but NOT run - Docker was off; needs browser check; deploy backend + frontend, no migration. Packaging (emballage) auto-deduction can still go below 0) |
