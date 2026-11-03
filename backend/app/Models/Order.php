@@ -21,7 +21,7 @@ class Order extends Model
         'document_type',
         'doc_number',
         'converted_to_id',
-        'tournee_id',
+        'tournee_id', // legacy marker of factures settled from the removed tournée feature (no link any more)
         'paid_at'
     ];
 

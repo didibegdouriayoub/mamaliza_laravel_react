@@ -237,13 +237,9 @@ class OrderController extends Controller
 
     public function destroy(Order $order, FinishedStockService $stockService)
     {
-        // A facture settled from a worker's tournée never left the fridge itself: deleting it hands the goods
-        // back to the tournée (its deliveries cascade), and only while that tournée is still open.
+        // A facture that came from the removed tournée feature never took stock from the fridge itself
+        // (the tournée load did), so deleting it must not put anything back.
         if ($order->tournee_id) {
-            $tournee = \App\Models\Tournee::find($order->tournee_id);
-            if ($tournee && $tournee->status === 'closed') {
-                throw ValidationException::withMessages(['order' => 'This facture belongs to a closed tournée and cannot be deleted.']);
-            }
             $order->delete();
             return response()->json(null, 204);
         }

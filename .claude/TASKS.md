@@ -617,3 +617,9 @@ Still open / not built: T16.1, T12.23, T12.26, T13.49 (in progress), T24.7, D2.
 | # | Task | Priority | Status |
 |---|---|---|---|
 | S1 | Batch create: default quantities capped by stock (first batch takes the available stock, the rest 0), shortage shown with a hint to add a replacement material; backend refuses to take more than the stock | 🔴 | ✅ (frontend: 8 new unit tests, 62 pass, type-check clean; backend guard written but NOT run - Docker was off; needs browser check; deploy backend + frontend, no migration. Packaging (emballage) auto-deduction can still go below 0) |
+
+### Remove the Tournée section
+> Owner request: delete the tournée section and everything linked to it. Kept on purpose: the plain `orders.tournee_id` number (no link) so deleting an old tournée facture never adds stock back (those goods already left with the load), and the stock-history labels for old tournee_out / tournee_return movements. The migration refuses to run while a tournée is still open (its stock would be lost).
+| # | Task | Priority | Status |
+|---|---|---|---|
+| X1 | Remove Tournées page, route, menu entry, service, print, test, API routes, controller, models; migration drops the 3 tournée tables and the orders link | 🟠 | ✅ (type-check + 61 tests pass; migration NOT run anywhere yet - on the server: check open tournées, back up, then migrate; frontend + backend deploy) |

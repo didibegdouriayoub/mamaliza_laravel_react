@@ -9,7 +9,7 @@ const en = {
     navigation: 'Navigation',
     dashboard: 'Dashboard', inventory: 'Inventory', recipes: 'Recipes', batches: 'Batches', quality: 'Quality',
     estimation: 'Estimation', products: 'Products', finishing: 'Finishing', finishedGoods: 'Finished Goods',
-    scanLot: 'Scan Lot', customers: 'Customers', suppliers: 'Suppliers', tournees: 'Tournées', sales: 'Sales',
+    scanLot: 'Scan Lot', customers: 'Customers', suppliers: 'Suppliers', sales: 'Sales',
     analytics: 'Analytics', users: 'Users', permissions: 'Permissions',
   },
   topbar: { notifications: 'Notifications', clearAll: 'Clear all', noNotifications: 'No notifications', toggleDark: 'Toggle dark mode', logout: 'Logout', delete: 'Delete' },

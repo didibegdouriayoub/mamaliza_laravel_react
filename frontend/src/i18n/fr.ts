@@ -11,7 +11,7 @@ const fr: Messages = {
     navigation: 'Navigation',
     dashboard: 'Tableau de bord', inventory: 'Stock', recipes: 'Recettes', batches: 'Productions', quality: 'Qualité',
     estimation: 'Estimation', products: 'Produits', finishing: 'Finition', finishedGoods: 'Produits finis',
-    scanLot: 'Scanner un lot', customers: 'Clients', suppliers: 'Fournisseurs', tournees: 'Tournées', sales: 'Ventes',
+    scanLot: 'Scanner un lot', customers: 'Clients', suppliers: 'Fournisseurs', sales: 'Ventes',
     analytics: 'Analyses', users: 'Utilisateurs', permissions: 'Autorisations',
   },
   topbar: { notifications: 'Notifications', clearAll: 'Tout effacer', noNotifications: 'Aucune notification', toggleDark: 'Mode sombre', logout: 'Déconnexion', delete: 'Supprimer' },
