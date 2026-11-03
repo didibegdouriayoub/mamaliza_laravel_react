@@ -603,3 +603,11 @@ Still open / not built: T16.1, T12.23, T12.26, T13.49 (in progress), T24.7, D2.
 | # | Task | Priority | Status |
 |---|---|---|---|
 | R1 | Recipes page: hide chosen recipes from the list (per-recipe Hide button), "Show hidden" button reveals them with Unhide; `recipes.hidden` flag (migration) | 🟠 | ✅ (type-check + 52 tests pass, route registered; needs browser check; run migrate + route:clear on server) |
+
+### French interface (per-user language)
+> Decisions (owner): one app, language chosen per user in the Users tab; printed documents (facture, devis, bon de livraison) stay French for everyone; data typed by users is not translated. Glossary agreed 2026-11-03 (leftover = Réemploi, recipes = Recettes, fondu = Fondu, batch = Production, lot number = Lot).
+| # | Task | Priority | Status |
+|---|---|---|---|
+| L1 | Language setting: `users.language` (en/fr), choice in the Users tab, i18n library, French for login + menu + common buttons | 🟠 | ✅ (54 tests pass incl. key check; needs browser check; run migrate + route:clear on server; frontend rebuild) |
+| L2 | Translate pages the French user works in (list to confirm), table of English/French for review | 🟠 | ☐ |
+| L3 | Translate the remaining pages and the server messages | 🟡 | ☐ |

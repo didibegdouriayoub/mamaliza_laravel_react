@@ -3,12 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import cheeseHero from '@/assets/cheese-hero.jpg';
 import cheeseLogo from '@/assets/cheese-logo.png';
 
 export default function Login() {
   const { login } = useAuth();
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -20,9 +22,9 @@ export default function Login() {
     setIsSubmitting(true);
     try {
       const success = await login(email, password);
-      if (!success) setError('Invalid credentials.');
+      if (!success) setError(t('login.invalid'));
     } catch (err: any) {
-      setError(err.message || 'Failed to connect. Please check that the server is running.');
+      setError(err.message || t('login.connectFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -36,7 +38,7 @@ export default function Login() {
         <div className="absolute inset-0 bg-gradient-to-t from-primary/60 to-transparent" />
         <div className="relative z-10 text-center px-12">
           <h2 className="text-4xl font-display font-bold text-primary-foreground mb-4">Fromagerie</h2>
-          <p className="text-lg text-primary-foreground/80">Cheese Factory Management System</p>
+          <p className="text-lg text-primary-foreground/80">{t('login.tagline')}</p>
         </div>
       </div>
 
@@ -47,22 +49,22 @@ export default function Login() {
             <div className="flex justify-center mb-2">
               <img src={cheeseLogo} alt="Logo" className="h-16 w-16" />
             </div>
-            <CardTitle className="text-2xl font-display">Welcome Back</CardTitle>
-            <p className="text-sm text-muted-foreground">Sign in to manage your fromagerie</p>
+            <CardTitle className="text-2xl font-display">{t('login.welcome')}</CardTitle>
+            <p className="text-sm text-muted-foreground">{t('login.subtitle')}</p>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <Label>Email</Label>
+                <Label>{t('login.email')}</Label>
                 <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="your@email.com" />
               </div>
               <div className="space-y-1.5">
-                <Label>Password</Label>
+                <Label>{t('login.password')}</Label>
                 <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
               </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? 'Signing in…' : 'Sign In'}
+                {isSubmitting ? t('login.signingIn') : t('login.signIn')}
               </Button>
             </form>
           </CardContent>

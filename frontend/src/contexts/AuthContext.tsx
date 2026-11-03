@@ -3,6 +3,7 @@ import { User, Permission, UserRole } from '@/models/types';
 import { authService } from '@/services/authService';
 import { setAuthToken, removeAuthToken } from '@/lib/apiClient';
 import { toast } from 'sonner';
+import { setLanguage } from '@/i18n';
 
 interface AuthContextType {
   user: User | null;
@@ -32,6 +33,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const me = await authService.getMe();
         if (me) {
           setUser(me.user || me);
+          setLanguage((me.user || me).language);
           setIsAuthenticated(true);
         }
       } catch (err) {
@@ -80,6 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Fetch user object
         const me = await authService.getMe();
         setUser(me?.user || me);
+        setLanguage((me?.user || me)?.language);
         setIsAuthenticated(true);
         return true;
       }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Bell, Moon, Sun, LogOut, Trash2, X } from 'lucide-react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { notificationService } from '@/services/notificationService';
 import { Notification } from '@/models/types';
@@ -10,6 +11,7 @@ import { Button } from '@/components/ui/button';
 
 export function Topbar() {
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [dark, setDark] = useState(document.documentElement.classList.contains('dark'));
   const unreadCount = notifications.filter(n => !n.readBy?.includes(user.id as string)).length;
@@ -76,7 +78,7 @@ export function Topbar() {
       </div>
 
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={toggleDark} title="Toggle dark mode">
+        <Button variant="ghost" size="icon" onClick={toggleDark} title={t('topbar.toggleDark')}>
           {dark ? <Sun className="h-5 w-5 text-muted-foreground" /> : <Moon className="h-5 w-5 text-muted-foreground" />}
         </Button>
 
@@ -93,7 +95,7 @@ export function Topbar() {
           </PopoverTrigger>
           <PopoverContent align="end" className="w-80 p-0">
             <div className="p-3 border-b flex items-center justify-between">
-              <h4 className="font-display font-semibold text-sm">Notifications</h4>
+              <h4 className="font-display font-semibold text-sm">{t('topbar.notifications')}</h4>
               {notifications.length > 0 && (
                 <Button
                   variant="ghost"
@@ -102,13 +104,13 @@ export function Topbar() {
                   onClick={handleDeleteAll}
                 >
                   <Trash2 className="h-3 w-3" />
-                  Clear all
+                  {t('topbar.clearAll')}
                 </Button>
               )}
             </div>
             <div className="max-h-64 overflow-y-auto">
               {notifications.length === 0 && (
-                <p className="text-xs text-muted-foreground text-center py-6">No notifications</p>
+                <p className="text-xs text-muted-foreground text-center py-6">{t('topbar.noNotifications')}</p>
               )}
               {notifications.map(n => {
                 const isUnread = !n.readBy?.includes(user.id as string);
@@ -129,7 +131,7 @@ export function Topbar() {
                       <button
                         className="shrink-0 text-muted-foreground hover:text-destructive transition-colors mt-0.5"
                         onClick={(e) => handleDeleteOne(e, n.id)}
-                        title="Delete"
+                        title={t('topbar.delete')}
                       >
                         <X className="h-3.5 w-3.5" />
                       </button>
@@ -153,7 +155,7 @@ export function Topbar() {
           </div>
         </div>
 
-        <Button variant="ghost" size="icon" onClick={logout} title="Logout">
+        <Button variant="ghost" size="icon" onClick={logout} title={t('topbar.logout')}>
           <LogOut className="h-4 w-4 text-muted-foreground" />
         </Button>
       </div>

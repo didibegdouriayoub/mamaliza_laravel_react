@@ -20,9 +20,11 @@ class UserController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6',
             'role' => 'required|in:admin,supervisor,operator',
+            'language' => 'nullable|in:en,fr',
             'permissions' => 'nullable|array',
         ]);
 
+        $validated['language'] = $validated['language'] ?? 'en';
         $validated['password'] = Hash::make($validated['password']);
         if (!isset($validated['permissions'])) {
             $validated['permissions'] = [];
@@ -52,6 +54,7 @@ class UserController extends Controller
             'email' => 'sometimes|string|email|max:255|unique:users,email,' . $user->id,
             'password' => 'sometimes|string|min:6',
             'role' => 'sometimes|in:admin,supervisor,operator',
+            'language' => 'sometimes|in:en,fr',
             'permissions' => 'nullable|array',
         ]);
 

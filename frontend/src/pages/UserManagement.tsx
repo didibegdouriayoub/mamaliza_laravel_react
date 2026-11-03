@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { TableSkeleton, EmptyState } from '@/components/DataStates';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { userService } from '@/services/userService';
 import { useToast } from '@/hooks/use-toast';
 import type { User, UserRole, Permission } from '@/models/types';
@@ -66,12 +67,15 @@ export default function UserManagement() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [editPerms, setEditPerms] = useState<Permission[]>([]);
   const [editRole, setEditRole] = useState<UserRole>('operator');
+  const [editLang, setEditLang] = useState<'en' | 'fr'>('en');
+  const { t } = useTranslation();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newRole, setNewRole] = useState<UserRole>('operator');
+  const [newLang, setNewLang] = useState<'en' | 'fr'>('en');
 
   const loadData = async () => {
     setLoading(true);
@@ -101,12 +105,13 @@ export default function UserManagement() {
     setEditingUser(u);
     setEditPerms([...(u.permissions || [])]);
     setEditRole(u.role);
+    setEditLang(u.language === 'fr' ? 'fr' : 'en');
   };
 
   const handleSave = async () => {
     if (!editingUser) return;
     try {
-      await userService.update(editingUser.id, { role: editRole, permissions: editPerms });
+      await userService.update(editingUser.id, { role: editRole, language: editLang, permissions: editPerms });
       toast({ title: 'User updated' });
       setEditingUser(null);
       loadData();
@@ -118,7 +123,7 @@ export default function UserManagement() {
   const handleCreate = async () => {
     if (!newName || !newEmail || !newPassword) return;
     try {
-      await userService.create({ name: newName, email: newEmail, password: newPassword, role: newRole });
+      await userService.create({ name: newName, email: newEmail, password: newPassword, role: newRole, language: newLang });
       toast({ title: 'User created' });
       setCreateOpen(false);
       setNewName(''); setNewEmail(''); setNewPassword(''); setNewRole('operator');
@@ -243,6 +248,19 @@ export default function UserManagement() {
                   )}
                 </div>
 
+                {/* Language */}
+                <div className="space-y-1.5">
+                  <Label>{t('users.language')}</Label>
+                  <Select value={editLang} onValueChange={v => setEditLang(v as 'en' | 'fr')}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">{t('users.english')}</SelectItem>
+                      <SelectItem value="fr">{t('users.french')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">{t('users.languageHelp')}</p>
+                </div>
+
                 {/* Page access grid */}
                 {editRole !== 'admin' && (
                   <div className="space-y-2">
@@ -311,6 +329,16 @@ export default function UserManagement() {
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="supervisor">Supervisor</SelectItem>
                   <SelectItem value="operator">Operator</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>{t('users.language')}</Label>
+              <Select value={newLang} onValueChange={v => setNewLang(v as 'en' | 'fr')}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="en">{t('users.english')}</SelectItem>
+                  <SelectItem value="fr">{t('users.french')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
